@@ -5,7 +5,12 @@ import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { getActiveComparePoolGraphSources, getSourceById, resetRegistryCache } from "./index.js";
+import {
+  RegistryConfigurationError,
+  getActiveComparePoolGraphSources,
+  getSourceById,
+  resetRegistryCache,
+} from "./index.js";
 import type { SourceRegistryRecord } from "./types.js";
 
 const temporaryDirectories: string[] = [];
@@ -226,5 +231,112 @@ describe("getActiveComparePoolGraphSources", () => {
 
     expect(Object.isFrozen(first)).toBe(true);
     expect(Object.isFrozen(first?.record)).toBe(true);
+  });
+});
+describe("record validation", () => {
+  it("rejects a missing registry file with the path in the diagnostic", () => {
+    const missing = new URL("file:///deeptrace-does-not-exist/records.json");
+
+    expect(() => getSourceById("test-graph-a", { records: missing })).toThrow(
+      RegistryConfigurationError,
+    );
+  });
+
+  it("rejects malformed JSON", () => {
+    const location = writeJsonFile("records.json", "{ not json");
+
+    expect(() => getSourceById("test-graph-a", { records: location })).toThrow(
+      /records\.json: is not valid JSON/,
+    );
+  });
+
+  it("rejects a registry that is not an array", () => {
+    expect(() => getSourceById("test-graph-a", { records: { sources: [] } })).toThrow(
+      RegistryConfigurationError,
+    );
+  });
+
+  it("rejects an empty registry", () => {
+    expect(() => getSourceById("test-graph-a", { records: [] })).toThrow(
+      RegistryConfigurationError,
+    );
+  });
+
+  it("names the failing index and field", () => {
+    const invalid = [graphRecord, { ...graphRecord, source_id: "test-graph-b", protocol: "" }];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      /records\.json\[1\]\.protocol/,
+    );
+  });
+
+  it("rejects a gateway host outside the allowlist", () => {
+    const invalid = [
+      { ...graphRecord, locator: { ...graphRecord.locator, gateway_host: "evil.example.com" } },
+    ];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      /records\.json\[0\]\.locator\.gateway_host/,
+    );
+  });
+
+  it("rejects a chain other than Base", () => {
+    const invalid = [{ ...graphRecord, chain_id: 1 }];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      /records\.json\[0\]\.chain_id/,
+    );
+  });
+
+  it("rejects an empty subgraph id", () => {
+    const invalid = [{ ...graphRecord, locator: { ...graphRecord.locator, subgraph_id: "" } }];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      /records\.json\[0\]\.locator\.subgraph_id/,
+    );
+  });
+
+  it("rejects an empty pinned deployment id", () => {
+    const invalid = [{ ...graphRecord, deployment_or_view_id: "" }];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      /records\.json\[0\]\.deployment_or_view_id/,
+    );
+  });
+
+  it("rejects unknown keys rather than silently dropping them", () => {
+    const invalid = [{ ...graphRecord, gateway_url: "https://gateway.thegraph.com/x" }];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      RegistryConfigurationError,
+    );
+  });
+
+  it("rejects a Graph locator paired with a Nuthatch source type", () => {
+    const invalid = [{ ...graphRecord, source_type: "nuthatch_view" }];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      RegistryConfigurationError,
+    );
+  });
+
+  it("rejects duplicate source ids", () => {
+    const invalid = [graphRecord, { ...graphRecord, deployment_or_view_id: "QmOther" }];
+
+    expect(() => getSourceById("test-graph-a", { records: invalid })).toThrow(
+      /duplicate source_id "test-graph-a"/,
+    );
+  });
+
+  it("reports every invalid field in one error", () => {
+    const invalid = [{ ...graphRecord, protocol: "", supported_entities: [] }];
+
+    try {
+      getSourceById("test-graph-a", { records: invalid });
+      expect.unreachable("expected a registry configuration error");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RegistryConfigurationError);
+      expect((error as RegistryConfigurationError).issues.length).toBeGreaterThan(1);
+    }
   });
 });
