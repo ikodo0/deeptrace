@@ -39,6 +39,18 @@ export const canonicalTokenSchema = z
   })
   .strict();
 
+function tokensEqual(
+  left: z.infer<typeof canonicalTokenSchema>,
+  right: z.infer<typeof canonicalTokenSchema>,
+): boolean {
+  return (
+    left.chain_id === right.chain_id &&
+    left.address === right.address &&
+    left.symbol === right.symbol &&
+    left.decimals === right.decimals
+  );
+}
+
 export const canonicalPairSchema = z
   .tuple([canonicalTokenSchema, canonicalTokenSchema])
   .refine(([tokenA, tokenB]) => tokenA.address !== tokenB.address, "Pair tokens must differ");
@@ -211,6 +223,9 @@ export const comparePoolsResponseSchema = z
   .superRefine((response, context) => {
     const provenanceIds = new Set(response.provenance.map(({ source_id }) => source_id));
     const freshnessIds = new Set(response.freshness.map(({ source_id }) => source_id));
+    const freshnessById = new Map(
+      response.freshness.map((freshness) => [freshness.source_id, freshness]),
+    );
     const provenanceById = new Map(
       response.provenance.map((provenance) => [provenance.source_id, provenance]),
     );
@@ -280,8 +295,8 @@ export const comparePoolsResponseSchema = z
         if (
           pool.rank !== index + 1 ||
           pool.window !== response.data.window ||
-          pool.pair[0].address !== response.data.pair[0].address ||
-          pool.pair[1].address !== response.data.pair[1].address
+          !tokensEqual(pool.pair[0], response.data.pair[0]) ||
+          !tokensEqual(pool.pair[1], response.data.pair[1])
         ) {
           context.addIssue({
             code: "custom",
@@ -292,12 +307,14 @@ export const comparePoolsResponseSchema = z
 
         if (
           pool.source_ids.some(
-            (sourceId) => provenanceById.get(sourceId)?.source_type === "nuthatch_view",
+            (sourceId) =>
+              provenanceById.get(sourceId)?.source_type === "nuthatch_view" ||
+              freshnessById.get(sourceId)?.status === "unavailable",
           )
         ) {
           context.addIssue({
             code: "custom",
-            message: "Pool financial records must reference Graph provenance",
+            message: "Pool financial records must reference observed Graph sources",
             path: ["data", "pools", index, "source_ids"],
           });
         }
@@ -367,15 +384,32 @@ export const comparePoolsResponseSchema = z
         .filter(({ source_type }) => source_type === "nuthatch_view")
         .map(({ source_id }) => source_id),
     );
+    const nuthatchSourceId = [...nuthatchIds][0];
+    const nuthatchFreshness =
+      nuthatchSourceId === undefined ? undefined : freshnessById.get(nuthatchSourceId);
+    const nuthatchFact = response.data === null ? null : response.data.nuthatch_freshness_fact;
+
     if (
-      response.data !== null &&
-      response.data.nuthatch_freshness_fact !== null &&
-      !nuthatchIds.has(response.data.nuthatch_freshness_fact.source_id)
+      nuthatchFact !== null &&
+      (!nuthatchIds.has(nuthatchFact.source_id) ||
+        freshnessById.get(nuthatchFact.source_id)?.status === "unavailable")
     ) {
       context.addIssue({
         code: "custom",
-        message: "Nuthatch freshness fact must reference the Nuthatch provenance entry",
+        message: "Nuthatch fact must reference an observed Nuthatch source",
         path: ["data", "nuthatch_freshness_fact", "source_id"],
+      });
+    }
+
+    if (
+      response.data !== null &&
+      ((nuthatchFreshness?.status === "fresh" && nuthatchFact === null) ||
+        (nuthatchFreshness?.status === "unavailable" && nuthatchFact !== null))
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Nuthatch fact availability must match Nuthatch freshness",
+        path: ["data", "nuthatch_freshness_fact"],
       });
     }
   });

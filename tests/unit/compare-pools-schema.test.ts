@@ -192,6 +192,22 @@ describe("compare_pools response schemas", () => {
         data: {
           ...completeComparePoolsFixture.data,
           pools: completeComparePoolsFixture.data.pools.map((pool, index) =>
+            index === 0
+              ? {
+                  ...pool,
+                  pair: [{ ...pool.pair[0], decimals: 6 }, pool.pair[1]],
+                }
+              : pool,
+          ),
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...completeComparePoolsFixture,
+        data: {
+          ...completeComparePoolsFixture.data,
+          pools: completeComparePoolsFixture.data.pools.map((pool, index) =>
             index === 0 ? { ...pool, window: "7d" } : pool,
           ),
         },
@@ -222,6 +238,72 @@ describe("compare_pools response schemas", () => {
             source_id: "fixture-dex-a",
           },
         },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires Nuthatch coverage to match fact availability", () => {
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...completeComparePoolsFixture,
+        coverage: {
+          ...completeComparePoolsFixture.coverage,
+          nuthatch_available: false,
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...partialComparePoolsFixture,
+        coverage: {
+          ...partialComparePoolsFixture.coverage,
+          nuthatch_available: true,
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires facts and financial records to reference observed sources", () => {
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...partialComparePoolsFixture,
+        data: {
+          ...partialComparePoolsFixture.data,
+          pools: [
+            partialComparePoolsFixture.data.pools[0],
+            {
+              ...partialComparePoolsFixture.data.pools[1],
+              source_ids: ["fixture-dex-c"],
+            },
+          ],
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...completeComparePoolsFixture,
+        status: "partial",
+        freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
+          index === 3 ? { source_id: entry.source_id, status: "unavailable" } : entry,
+        ),
+      }).success,
+    ).toBe(false);
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...partialComparePoolsFixture,
+        freshness: partialComparePoolsFixture.freshness.map((entry, index) =>
+          index === 3
+            ? {
+                source_id: entry.source_id,
+                status: "fresh",
+                indexed_block: 12_345_678,
+                indexed_block_timestamp: 1_699_999_992,
+                indexed_block_hash: `0x${"2".repeat(64)}`,
+                queried_at: 1_700_000_000,
+                lag_seconds: 8,
+              }
+            : entry,
+        ),
       }).success,
     ).toBe(false);
   });
