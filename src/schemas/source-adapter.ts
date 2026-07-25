@@ -1,25 +1,102 @@
+import { z } from "zod";
+
 export const BASE_CHAIN_ID = 8453 as const;
 
-export type SourceStatus = "ok" | "timeout" | "error" | "unsupported" | "stale";
+const nonEmptyStringSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value.trim() === value, "Must not have leading or trailing whitespace");
 
-export type FailureSourceStatus = Exclude<SourceStatus, "ok">;
+const nonNegativeIntegerSchema = z.number().int().nonnegative();
+const nonNegativeNumberSchema = z.number().nonnegative();
 
-export type SourceType = "standardized_subgraph" | "native_subgraph" | "nuthatch_view";
+const ethereumAddressSchema = z
+  .string()
+  .regex(/^0x[0-9a-f]{40}$/, "Expected a lowercase 20-byte hexadecimal address");
 
-export interface SourceFreshness {
-  indexed_block: number;
-  indexed_block_timestamp: number;
-  indexed_block_hash?: string;
-  queried_at: number;
-  has_indexing_errors?: boolean;
-}
+const blockHashSchema = z
+  .string()
+  .regex(/^0x[0-9a-f]{64}$/, "Expected a lowercase 32-byte hexadecimal hash");
 
-export interface SourceProvenance {
-  deployment_or_view_id: string;
-  schema_version: string | null;
-  methodology_version: string | null;
-  query_id: string;
-}
+const nonNegativeDecimalStringSchema = z
+  .string()
+  .regex(/^(?:0|[1-9]\d*)(?:\.\d+)?$/, "Expected a non-negative decimal string");
+
+const financialValueSchema = nonNegativeDecimalStringSchema.nullable();
+
+export const sourceStatusSchema = z.enum(["ok", "timeout", "error", "unsupported", "stale"]);
+export const failureSourceStatusSchema = z.enum(["timeout", "error", "unsupported", "stale"]);
+export const sourceTypeSchema = z.enum([
+  "standardized_subgraph",
+  "native_subgraph",
+  "nuthatch_view",
+]);
+
+export const sourceFreshnessSchema = z
+  .object({
+    indexed_block: nonNegativeIntegerSchema,
+    indexed_block_timestamp: nonNegativeIntegerSchema,
+    indexed_block_hash: blockHashSchema.optional(),
+    queried_at: nonNegativeIntegerSchema,
+    has_indexing_errors: z.boolean().optional(),
+  })
+  .strict();
+
+const nuthatchSourceFreshnessSchema = sourceFreshnessSchema.extend({
+  indexed_block_hash: blockHashSchema,
+});
+
+export const sourceProvenanceSchema = z
+  .object({
+    deployment_or_view_id: nonEmptyStringSchema,
+    schema_version: nonEmptyStringSchema.nullable(),
+    methodology_version: nonEmptyStringSchema.nullable(),
+    query_id: nonEmptyStringSchema,
+  })
+  .strict();
+
+export const tokenMetadataSchema = z
+  .object({
+    address: ethereumAddressSchema,
+    symbol: nonEmptyStringSchema,
+    decimals: nonNegativeIntegerSchema,
+  })
+  .strict();
+
+export const poolSourceDataSchema = z
+  .object({
+    pool_address: ethereumAddressSchema,
+    token0: tokenMetadataSchema,
+    token1: tokenMetadataSchema,
+    fee_tier_bps: nonNegativeIntegerSchema.nullable(),
+    tvl_usd: financialValueSchema,
+    volume_usd_24h: financialValueSchema,
+    volume_usd_7d: financialValueSchema,
+    fees_usd_24h: financialValueSchema,
+    fees_usd_7d: financialValueSchema,
+  })
+  .strict();
+
+export const nuthatchFreshnessDataSchema = z
+  .object({
+    pool_address: ethereumAddressSchema,
+    recent_swap_count_24h: nonNegativeIntegerSchema,
+    last_swap_block: nonNegativeIntegerSchema,
+    last_swap_block_timestamp: nonNegativeIntegerSchema,
+    last_swap_block_hash: blockHashSchema,
+    last_swap_tx_hash: blockHashSchema,
+    last_swap_log_index: nonNegativeIntegerSchema,
+  })
+  .strict();
+
+export type SourceStatus = z.infer<typeof sourceStatusSchema>;
+export type FailureSourceStatus = z.infer<typeof failureSourceStatusSchema>;
+export type SourceType = z.infer<typeof sourceTypeSchema>;
+export type SourceFreshness = z.infer<typeof sourceFreshnessSchema>;
+export type SourceProvenance = z.infer<typeof sourceProvenanceSchema>;
+export type TokenMetadata = z.infer<typeof tokenMetadataSchema>;
+export type PoolSourceData = z.infer<typeof poolSourceDataSchema>;
+export type NuthatchFreshnessData = z.infer<typeof nuthatchFreshnessDataSchema>;
 
 interface SourceResultBase {
   source_id: string;
@@ -45,30 +122,54 @@ export interface FailedSourceResult extends SourceResultBase {
 
 export type SourceResult<T> = SuccessfulSourceResult<T> | FailedSourceResult;
 
-export interface TokenMetadata {
-  address: string;
-  symbol: string;
-  decimals: number;
+const sourceResultBaseShape = {
+  source_id: nonEmptyStringSchema,
+  protocol: nonEmptyStringSchema,
+  chain_id: z.literal(BASE_CHAIN_ID),
+  provenance: sourceProvenanceSchema,
+  warnings: z.array(nonEmptyStringSchema),
+  latency_ms: nonNegativeNumberSchema,
+};
+
+function createSourceResultSchema<
+  TSourceType extends z.ZodType<SourceType>,
+  TData extends z.ZodType,
+  TFreshness extends z.ZodType,
+>(sourceType: TSourceType, data: TData, freshness: TFreshness) {
+  const successfulResultSchema = z
+    .object({
+      ...sourceResultBaseShape,
+      source_type: sourceType,
+      status: z.literal("ok"),
+      data,
+      freshness,
+    })
+    .strict();
+
+  const failedResultSchema = z
+    .object({
+      ...sourceResultBaseShape,
+      source_type: sourceType,
+      status: failureSourceStatusSchema,
+      data: z.null(),
+      freshness: freshness.nullable(),
+    })
+    .strict();
+
+  return z.discriminatedUnion("status", [successfulResultSchema, failedResultSchema]);
 }
 
-export interface PoolSourceData {
-  pool_address: string;
-  token0: TokenMetadata;
-  token1: TokenMetadata;
-  fee_tier_bps: number | null;
-  tvl_usd: string | null;
-  volume_usd_24h: string | null;
-  volume_usd_7d: string | null;
-  fees_usd_24h: string | null;
-  fees_usd_7d: string | null;
-}
+export const poolSourceResultSchema = createSourceResultSchema(
+  z.enum(["standardized_subgraph", "native_subgraph"]),
+  poolSourceDataSchema,
+  sourceFreshnessSchema,
+);
 
-export interface NuthatchFreshnessData {
-  pool_address: string;
-  recent_swap_count_24h: number;
-  last_swap_block: number;
-  last_swap_block_timestamp: number;
-  last_swap_block_hash: string;
-  last_swap_tx_hash: string;
-  last_swap_log_index: number;
-}
+export const nuthatchSourceResultSchema = createSourceResultSchema(
+  z.literal("nuthatch_view"),
+  nuthatchFreshnessDataSchema,
+  nuthatchSourceFreshnessSchema,
+);
+
+export type PoolSourceResult = z.infer<typeof poolSourceResultSchema>;
+export type NuthatchSourceResult = z.infer<typeof nuthatchSourceResultSchema>;

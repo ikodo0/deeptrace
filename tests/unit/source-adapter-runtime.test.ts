@@ -5,7 +5,7 @@ import {
   nuthatchSourceResultSchema,
   poolSourceDataSchema,
   poolSourceResultSchema,
-} from "../../src/schemas/source-adapter.runtime.js";
+} from "../../src/schemas/source-adapter.js";
 import {
   graphPoolA,
   graphPoolB,
