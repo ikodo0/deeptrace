@@ -46,9 +46,9 @@ It must:
 | Item | MVP-0 value |
 | :--- | :--- |
 | Chain | Base (`8453`) |
-| Token pair | `TBD` — exactly one canonical pair |
-| Standardized DEX deployments | `TBD` — exactly three verified live deployments |
-| Nuthatch contracts/views | `TBD` — one pool or a small verified set |
+| Token pair | WETH `0x4200000000000000000000000000000000000006` / native USDC `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
+| Standardized DEX deployments | Two Uniswap-V3-lineage native deployments (owner-amended from three): Uniswap V3 `QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR`, PancakeSwap V3 `QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g` — see `docs/source-scope.md` |
+| Nuthatch contracts/views | One of the two confirmed pools; final pick in M4.1 (prefer Uniswap V3 WETH/USDC 0.3%) |
 | Time windows | `24h` and `7d` |
 | Initial metrics | TVL, volume and fees |
 | Ranking metric | `volume_usd` by default; TVL and fees are selectable |
@@ -56,7 +56,7 @@ It must:
 | USD price source | Source-reported USD values only; no repricing in MVP-0 |
 | Public tool implemented | `compare_pools` |
 
-Live integration starts only after every remaining `TBD` in this table is resolved.
+Base does not yield three live Messari-standardized DEX deployments; MVP-0 standardizes on the Uniswap-V3 native schema family instead (`source_type: "native_subgraph"`), with an owner-approved reduction to two Graph sources. See `docs/source-scope.md`.
 Core policy values are executable constants in `src/policy/m0.ts`.
 
 ### MVP-0 Definition of Done

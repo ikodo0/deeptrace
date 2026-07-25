@@ -93,9 +93,11 @@ records the reference block, per-candidate outcome, token decision, two
 validated selections, and the blocker. Captures are point-in-time observations;
 publishers may update the deployment behind a stable subgraph ID.
 
-Because the M2 exit criterion was not met:
+## Closeout (owner-amended two-source exit)
 
-- `src/registry/records.json` was not finalized;
-- live fixtures were not substituted;
-- the `PLAN.md` scope table remains unresolved;
-- M2.5 through M2.9 and M2 complete remain unticked.
+- `src/registry/records.json` holds the two active Graph records above.
+- `tests/fixtures/sources/index.ts` carries real pool/deployment values; the
+  timeout fixture is synthetic status over real provenance; Nuthatch remains
+  shape-only until M5.
+- `PLAN.md` scope table is filled, including the Tier B + two-source amendment.
+- M3 exit is two live Graph `SourceResult`s in one call, not three.
