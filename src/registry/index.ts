@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ApplicationError } from "../errors/application-error.js";
 import { ErrorCode } from "../errors/codes.js";
 import { BASE_CHAIN_ID } from "../schemas/source-adapter.js";
-import type { SourceRegistryRecord } from "./types.js";
+import type { GraphSourceRegistryRecord, SourceRegistryRecord } from "./types.js";
 
 /**
  * Repository configuration is an untrusted deploy input: it is validated at
@@ -30,13 +30,25 @@ export class RegistryConfigurationError extends ApplicationError {
 export const GRAPH_GATEWAY_HOST_ALLOWLIST = ["gateway.thegraph.com"] as const;
 
 const RECORDS_LABEL = "records.json";
+const COMPARE_POOLS_LABEL = "compare-pools.json";
 
 const DEFAULT_RECORDS_URL = new URL("./records.json", import.meta.url);
+const DEFAULT_PROFILE_URL = new URL("./compare-pools.json", import.meta.url);
+
+/**
+ * MVP-0 compares exactly three Graph deployments. Enforcing the count here
+ * makes the M2 three-source decision a load-time invariant.
+ */
+export const COMPARE_POOLS_SOURCE_COUNT = 3;
 
 const nonEmptyStringSchema = z
   .string()
   .min(1)
   .refine((value) => value.trim() === value, "Must not have leading or trailing whitespace");
+
+const lowercaseAddressSchema = z
+  .string()
+  .regex(/^0x[0-9a-f]{40}$/, "Expected a lowercase 20-byte hexadecimal address");
 
 const registryRecordBaseShape = {
   source_id: nonEmptyStringSchema,
@@ -87,12 +99,63 @@ const sourceRegistryRecordsSchema = z
   )
   .min(1);
 
+const comparePoolBindingSchema = z
+  .object({
+    source_id: nonEmptyStringSchema,
+    pool_address: lowercaseAddressSchema,
+    query_id: nonEmptyStringSchema,
+    schema_contract_id: nonEmptyStringSchema,
+    priority: z.number().int().positive(),
+  })
+  .strict();
+
+const comparePoolsProfileSchema = z
+  .object({
+    profile_id: nonEmptyStringSchema,
+    chain_id: z.literal(BASE_CHAIN_ID),
+    token0: lowercaseAddressSchema,
+    token1: lowercaseAddressSchema,
+    window_methodology: nonEmptyStringSchema,
+    sources: z.array(comparePoolBindingSchema).length(COMPARE_POOLS_SOURCE_COUNT),
+  })
+  .strict();
+
 /**
- * A JSON location to read, or an already-parsed value supplied by a test.
- * Omitting the field loads the file that ships next to this module.
+ * One MVP request profile binding a registry source to the pool, query, and
+ * response contract it is queried with. Kept out of `SourceRegistryRecord` so
+ * the reusable source record does not absorb MVP-specific request details.
+ */
+export type ComparePoolBinding = z.infer<typeof comparePoolBindingSchema>;
+
+export type ComparePoolsProfile = z.infer<typeof comparePoolsProfileSchema>;
+
+/** A binding joined to its active Graph record. Adapters consume only this. */
+export interface ComparePoolGraphSource {
+  readonly profile_id: string;
+  readonly source_id: string;
+  readonly priority: number;
+  readonly pool_address: string;
+  readonly token0: string;
+  readonly token1: string;
+  readonly window_methodology: string;
+  readonly query_id: string;
+  readonly schema_contract_id: string;
+  readonly record: GraphSourceRegistryRecord;
+}
+
+/**
+ * JSON locations to read, or already-parsed values supplied by a test.
+ * Omitting a field loads the file that ships next to this module.
  */
 export interface RegistryLoadOptions {
   readonly records?: unknown;
+  readonly profile?: unknown;
+  /**
+   * Entities the selected query needs. M3.3 owns the query and therefore the
+   * real list; passing none skips the coverage check rather than guessing a
+   * schema tier that M2 has not fixed.
+   */
+  readonly requiredEntities?: readonly string[];
 }
 
 function formatIssuePath(label: string, path: readonly PropertyKey[]): string {
@@ -164,7 +227,17 @@ function parseRecords(source: unknown, label: string): readonly SourceRegistryRe
   return deepFreeze(records);
 }
 
+function parseProfile(source: unknown): ComparePoolsProfile {
+  const parsed = comparePoolsProfileSchema.safeParse(source);
+  if (!parsed.success) {
+    throw new RegistryConfigurationError(toIssues(COMPARE_POOLS_LABEL, parsed.error));
+  }
+
+  return deepFreeze(parsed.data);
+}
+
 let cachedRecords: readonly SourceRegistryRecord[] | undefined;
+let cachedProfile: ComparePoolsProfile | undefined;
 
 function loadRecords(source: unknown): readonly SourceRegistryRecord[] {
   if (source === undefined) {
@@ -179,12 +252,27 @@ function loadRecords(source: unknown): readonly SourceRegistryRecord[] {
   return parseRecords(source, RECORDS_LABEL);
 }
 
+function loadProfile(source: unknown): ComparePoolsProfile {
+  if (source === undefined) {
+    cachedProfile ??= parseProfile(readJson(DEFAULT_PROFILE_URL, COMPARE_POOLS_LABEL));
+    return cachedProfile;
+  }
+
+  if (source instanceof URL) {
+    return parseProfile(readJson(source, COMPARE_POOLS_LABEL));
+  }
+
+  return parseProfile(source);
+}
+
 /**
- * Drops the memoized default-location load. Only the shipped files are cached;
- * values injected through {@link RegistryLoadOptions} are parsed every call.
+ * Drops the memoized default-location loads. Only the shipped files are
+ * cached; values injected through {@link RegistryLoadOptions} are parsed on
+ * every call.
  */
 export function resetRegistryCache(): void {
   cachedRecords = undefined;
+  cachedProfile = undefined;
 }
 
 /**
@@ -196,4 +284,142 @@ export function getSourceById(
   options: RegistryLoadOptions = {},
 ): SourceRegistryRecord | undefined {
   return loadRecords(options.records).find((record) => record.source_id === sourceId);
+}
+
+function bindingPath(index: number, field: string): string {
+  return `${COMPARE_POOLS_LABEL}.sources[${String(index)}].${field}`;
+}
+
+function collectDuplicateIssues(
+  bindings: readonly ComparePoolBinding[],
+  field: "source_id" | "pool_address" | "priority",
+): string[] {
+  const firstIndexByValue = new Map<string, number>();
+  const issues: string[] = [];
+
+  bindings.forEach((binding, index) => {
+    const value = String(binding[field]);
+    const firstIndex = firstIndexByValue.get(value);
+    if (firstIndex === undefined) {
+      firstIndexByValue.set(value, index);
+      return;
+    }
+    issues.push(
+      `${bindingPath(index, field)}: "${value}" duplicates sources[${String(firstIndex)}]`,
+    );
+  });
+
+  return issues;
+}
+
+/**
+ * The same query text must serve all three deployments, so the values that
+ * define that contract have to be identical across the set.
+ */
+function collectSharedValueIssues(
+  values: readonly string[],
+  path: (index: number) => string,
+  description: string,
+): string[] {
+  const [expected] = values;
+  if (expected === undefined) {
+    return [];
+  }
+
+  return values.flatMap((value, index) =>
+    value === expected
+      ? []
+      : [`${path(index)}: ${description} "${value}" does not match sources[0] "${expected}"`],
+  );
+}
+
+function isGraphRecord(record: SourceRegistryRecord): record is GraphSourceRegistryRecord {
+  return record.locator.kind === "graph_subgraph";
+}
+
+/**
+ * Joins the active `compare_pools` profile to its registry records and returns
+ * the bindings in ascending priority order. Throws on any invalid local
+ * configuration: a bad deploy must fail loudly rather than query fewer sources.
+ */
+export function getActiveComparePoolGraphSources(
+  options: RegistryLoadOptions = {},
+): readonly ComparePoolGraphSource[] {
+  const records = loadRecords(options.records);
+  const profile = loadProfile(options.profile);
+  const requiredEntities = options.requiredEntities ?? [];
+
+  const issues: string[] = [
+    ...(profile.token0 === profile.token1
+      ? [`${COMPARE_POOLS_LABEL}.token1: must differ from token0 "${profile.token0}"`]
+      : []),
+    ...collectDuplicateIssues(profile.sources, "source_id"),
+    ...collectDuplicateIssues(profile.sources, "pool_address"),
+    ...collectDuplicateIssues(profile.sources, "priority"),
+    ...collectSharedValueIssues(
+      profile.sources.map((binding) => binding.query_id),
+      (index) => bindingPath(index, "query_id"),
+      "query_id",
+    ),
+    ...collectSharedValueIssues(
+      profile.sources.map((binding) => binding.schema_contract_id),
+      (index) => bindingPath(index, "schema_contract_id"),
+      "schema_contract_id",
+    ),
+  ];
+
+  const joined: ComparePoolGraphSource[] = [];
+
+  profile.sources.forEach((binding, index) => {
+    const path = bindingPath(index, "source_id");
+    const record = records.find((candidate) => candidate.source_id === binding.source_id);
+
+    if (record === undefined) {
+      issues.push(`${path}: "${binding.source_id}" is not present in ${RECORDS_LABEL}`);
+      return;
+    }
+    if (!isGraphRecord(record)) {
+      issues.push(`${path}: "${binding.source_id}" is not a Graph source`);
+      return;
+    }
+    if (record.status !== "active") {
+      issues.push(`${path}: "${binding.source_id}" is ${record.status}`);
+      return;
+    }
+
+    const missingEntities = requiredEntities.filter(
+      (entity) => !record.supported_entities.includes(entity),
+    );
+    if (missingEntities.length > 0) {
+      issues.push(`${path}: "${binding.source_id}" does not support ${missingEntities.join(", ")}`);
+      return;
+    }
+
+    joined.push({
+      profile_id: profile.profile_id,
+      source_id: binding.source_id,
+      priority: binding.priority,
+      pool_address: binding.pool_address,
+      token0: profile.token0,
+      token1: profile.token1,
+      window_methodology: profile.window_methodology,
+      query_id: binding.query_id,
+      schema_contract_id: binding.schema_contract_id,
+      record,
+    });
+  });
+
+  issues.push(
+    ...collectSharedValueIssues(
+      joined.map((source) => source.record.source_type),
+      (index) => bindingPath(index, "source_id"),
+      "source_type",
+    ),
+  );
+
+  if (issues.length > 0) {
+    throw new RegistryConfigurationError(issues);
+  }
+
+  return deepFreeze(joined.sort((left, right) => left.priority - right.priority));
 }
