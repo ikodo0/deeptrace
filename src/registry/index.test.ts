@@ -536,3 +536,47 @@ describe("compare-pools profile validation", () => {
     }
   });
 });
+
+describe("shipped registry and profile", () => {
+  // Exercises the default-path load (no injection) against the committed M2
+  // artifacts so a deploy-time regression in records.json or compare-pools.json
+  // is caught here rather than in the adapter.
+  it("loads the two locked M2 Graph bindings in priority order", () => {
+    const sources = getActiveComparePoolGraphSources();
+
+    expect(sources).toHaveLength(2);
+    expect(sources.map((source) => source.source_id)).toEqual([
+      "uniswap-v3-base-native",
+      "exchange-v3-base",
+    ]);
+    expect(sources.map((source) => source.priority)).toEqual([1, 2]);
+  });
+
+  it("pins the locked WETH/USDC pair and Base chain", () => {
+    const [first] = getActiveComparePoolGraphSources();
+
+    expect(first?.chain_id ?? first?.record.chain_id).toBe(8453);
+    expect(first?.token0).toBe("0x4200000000000000000000000000000000000006");
+    expect(first?.token1).toBe("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
+  });
+
+  it("binds each profile pool to its registry deployment pin", () => {
+    const sources = getActiveComparePoolGraphSources();
+
+    for (const source of sources) {
+      expect(source.record.deployment_or_view_id).toMatch(/^Qm[1-9A-HJ-NP-Za-km-z]{44}$/);
+      expect(source.pool_address).toMatch(/^0x[0-9a-f]{40}$/);
+      expect(source.record.locator.kind).toBe("graph_subgraph");
+    }
+  });
+
+  it("shares one query and schema contract across both bindings", () => {
+    const sources = getActiveComparePoolGraphSources();
+    const queryIds = new Set(sources.map((source) => source.query_id));
+    const schemaContractIds = new Set(sources.map((source) => source.schema_contract_id));
+
+    expect(queryIds.size).toBe(1);
+    expect(schemaContractIds.size).toBe(1);
+    expect([...queryIds][0]).toBe("graph-pool-metrics-tier-b-v1");
+  });
+});
