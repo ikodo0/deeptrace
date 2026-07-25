@@ -121,9 +121,7 @@ export const graphPoolC = {
     methodology_version: null,
     query_id: "m2-tier-b-metrics-v1",
   },
-  warnings: [
-    "Synthetic fixture: fees windows forced null for Person 2 null-handling coverage.",
-  ],
+  warnings: ["Synthetic fixture: fees windows forced null for Person 2 null-handling coverage."],
   latency_ms: 301,
 } satisfies PoolSourceResult;
 
