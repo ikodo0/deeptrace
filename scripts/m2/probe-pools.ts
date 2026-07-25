@@ -1,5 +1,6 @@
 import { politeGap, readManifest, writeEvidence, writeManifest } from "./lib/evidence.ts";
 import { loadGraphApiKey, postGraphQuery } from "./lib/gateway.ts";
+import { poolProbeFailureMessage } from "./lib/pool-probe.ts";
 import {
   tierAMetricsQuery,
   tierAPoolsQuery,
@@ -98,8 +99,7 @@ for (const selection of selections) {
       firstPoolId(pools.body, selection.tier === "A" ? "liquidityPools" : "pools") ?? undefined;
   }
   if (!pool) {
-    selection.pool_probe_error =
-      "The common tier query returned no pool; candidate is incompatible.";
+    selection.pool_probe_error = poolProbeFailureMessage(pools.error);
     await politeGap();
     continue;
   }
