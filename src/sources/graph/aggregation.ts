@@ -108,8 +108,12 @@ function collectMetricValues(
     try {
       parseDecimal(raw);
       values.push(raw);
-    } catch {
-      hadMalformed = true;
+    } catch (error) {
+      if (error instanceof DecimalParseError) {
+        hadMalformed = true;
+      } else {
+        throw error;
+      }
     }
   }
   return { values, hadNull, hadMalformed };
@@ -169,7 +173,7 @@ export function aggregateDailySnapshots(
   if (hasGap) {
     warnings.push({
       code: "interior_gap",
-      message: "Completed days are not consecutive; 7d window may be unavailable",
+      message: "Completed days contain a gap; 7d window is checked independently",
     });
   }
 
@@ -209,7 +213,6 @@ export function aggregateDailySnapshots(
   }
 
   const sevenConsecutive =
-    !hasGap &&
     recentSeven.length === 7 &&
     recentSeven.every((day, i) => {
       if (i === 0) return true;

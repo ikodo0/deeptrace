@@ -127,13 +127,22 @@ describe("aggregateDailySnapshots — ordering and gaps", () => {
     expect(result.warnings.some((w) => w.code === "insufficient_7d_history")).toBe(true);
   });
 
-  it("returns null 7d for an interior gap", () => {
+  it("returns null 7d for an interior gap within the 7-day window", () => {
     const days = sevenConsecutiveDays();
     days[3] = day(3, "100", "1");
     days.splice(3, 0, { date: utcDayId(REF) - 3 * DAY + DAY / 2, volumeUSD: "0", feesUSD: "0" });
     const result = aggregateDailySnapshots(days, REF);
 
     expect(result.aggregates.volume_usd_7d).toBeNull();
+    expect(result.warnings.some((w) => w.code === "interior_gap")).toBe(true);
+  });
+
+  it("sums 7d when the gap is outside the 7-day window", () => {
+    const seven = sevenConsecutiveDays();
+    const older = day(10, "999", "9");
+    const result = aggregateDailySnapshots([older, ...seven], REF);
+
+    expect(result.aggregates.volume_usd_7d).toBe("700");
     expect(result.warnings.some((w) => w.code === "interior_gap")).toBe(true);
   });
 
