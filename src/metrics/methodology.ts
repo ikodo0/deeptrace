@@ -1,3 +1,5 @@
+import { M0_RANKING_TIE_BREAK } from "../policy/index.js";
+
 /**
  * MVP-0 compare_pools metric methodology for source-reported USD values.
  *
@@ -23,12 +25,7 @@ export const M0_POOL_METRICS_METHODOLOGY = {
       "Pass through the selected completed-UTC-day window fees USD decimal string or null.",
   },
   ranking: {
-    tie_break: [
-      "requested_metric_desc_nulls_last",
-      "protocol_asc",
-      "pool_address_asc",
-      "source_id_asc",
-    ],
+    tie_break: M0_RANKING_TIE_BREAK,
   },
   /** Explicit non-goals for MVP-0. */
   non_goals: ["apr", "apy", "fee_to_tvl_ratio_as_yield"] as const,
