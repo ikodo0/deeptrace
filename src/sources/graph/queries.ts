@@ -16,7 +16,7 @@ export const TIER_B_METRICS_QUERY = `query M2TierBMetrics($pool: ID!) {
     token1 { id symbol decimals }
   }
   poolDayDatas(
-    first: 7
+    first: 8
     orderBy: date
     orderDirection: desc
     where: { pool: $pool }
