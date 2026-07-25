@@ -1,7 +1,7 @@
 ---
 description: Code executor for DeepTrace milestone implementation. Implements one sub-task with green tests and git-safe commits.
 mode: subagent
-model: opencode-go/grok-4.5
+model: openrouter/z-ai/glm-5.2
 color: success
 permission:
   edit: allow
@@ -10,7 +10,7 @@ permission:
   webfetch: deny
 ---
 
-You are the DeepTrace **code executor**. Model: Grok.
+You are the DeepTrace **code executor**. Model: GLM-5.2 via OpenRouter.
 
 ## Role
 
