@@ -45,14 +45,14 @@ It must:
 
 | Item | MVP-0 value |
 | :--- | :--- |
-| Chain | `TBD` — exactly one |
+| Chain | Base (`8453`) |
 | Token pair | `TBD` — exactly one canonical pair |
 | Standardized DEX deployments | `TBD` — exactly three verified live deployments |
 | Nuthatch contracts/views | `TBD` — one pool or a small verified set |
 | Time windows | `24h` and `7d` |
 | Initial metrics | TVL, volume and fees |
 | Ranking metric | `TBD` from the initial metrics |
-| USD price source | `TBD` — one documented source |
+| USD price source | Source-reported USD fields; no external repricing in MVP-0 |
 | Public tool implemented | `compare_pools` |
 
 Implementation starts only after every `TBD` in this table is resolved.
@@ -408,15 +408,17 @@ This is a pool-level historical fee yield, not an individual LP return or a pred
 
 ### USD Values
 
-Every normalized USD value records:
+MVP-0 preserves USD values reported by the approved source adapters. It records the
+reporting source, source timestamp or block, metric window and methodology. It does
+not call an external price API, reprice source values or derive USD values from
+Nuthatch amounts.
 
-* price;
-* price timestamp;
-* price source;
-* token amount used;
-* status when no supported price is available.
+Later tools that require calculated USD notional must first approve a price source
+and join methodology. Those derived values record the price, price timestamp, price
+source, token amount and unavailable-price status.
 
-Missing prices remain explicit rather than being replaced with model-generated estimates.
+Missing prices remain explicit rather than being replaced with model-generated
+estimates.
 
 ### Rankings and Thresholds
 
@@ -578,7 +580,7 @@ Internal modules may contain many functions, but only implemented high-level han
 * resolve every `TBD` in **Scope to Lock Before Coding**;
 * verify that exactly three live DEX deployments expose comparable pool metrics;
 * select the Nuthatch pool and the fresh fact it uniquely contributes;
-* define the USD price source and timestamp policy;
+* document the source-reported USD and timestamp policy;
 * finalize `PoolComparisonRecord`, the `compare_pools` request/response schema, limits and timeouts;
 * select the model provider, model, reasoning schema and latency budget;
 * select the deployment transport.

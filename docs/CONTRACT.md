@@ -81,9 +81,10 @@ protocol, deployment or view identity, supported entities, versions, and
 whether it is active. Locators are source-specific: Graph records carry the
 stable gateway subgraph ID while Nuthatch records identify the configured view.
 The registry, rather than adapter code, selects and locates configured sources.
-This locator union is the M2 clarification to the otherwise frozen M1 contract:
-the subgraph ID routes a request, while `deployment_or_view_id` remains the
-independently asserted provenance identity.
+This locator union is a later source-contract clarification: the subgraph ID
+routes a request, while `deployment_or_view_id` remains the independently
+asserted provenance identity. Source-contract revision labels are not product
+milestone IDs from `docs/EXECUTION_PLAN.md`.
 
 ## Fixtures and change control
 
@@ -94,8 +95,9 @@ independently asserted provenance identity.
 - one healthy Nuthatch freshness result.
 
 It also exports a four-source complete scenario and a four-source partial
-scenario. These are deliberately shape-only placeholders. M2 replaces their
-source values with captured live evidence without changing the contract.
+scenario. These are deliberately shape-only placeholders. A later
+source-evidence packet replaces their source values with captured live evidence
+without changing the contract.
 
 Every fixture uses TypeScript's `satisfies` operator, so incompatible fields
 fail strict fixture typechecking. Run:
