@@ -101,9 +101,11 @@ shell or systemd unit that starts the server.
 | `GRAPH_API_KEY` | Required, or every Graph source returns `unavailable`. |
 | `NUTHATCH_BASE_URL` | `https://<TAILNET_HOST>`, no trailing slash. |
 
-Session activity refreshes after each authenticated request completes. A session
-that remains inactive for the full idle timeout is closed on the next cleanup
-sweep, releasing its slot in the 64-session process limit.
+Authenticated session requests refresh activity, and in-flight tool calls are
+not reaped. A standalone SSE stream does not keep an otherwise-idle session
+alive forever. A session that remains inactive for the full idle timeout is
+closed on the next cleanup sweep, releasing its slot in the 64-session process
+limit.
 
 ## Build
 

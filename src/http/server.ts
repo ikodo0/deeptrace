@@ -242,12 +242,20 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
         const existing = typeof sessionId === "string" ? sessions.get(sessionId) : undefined;
 
         if (existing !== undefined) {
-          existing.activeRequests += 1;
+          // POST may contain long-running tool work and must not be reaped
+          // mid-request. A standalone SSE GET is only activity when it starts;
+          // otherwise an abandoned open stream could pin a session forever.
+          const blocksIdleExpiration = request.method === "POST";
+          if (blocksIdleExpiration) {
+            existing.activeRequests += 1;
+          }
           existing.lastActivityAt = now();
           try {
             await existing.transport.handleRequest(request, response);
           } finally {
-            existing.activeRequests -= 1;
+            if (blocksIdleExpiration) {
+              existing.activeRequests -= 1;
+            }
             existing.lastActivityAt = now();
           }
           return;

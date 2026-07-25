@@ -365,6 +365,42 @@ describe("HTTP session lifecycle", () => {
     expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("expires an otherwise-idle session with an open SSE stream", async () => {
+    const timer = createFakeSessionTimer();
+    const { runtime, base } = await startTestServer({
+      config: {
+        sessionIdleTimeoutMs: 1_000,
+        sessionSweepIntervalMs: 100,
+      },
+      server: timer.options,
+    });
+    closeSpy.mockClear();
+    try {
+      const initialized = await postInitialize(base, {
+        accept: "application/json, text/event-stream",
+      });
+      const sessionId = requireSessionId(initialized);
+      await initialized.text();
+
+      const stream = await fetch(base, {
+        headers: {
+          authorization: `Bearer ${VALID_TOKEN_32}`,
+          accept: "text/event-stream",
+          "mcp-session-id": sessionId,
+        },
+      });
+      expect(stream.status).toBe(200);
+
+      timer.advance(1_000);
+      await timer.sweep();
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+      await stream.text();
+    } finally {
+      await runtime.close();
+    }
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("releases all session-limit slots after idle expiration", async () => {
     const timer = createFakeSessionTimer();
     const { runtime, base } = await startTestServer({
