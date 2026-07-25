@@ -1,0 +1,9 @@
+[
+  {
+    "block_match": true,
+    "hash_match": true,
+    "log_index_match": true,
+    "timestamp_match": true,
+    "tx_match": true
+  }
+]

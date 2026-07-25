@@ -1,7 +1,7 @@
 -- pool_swap_freshness: one row summarizing recent swap activity for the
--- Uniswap V3 Base WETH/USDC 0.3% pool (feeTier 3000). Anchored to the latest indexed
+-- Uniswap V3 Base WETH/USDC 0.05% pool. Anchored to the latest indexed
 -- swap timestamp — no wall clock, no CURRENT_TIMESTAMP, no now().
--- Described in semantic.toml under [view].
+-- Described in semantic.toml under [view.pool_swap_freshness].
 
 CREATE VIEW pool_swap_freshness AS
 SELECT

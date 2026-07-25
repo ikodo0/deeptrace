@@ -86,7 +86,7 @@
     "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=50001",
     "max_rows_requested": 50001,
     "status": 400,
-    "rejected": false,
+    "rejected": true,
     "body": "{\"error\":\"failed to prepare query: Catalog Error: Table with name pool_swap_freshness does not exist!\\nDid you mean \\\"pool__swap\\\"?\\n\\nLINE 1: SELECT * FROM pool_swap_freshness LIMIT 1\\n                      ^: Error code 1: Unknown error code\\n\\nhint: no table `pool_swap_freshness`. Call the `schema` tool for the list of tables.\"}"
   },
   "concurrency": {
@@ -96,12 +96,6 @@
     "statuses": [503, 400, 400],
     "ok_count": 0,
     "guard_rejected_count": 1,
-    "verified": false,
     "observed_concurrency_lower_bound": 0
-  },
-  "acceptance": {
-    "freshness_view_available": false,
-    "max_rows_rejection_verified": false,
-    "post_sql_rejected": true
   }
 }

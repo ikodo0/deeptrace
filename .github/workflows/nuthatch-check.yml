@@ -1,0 +1,50 @@
+name: nuthatch check
+
+on:
+  push:
+    paths:
+      - "nest/**"
+      - ".github/workflows/nuthatch-check.yml"
+  pull_request:
+    paths:
+      - "nest/**"
+      - ".github/workflows/nuthatch-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+
+      - name: validate nest structure
+        run: |
+          test -f nest/nuthatch.toml || { echo "nest/nuthatch.toml missing"; exit 1; }
+          test -f nest/schema.json || { echo "nest/schema.json missing"; exit 1; }
+          test -d nest/abis || { echo "nest/abis/ missing"; exit 1; }
+          test -d nest/views || { echo "nest/views/ missing"; exit 1; }
+          test -d nest/checks || { echo "nest/checks/ missing"; exit 1; }
+          test -d nest/checks/expected || { echo "nest/checks/expected/ missing"; exit 1; }
+
+      - name: validate view SQL exists
+        run: test -f nest/views/pool_swap_freshness.sql
+
+      - name: validate check SQL files exist
+        run: |
+          for check in view_shape latest_swap_identity recent_count_24h provenance_not_null decimal_columns hot_sealed_no_duplicates; do
+            test -f "nest/checks/${check}.sql" || { echo "missing nest/checks/${check}.sql"; exit 1; }
+            test -f "nest/checks/expected/${check}.json" || { echo "missing nest/checks/expected/${check}.json"; exit 1; }
+          done
+
+      - name: validate no secrets in nest
+        run: |
+          if grep -rn "GRAPH_API_KEY\|Bearer \|api_key=\|NUTHATCH_ADMIN_TOKEN" nest/; then
+            echo "Secret found in nest/"
+            exit 1
+          fi
+          echo "No secrets found in nest/"
