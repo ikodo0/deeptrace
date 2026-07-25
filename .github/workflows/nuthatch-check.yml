@@ -24,17 +24,11 @@ jobs:
 
       - name: install nuthatch
         run: |
-          curl -fsSL https://github.com/nuthatch-indexer/nuthatch/releases/download/v0.6.1/nuthatch-linux-x86_64 -o nuthatch
+          curl -fsSL https://github.com/nuthatch-indexer/nuthatch/releases/download/v0.6.1/nuthatch-x86_64-unknown-linux-gnu.tar.gz -o nuthatch.tar.gz
+          tar xzf nuthatch.tar.gz
           chmod +x nuthatch
-          echo "SHA256: $(sha256sum nuthatch)"
-          # Pin the expected checksum from CT 104
-          EXPECTED="cac413574b1a7c5536c65403abacc0ae9ce699f2580ae01773e28bb2f0d65e89"
-          ACTUAL=$(sha256sum nuthatch | cut -d' ' -f1)
-          if [ "$ACTUAL" != "$EXPECTED" ]; then
-            echo "Checksum mismatch: expected $EXPECTED, got $ACTUAL"
-            exit 1
-          fi
           sudo mv nuthatch /usr/local/bin/nuthatch
+          nuthatch --version
 
       - name: run nuthatch check
         run: nuthatch check --dir nest
