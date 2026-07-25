@@ -95,10 +95,7 @@ const profile = {
   token0: "0x4200000000000000000000000000000000000006",
   token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
   window_methodology: "completed-utc-days-v1",
-  sources: [
-    binding("test-graph-a", "a", 1),
-    binding("test-graph-b", "b", 2),
-  ],
+  sources: [binding("test-graph-a", "a", 1), binding("test-graph-b", "b", 2)],
 };
 
 describe("getSourceById", () => {
@@ -144,28 +141,19 @@ describe("getActiveComparePoolGraphSources", () => {
     const sources = getActiveComparePoolGraphSources({ records, profile });
 
     expect(sources).toHaveLength(2);
-    expect(sources.map((source) => source.source_id)).toEqual([
-      "test-graph-a",
-      "test-graph-b",
-    ]);
+    expect(sources.map((source) => source.source_id)).toEqual(["test-graph-a", "test-graph-b"]);
   });
 
   it("orders by priority regardless of the order written in the profile", () => {
     const reversed = {
       ...profile,
-      sources: [
-        binding("test-graph-b", "b", 2),
-        binding("test-graph-a", "a", 1),
-      ],
+      sources: [binding("test-graph-b", "b", 2), binding("test-graph-a", "a", 1)],
     };
 
     const sources = getActiveComparePoolGraphSources({ records, profile: reversed });
 
     expect(sources.map((source) => source.priority)).toEqual([1, 2]);
-    expect(sources.map((source) => source.source_id)).toEqual([
-      "test-graph-a",
-      "test-graph-b",
-    ]);
+    expect(sources.map((source) => source.source_id)).toEqual(["test-graph-a", "test-graph-b"]);
   });
 
   it("carries the locator and pin the client and deployment check need", () => {
@@ -368,10 +356,7 @@ describe("compare-pools profile validation", () => {
     expectProfileRejected(
       {
         ...profile,
-        sources: [
-          binding("test-graph-a", "a", 1),
-          binding("test-graph-a", "b", 2),
-        ],
+        sources: [binding("test-graph-a", "a", 1), binding("test-graph-a", "b", 2)],
       },
       /sources\[1\]\.source_id: "test-graph-a" duplicates sources\[0\]/,
     );
@@ -381,10 +366,7 @@ describe("compare-pools profile validation", () => {
     expectProfileRejected(
       {
         ...profile,
-        sources: [
-          binding("test-graph-a", "a", 1),
-          binding("test-graph-b", "a", 2),
-        ],
+        sources: [binding("test-graph-a", "a", 1), binding("test-graph-b", "a", 2)],
       },
       /sources\[1\]\.pool_address: .* duplicates sources\[0\]/,
     );
@@ -394,10 +376,7 @@ describe("compare-pools profile validation", () => {
     expectProfileRejected(
       {
         ...profile,
-        sources: [
-          binding("test-graph-a", "a", 1),
-          binding("test-graph-b", "b", 1),
-        ],
+        sources: [binding("test-graph-a", "a", 1), binding("test-graph-b", "b", 1)],
       },
       /sources\[1\]\.priority: "1" duplicates sources\[0\]/,
     );
@@ -407,10 +386,7 @@ describe("compare-pools profile validation", () => {
     expectProfileRejected(
       {
         ...profile,
-        sources: [
-          binding("test-graph-a", "a", 1),
-          binding("absent-source", "c", 2),
-        ],
+        sources: [binding("test-graph-a", "a", 1), binding("absent-source", "c", 2)],
       },
       /sources\[1\]\.source_id: "absent-source" is not present in records\.json/,
     );
@@ -428,10 +404,7 @@ describe("compare-pools profile validation", () => {
     expectProfileRejected(
       {
         ...profile,
-        sources: [
-          binding("test-graph-a", "a", 1),
-          binding("test-nuthatch", "c", 2),
-        ],
+        sources: [binding("test-graph-a", "a", 1), binding("test-nuthatch", "c", 2)],
       },
       /sources\[1\]\.source_id: "test-nuthatch" is not a Graph source/,
     );
@@ -464,10 +437,7 @@ describe("compare-pools profile validation", () => {
   });
 
   it("rejects a mixed schema tier across the selected set", () => {
-    const mixedTier = [
-      graphRecord,
-      { ...graphRecordB, source_type: "standardized_subgraph" },
-    ];
+    const mixedTier = [graphRecord, { ...graphRecordB, source_type: "standardized_subgraph" }];
 
     expect(() => getActiveComparePoolGraphSources({ records: mixedTier, profile })).toThrow(
       /source_type "standardized_subgraph" does not match sources\[0\] "native_subgraph"/,
@@ -556,10 +526,7 @@ describe("compare-pools profile validation", () => {
         profile: {
           ...profile,
           token1: profile.token0,
-          sources: [
-            binding("test-graph-a", "a", 1),
-            binding("test-graph-a", "b", 1),
-          ],
+          sources: [binding("test-graph-a", "a", 1), binding("test-graph-a", "b", 1)],
         },
       });
       expect.unreachable("expected a registry configuration error");
