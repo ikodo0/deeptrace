@@ -1,5 +1,6 @@
 import type { M0RankingMetric, M0TimeWindow } from "../policy/index.js";
 import { M0_CORE_POLICY, M0_WARNING_ORDER } from "../policy/index.js";
+import { getSourceById } from "../registry/index.js";
 import type {
   CanonicalPair,
   ComparePoolsResponse,
@@ -15,6 +16,7 @@ import type {
   SourceFreshness,
 } from "../schemas/source-adapter.js";
 import { M0_COMPARE_POOLS_SCOPE } from "../scope/compare-pools.js";
+import { NUTHATCH_FRESHNESS_QUERY_ID } from "../sources/nuthatch/freshness-query.js";
 
 import { QualityError } from "./error.js";
 
@@ -84,7 +86,7 @@ function toObservedFreshness(sourceId: string, freshness: SourceFreshness): Resu
 }
 
 function graphResultFreshness(result: PoolSourceResult): ResultFreshness {
-  if (result.freshness === null) {
+  if (result.status !== "ok" || result.freshness === null) {
     return { source_id: result.source_id, status: "unavailable" };
   }
   return toObservedFreshness(result.source_id, result.freshness);
@@ -104,19 +106,21 @@ function graphResultProvenance(result: PoolSourceResult): ResultProvenance {
 }
 
 function nuthatchUnavailableProvenance(): ResultProvenance {
-  const protocol = M0_COMPARE_POOLS_SCOPE.graphSources[0]?.protocol;
-  if (protocol === undefined) {
-    throw new QualityError("Locked Graph scope is missing a protocol for Nuthatch provenance.");
+  const record = getSourceById(M0_COMPARE_POOLS_SCOPE.nuthatchSourceId);
+  if (record === undefined || record.source_type !== "nuthatch_view") {
+    throw new QualityError(
+      `Registry is missing Nuthatch provenance for "${M0_COMPARE_POOLS_SCOPE.nuthatchSourceId}".`,
+    );
   }
   return {
-    source_id: M0_COMPARE_POOLS_SCOPE.nuthatchSourceId,
-    source_type: "nuthatch_view",
-    protocol,
-    chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-    deployment_or_view_id: "unverified-nuthatch-view",
-    schema_version: null,
-    methodology_version: null,
-    query_id: "nuthatch-pool-swap-freshness-v1",
+    source_id: record.source_id,
+    source_type: record.source_type,
+    protocol: record.protocol,
+    chain_id: record.chain_id,
+    deployment_or_view_id: record.deployment_or_view_id,
+    schema_version: record.schema_version,
+    methodology_version: record.methodology_version,
+    query_id: NUTHATCH_FRESHNESS_QUERY_ID,
   };
 }
 
