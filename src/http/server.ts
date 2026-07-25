@@ -20,19 +20,50 @@ const MAX_SESSIONS = 64;
 interface Session {
   readonly transport: StreamableHTTPServerTransport;
   readonly close: () => Promise<void>;
+  activeRequests: number;
+  lastActivityAt: number;
 }
 
 interface OpenedSession {
   readonly transport: StreamableHTTPServerTransport;
   /** True once onsessioninitialized registered the session in the map. */
   readonly wasRegistered: () => boolean;
+  /** Marks the initialize request complete when it registered a session. */
+  readonly finishRequest: () => void;
   /** Closes both the transport and the McpServer. Safe to call once. */
   readonly dispose: () => Promise<void>;
+}
+
+export interface HttpServerOptions {
+  readonly now?: () => number;
+  readonly scheduleSessionSweep?: (sweep: () => Promise<void>, intervalMs: number) => () => void;
 }
 
 export interface HttpRuntime {
   readonly server: Server;
   close(): Promise<void>;
+}
+
+function scheduleSessionSweep(sweep: () => Promise<void>, intervalMs: number): () => void {
+  let sweepInProgress = false;
+  const interval = setInterval(() => {
+    if (sweepInProgress) {
+      return;
+    }
+    sweepInProgress = true;
+    void sweep()
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : "Unknown session cleanup error";
+        console.error(`[deeptrace] Session cleanup failed: ${message}`);
+      })
+      .finally(() => {
+        sweepInProgress = false;
+      });
+  }, intervalMs);
+  interval.unref();
+  return () => {
+    clearInterval(interval);
+  };
 }
 
 function respondJson(
@@ -62,10 +93,14 @@ async function readBody(request: IncomingMessage): Promise<unknown> {
  * Each initialize request gets its own McpServer/transport pair keyed by
  * session id, so concurrent clients never share conversation state.
  */
-export function createHttpServer(config: HttpConfig): HttpRuntime {
+export function createHttpServer(config: HttpConfig, options: HttpServerOptions = {}): HttpRuntime {
   const sessions = new Map<string, Session>();
+  const pendingCloses = new Set<Promise<void>>();
+  const now = options.now ?? Date.now;
   /** In-flight opens that have reserved a slot but not yet registered. */
   let pendingOpens = 0;
+  let shuttingDown = false;
+  let shutdownPromise: Promise<void> | undefined;
 
   // Built once per process, not once per session. A limiter constructed inside
   // createMcpServer would give every session its own private window, so the
@@ -81,32 +116,58 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
     timeoutMs: gatewayConfig.sourceTimeoutMs,
   });
 
-  const closeSession = async (sessionId: string): Promise<void> => {
+  const closeSession = (sessionId: string, expectedSession?: Session): Promise<void> => {
     const session = sessions.get(sessionId);
-    if (session === undefined) {
-      return;
+    if (session === undefined || (expectedSession !== undefined && session !== expectedSession)) {
+      return Promise.resolve();
     }
     sessions.delete(sessionId);
-    await session.close();
+    const closePromise = session.close();
+    pendingCloses.add(closePromise);
+    void closePromise.then(
+      () => {
+        pendingCloses.delete(closePromise);
+      },
+      () => {
+        pendingCloses.delete(closePromise);
+      },
+    );
+    return closePromise;
   };
 
   const openSession = async (): Promise<OpenedSession> => {
     const mcpServer = createMcpServer({ gatewayConfig, rateLimiter, sources });
-    let registered = false;
+    let registeredSession: Session | undefined;
+    let closePromise: Promise<void> | undefined;
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sessionId) => {
-        registered = true;
-        sessions.set(sessionId, {
+        const session: Session = {
           transport,
-          close: async () => {
-            await transport.close();
-            await mcpServer.close();
+          activeRequests: 1,
+          lastActivityAt: now(),
+          close: () => {
+            closePromise ??= (async () => {
+              try {
+                await transport.close();
+              } finally {
+                await mcpServer.close();
+              }
+            })();
+            return closePromise;
           },
-        });
+        };
+        registeredSession = session;
+        sessions.set(sessionId, session);
+        if (shuttingDown) {
+          void closeSession(sessionId, session);
+        }
       },
       onsessionclosed: (sessionId) => {
-        void closeSession(sessionId);
+        void closeSession(sessionId).catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : "Unknown session cleanup error";
+          console.error(`[deeptrace] Session cleanup failed: ${message}`);
+        });
       },
     });
 
@@ -116,13 +177,42 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
     await mcpServer.connect(transport as Transport);
     return {
       transport,
-      wasRegistered: () => registered,
-      dispose: async () => {
-        await transport.close();
-        await mcpServer.close();
+      wasRegistered: () => registeredSession !== undefined,
+      finishRequest: () => {
+        if (registeredSession !== undefined) {
+          registeredSession.activeRequests -= 1;
+          registeredSession.lastActivityAt = now();
+        }
+      },
+      dispose: () => {
+        closePromise ??= (async () => {
+          try {
+            await transport.close();
+          } finally {
+            await mcpServer.close();
+          }
+        })();
+        return closePromise;
       },
     };
   };
+
+  const sweepIdleSessions = async (): Promise<void> => {
+    const sweepAt = now();
+    const staleSessions = [...sessions.entries()].filter(
+      ([, session]) =>
+        session.activeRequests === 0 &&
+        sweepAt - session.lastActivityAt >= config.sessionIdleTimeoutMs,
+    );
+    await Promise.all(
+      staleSessions.map(([sessionId, session]) => closeSession(sessionId, session)),
+    );
+  };
+
+  const cancelSessionSweep = (options.scheduleSessionSweep ?? scheduleSessionSweep)(
+    sweepIdleSessions,
+    config.sessionSweepIntervalMs,
+  );
 
   const server = createServer((request, response) => {
     void (async () => {
@@ -143,11 +233,23 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
           return;
         }
 
+        if (shuttingDown) {
+          respondJson(response, 503, "shutting_down", "Server is shutting down");
+          return;
+        }
+
         const sessionId = request.headers[SESSION_HEADER];
         const existing = typeof sessionId === "string" ? sessions.get(sessionId) : undefined;
 
         if (existing !== undefined) {
-          await existing.transport.handleRequest(request, response);
+          existing.activeRequests += 1;
+          existing.lastActivityAt = now();
+          try {
+            await existing.transport.handleRequest(request, response);
+          } finally {
+            existing.activeRequests -= 1;
+            existing.lastActivityAt = now();
+          }
           return;
         }
 
@@ -173,6 +275,7 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
           try {
             await session.transport.handleRequest(request, response, body);
           } finally {
+            session.finishRequest();
             if (!session.wasRegistered()) {
               await session.dispose();
             }
@@ -194,17 +297,43 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
 
   return {
     server,
-    async close() {
-      await Promise.all([...sessions.keys()].map((sessionId) => closeSession(sessionId)));
-      await new Promise<void>((resolve, reject) => {
-        server.close((error) => {
-          if (error === undefined) {
-            resolve();
-          } else {
-            reject(error);
-          }
+    close() {
+      shutdownPromise ??= (async () => {
+        shuttingDown = true;
+        cancelSessionSweep();
+
+        // Stop accepting connections immediately, then close both the sessions
+        // already registered and any initialize request that finishes while
+        // the HTTP server drains.
+        const serverClose = new Promise<void>((resolve, reject) => {
+          server.close((error) => {
+            if (error === undefined) {
+              resolve();
+            } else {
+              reject(error);
+            }
+          });
         });
-      });
+        const failures: unknown[] = [];
+        const settle = async (promises: readonly Promise<unknown>[]): Promise<void> => {
+          const results = await Promise.allSettled(promises);
+          for (const result of results) {
+            if (result.status === "rejected") {
+              failures.push(result.reason);
+            }
+          }
+        };
+
+        await settle([...sessions.keys()].map((sessionId) => closeSession(sessionId)));
+        await settle([serverClose]);
+        await settle([...sessions.keys()].map((sessionId) => closeSession(sessionId)));
+        await settle([...pendingCloses]);
+
+        if (failures.length > 0) {
+          throw failures[0];
+        }
+      })();
+      return shutdownPromise;
     },
   };
 }
