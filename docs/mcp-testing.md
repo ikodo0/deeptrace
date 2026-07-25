@@ -17,8 +17,8 @@ Mixing them up is the #1 support cost.
 
 | Surface | URL | Backs onto | Who calls it |
 | --- | --- | --- | --- |
-| Nuthatch source API | https://wallet-intel.tail8ae57d.ts.net (:443) | 127.0.0.1:8288 | the DeepTrace Nuthatch adapter |
-| DeepTrace MCP gateway | https://wallet-intel.tail8ae57d.ts.net:8443/mcp | 127.0.0.1:8787 | MCP clients (Claude Code etc.) |
+| Nuthatch source API | https://<TAILNET_HOST> (:443) | 127.0.0.1:8288 | the DeepTrace Nuthatch adapter |
+| DeepTrace MCP gateway | https://<TAILNET_HOST>:8443/mcp | 127.0.0.1:8787 | MCP clients (Claude Code etc.) |
 
 Both are tailnet-only via Tailscale Serve. There is no Funnel.
 
@@ -38,7 +38,7 @@ credential.
    from the invite link. It shares one machine only — the rest of the tailnet
    stays invisible.
 2. The bearer token for the MCP gateway. Sent out of band, never in the repo.
-3. The gateway URL: https://wallet-intel.tail8ae57d.ts.net:8443/mcp
+3. The gateway URL: https://<TAILNET_HOST>:8443/mcp
 4. Confirmation that the maintainer has applied the ACL grant for your
    Tailscale identity on tcp:8443. Without it every request times out.
 
@@ -55,7 +55,7 @@ Register the MCP server with Claude Code:
 
 ```
 claude mcp add --transport http deeptrace \
-  https://wallet-intel.tail8ae57d.ts.net:8443/mcp \
+  https://<TAILNET_HOST>:8443/mcp \
   --header "Authorization: Bearer <TOKEN>"
 ```
 
@@ -97,7 +97,7 @@ shell or systemd unit that starts the server.
 | `DEEPTRACE_HTTP_PORT` | Default `8787`. |
 | `DEEPTRACE_HTTP_HOST` | Default `127.0.0.1`. |
 | `GRAPH_API_KEY` | Required, or every Graph source returns `unavailable`. |
-| `NUTHATCH_BASE_URL` | `https://wallet-intel.tail8ae57d.ts.net`, no trailing slash. |
+| `NUTHATCH_BASE_URL` | `https://<TAILNET_HOST>`, no trailing slash. |
 
 ## Build
 
@@ -227,7 +227,7 @@ pool 0x72ab388e... tvl 6612457.78705088
 
 ```
 claude mcp add --transport http deeptrace \
-  https://wallet-intel.tail8ae57d.ts.net:8443/mcp \
+  https://<TAILNET_HOST>:8443/mcp \
   --header "Authorization: Bearer <TOKEN>"
 claude mcp list
 ```

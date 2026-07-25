@@ -13,7 +13,7 @@ The Nuthatch nest is versioned with DeepTrace in the
 - Service user and group: `nuthatch:nuthatch`
 - Service unit: `nuthatch.service`
 - Local listener: `127.0.0.1:8288`
-- Tailnet endpoint: `https://wallet-intel.tail8ae57d.ts.net`
+- Tailnet endpoint: `https://<TAILNET_HOST>`
 - Admin UI: disabled with `--no-admin`
 
 The systemd unit uses:

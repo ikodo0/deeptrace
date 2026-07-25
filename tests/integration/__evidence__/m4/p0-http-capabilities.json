@@ -1,11 +1,11 @@
 {
-  "target_host": "wallet-intel.tail8ae57d.ts.net",
+  "target_host": "<TAILNET_HOST>",
   "probe_version": "0.6.1",
   "generated_at": "2026-07-25T15:46:13.192Z",
   "endpoints": {
     "/health": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/health",
+      "url": "https://<TAILNET_HOST>/health",
       "status": 200,
       "content_type": "text/plain; charset=utf-8",
       "duration_ms": 250,
@@ -14,7 +14,7 @@
     },
     "/ready": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/ready",
+      "url": "https://<TAILNET_HOST>/ready",
       "status": 200,
       "content_type": "application/json",
       "duration_ms": 56,
@@ -23,7 +23,7 @@
     },
     "/nest": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/nest",
+      "url": "https://<TAILNET_HOST>/nest",
       "status": 200,
       "content_type": "application/json",
       "duration_ms": 57,
@@ -32,7 +32,7 @@
     },
     "/schema": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/schema",
+      "url": "https://<TAILNET_HOST>/schema",
       "status": 200,
       "content_type": "text/plain; charset=utf-8",
       "duration_ms": 66,
@@ -41,7 +41,7 @@
     },
     "/tables": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/tables",
+      "url": "https://<TAILNET_HOST>/tables",
       "status": 200,
       "content_type": "application/json",
       "duration_ms": 70,
@@ -50,7 +50,7 @@
     },
     "/metrics": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/metrics",
+      "url": "https://<TAILNET_HOST>/metrics",
       "status": 200,
       "content_type": "text/plain; version=0.0.4",
       "duration_ms": 63,
@@ -59,7 +59,7 @@
     },
     "/explain": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/explain?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201",
+      "url": "https://<TAILNET_HOST>/explain?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201",
       "status": 400,
       "content_type": "application/json",
       "duration_ms": 121,
@@ -68,7 +68,7 @@
     },
     "/sql": {
       "method": "GET",
-      "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=1",
+      "url": "https://<TAILNET_HOST>/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=1",
       "status": 400,
       "content_type": "application/json",
       "duration_ms": 120,
@@ -77,20 +77,20 @@
     }
   },
   "post_sql": {
-    "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201",
+    "url": "https://<TAILNET_HOST>/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201",
     "status": 405,
     "rejected": true,
     "body": ""
   },
   "max_rows": {
-    "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=50001",
+    "url": "https://<TAILNET_HOST>/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=50001",
     "max_rows_requested": 50001,
     "status": 400,
     "rejected": true,
     "body": "{\"error\":\"failed to prepare query: Catalog Error: Table with name pool_swap_freshness does not exist!\\nDid you mean \\\"pool__swap\\\"?\\n\\nLINE 1: SELECT * FROM pool_swap_freshness LIMIT 1\\n                      ^: Error code 1: Unknown error code\\n\\nhint: no table `pool_swap_freshness`. Call the `schema` tool for the list of tables.\"}"
   },
   "concurrency": {
-    "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=1",
+    "url": "https://<TAILNET_HOST>/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=1",
     "requests": 3,
     "issued_within_ms": 165,
     "statuses": [503, 400, 400],
