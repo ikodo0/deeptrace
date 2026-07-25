@@ -1,12 +1,28 @@
-# M2 Live Source Scope — Blocked
+# M2 Live Source Scope — Amended to two sources
 
 ## Status
 
-M2 is blocked as of the 2026-07-25 capture. The required three compatible
+**Amended 2026-07-25 by owner decision: MVP-0 ships with two same-tier Graph
+sources instead of three.** The two validated Tier-B deployments below are the
+final M2 selection, and `src/registry/records.json` is finalized from them.
+
+The original three-source criterion was not met, and this is a deliberate scope
+reduction rather than a satisfied gate. Aerodrome was neither retried nor
+replaced; no tier mixing or silent fallback was introduced. The third source
+remains available as a later addition: adding it is a `records.json` plus
+`compare-pools.json` edit, with no loader or adapter change, because the
+same-tier invariant is enforced across whatever set is configured.
+
+The exit criterion for M3 changes accordingly — one call returns **two** valid
+`SourceResult` values, not three.
+
+### Prior status, retained for the record
+
+M2 ended blocked as of the 2026-07-25 capture. The required three compatible
 deployments and pools were not demonstrated. Two Tier-B deployments passed the
 native-USDC pool and common-query checks; Aerodrome pool discovery timed out.
-No retry, tier mixing, silent fallback, registry finalization, fixture rewrite,
-or `PLAN.md` scope lock was performed.
+No retry, tier mixing, silent fallback, fixture rewrite, or `PLAN.md` scope lock
+was performed.
 
 ## Locked inputs
 
