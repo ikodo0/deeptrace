@@ -234,4 +234,48 @@ describe("fetchComparePoolGraphSource", () => {
     expect(result.data).toBeNull();
     expect(result.freshness).toBeNull();
   });
+
+  it("returns error on HTTP non-2xx gateway responses", async () => {
+    const result = await fetchComparePoolGraphSource(uniswap!, {
+      apiKey: "key",
+      fetchImpl: () => Promise.resolve(jsonResponse({ message: "nope" }, 503)),
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.data).toBeNull();
+    expect(result.warnings[0]).toMatch(/HTTP 503/);
+  });
+
+  it("returns error on transport failures", async () => {
+    const result = await fetchComparePoolGraphSource(uniswap!, {
+      apiKey: "key",
+      fetchImpl: () => Promise.reject(new TypeError("network down")),
+    });
+
+    expect(result.status).toBe("error");
+    expect(result.data).toBeNull();
+    expect(result.warnings[0]).toMatch(/redacted/i);
+    expect(JSON.stringify(result)).not.toMatch(/network down/);
+  });
+
+  it("returns unsupported when pool tokens disagree with the locked pair", async () => {
+    const data = structuredClone(await loadEvidenceData("uniswap-v3-base-native")) as {
+      pool: { token1: { id: string; symbol: string; decimals: string } };
+    };
+    data.pool.token1 = {
+      id: "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+      symbol: "USDbC",
+      decimals: "6",
+    };
+
+    const result = await fetchComparePoolGraphSource(uniswap!, {
+      apiKey: "key",
+      fetchImpl: () => Promise.resolve(jsonResponse({ data })),
+      nowSeconds: 1_785_024_001,
+    });
+
+    expect(result.status).toBe("unsupported");
+    expect(result.data).toBeNull();
+    expect(result.warnings[0]).toMatch(/tokens do not match/i);
+  });
 });

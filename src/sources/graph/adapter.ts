@@ -1,4 +1,4 @@
-import { GATEWAY_DEFAULTS } from "../../config/defaults.js";
+import { GATEWAY_DEFAULTS, GATEWAY_MAXIMUMS } from "../../config/defaults.js";
 import type { ComparePoolGraphSource } from "../../registry/index.js";
 import {
   BASE_CHAIN_ID,
@@ -219,7 +219,8 @@ export async function fetchComparePoolGraphSource(
   options: FetchComparePoolGraphOptions = {},
 ): Promise<PoolSourceResult> {
   const nowSeconds = options.nowSeconds ?? Math.floor(Date.now() / 1000);
-  const timeoutMs = options.timeoutMs ?? GATEWAY_DEFAULTS.sourceTimeoutMs;
+  const requestedTimeoutMs = options.timeoutMs ?? GATEWAY_DEFAULTS.sourceTimeoutMs;
+  const timeoutMs = Math.min(Math.max(1, requestedTimeoutMs), GATEWAY_MAXIMUMS.sourceTimeoutMs);
 
   if (source.query_id !== TIER_B_METRICS_QUERY_ID) {
     return failedResult(source, "unsupported", {

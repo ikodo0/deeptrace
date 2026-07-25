@@ -1,4 +1,4 @@
-import { GATEWAY_DEFAULTS } from "../../config/defaults.js";
+import { GATEWAY_DEFAULTS, GATEWAY_MAXIMUMS } from "../../config/defaults.js";
 
 export const GRAPH_GATEWAY_ORIGIN = "https://gateway.thegraph.com/api" as const;
 
@@ -43,7 +43,8 @@ export async function postGraphGateway(
 ): Promise<GraphTransportResult> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const gatewayOrigin = options.gatewayOrigin ?? GRAPH_GATEWAY_ORIGIN;
-  const timeoutMs = options.timeoutMs ?? GATEWAY_DEFAULTS.sourceTimeoutMs;
+  const requestedTimeoutMs = options.timeoutMs ?? GATEWAY_DEFAULTS.sourceTimeoutMs;
+  const timeoutMs = Math.min(Math.max(1, requestedTimeoutMs), GATEWAY_MAXIMUMS.sourceTimeoutMs);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const startedAt = performance.now();
