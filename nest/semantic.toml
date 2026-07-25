@@ -8,7 +8,7 @@
 name = "pool_swap_freshness"
 sql = "views/pool_swap_freshness.sql"
 table = "pool__swap"
-instance = "https://wallet-intel.tail8ae57d.ts.net"
+instance = "https://<TAILNET_HOST>"
 
 [view.pool]
 chain = "base"
