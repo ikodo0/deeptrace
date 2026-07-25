@@ -26,6 +26,64 @@ The MCP gateway serves only the path `/mcp`. Everything else returns 404.
 `/health`, `/ready`, `/nest`, `/schema`, `/sql` are Nuthatch routes on `:443`;
 they do not exist on `:8443`.
 
+## For an external collaborator
+
+This is the whole path for someone outside the tailnet who only needs to call
+the tool. You do not clone the repo, build anything, or hold any Graph
+credential.
+
+### What you need from the maintainer
+
+1. A Tailscale node-share invitation for the machine `wallet-intel`. Accept it
+   from the invite link. It shares one machine only — the rest of the tailnet
+   stays invisible.
+2. The bearer token for the MCP gateway. Sent out of band, never in the repo.
+3. The gateway URL: https://wallet-intel.tail8ae57d.ts.net:8443/mcp
+4. Confirmation that the maintainer has applied the ACL grant for your
+   Tailscale identity on tcp:8443. Without it every request times out.
+
+### Setup
+
+Join the tailnet:
+
+```
+tailscale up
+tailscale status        # expect a wallet-intel row
+```
+
+Register the MCP server with Claude Code:
+
+```
+claude mcp add --transport http deeptrace \
+  https://wallet-intel.tail8ae57d.ts.net:8443/mcp \
+  --header "Authorization: Bearer <TOKEN>"
+```
+
+Confirm it connected:
+
+```
+claude mcp list         # expect: deeptrace: ... (HTTP) - ✔ Connected
+```
+
+### First call
+
+Ask the agent to compare Base WETH/USDC pools, or call the `compare_pools`
+tool with `chain_id` `8453`, `token0`
+`0x4200000000000000000000000000000000000006` and `token1`
+`0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`. A result with status `partial`
+is a success: two Graph sources answered, Nuthatch is not wired in yet. See
+"Known gaps" for why.
+
+### If it does not work — report back which one
+
+| You see | What it means |
+| --- | --- |
+| Timeout | The ACL grant is missing or names the wrong identity. A maintainer fix, not yours. Send them your exact Tailscale identity. |
+| HTTP 401 | You reached the server; the token is wrong or stale. Ask for a reissue. |
+| HTTP 404 | Check the URL ends in `/mcp`. Only that path is served on `:8443`. |
+
+Nothing here needs repo access, a Graph API key, or a local build.
+
 ## Prerequisites
 
 Node >= 22. CT 104 runs v22.23.1.
