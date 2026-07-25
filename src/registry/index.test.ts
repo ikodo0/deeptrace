@@ -555,7 +555,7 @@ describe("shipped registry and profile", () => {
   it("pins the locked WETH/USDC pair and Base chain", () => {
     const [first] = getActiveComparePoolGraphSources();
 
-    expect(first?.chain_id ?? first?.record.chain_id).toBe(8453);
+    expect(first?.record.chain_id).toBe(8453);
     expect(first?.token0).toBe("0x4200000000000000000000000000000000000006");
     expect(first?.token1).toBe("0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
   });
