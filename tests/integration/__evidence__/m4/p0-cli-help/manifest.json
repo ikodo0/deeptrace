@@ -1,0 +1,17 @@
+{
+  "capture_time": "2026-07-25T13:52:57Z",
+  "binary_path": "/home/arch/.local/bin/nuthatch",
+  "binary_version": "nuthatch 0.6.1",
+  "sha256": "cac413574b1a7c5536c65403abacc0ae9ce699f2580ae01773e28bb2f0d65e89",
+  "captured_by": "opencode-go/grok-4.5",
+  "commands": {
+    "tests/integration/__evidence__/m4/p0-version.txt": "/home/arch/.local/bin/nuthatch --version",
+    "tests/integration/__evidence__/m4/p0-cli-help/init.txt": "/home/arch/.local/bin/nuthatch init --help",
+    "tests/integration/__evidence__/m4/p0-cli-help/dev.txt": "/home/arch/.local/bin/nuthatch dev --help",
+    "tests/integration/__evidence__/m4/p0-cli-help/sql.txt": "/home/arch/.local/bin/nuthatch sql --help",
+    "tests/integration/__evidence__/m4/p0-cli-help/check.txt": "/home/arch/.local/bin/nuthatch check --help",
+    "tests/integration/__evidence__/m4/p0-cli-help/nest.txt": "/home/arch/.local/bin/nuthatch nest --help",
+    "tests/integration/__evidence__/m4/p0-cli-help/mcp.txt": "/home/arch/.local/bin/nuthatch mcp --help"
+  },
+  "secret_scan": "clean"
+}

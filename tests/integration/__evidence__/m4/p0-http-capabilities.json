@@ -1,0 +1,107 @@
+{
+  "target_host": "wallet-intel.tail8ae57d.ts.net",
+  "probe_version": "0.6.1",
+  "generated_at": "2026-07-25T15:46:13.192Z",
+  "endpoints": {
+    "/health": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/health",
+      "status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "duration_ms": 250,
+      "error": null,
+      "body": "ok"
+    },
+    "/ready": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/ready",
+      "status": 200,
+      "content_type": "application/json",
+      "duration_ms": 56,
+      "error": null,
+      "body": "{\"lag_blocks\":334948,\"last_block\":48767558,\"last_poll_unixtime\":1784994360,\"ready\":true,\"sealed_through\":48767558,\"seconds_since_poll\":13,\"stalled\":false,\"tip\":49102506}"
+    },
+    "/nest": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/nest",
+      "status": 200,
+      "content_type": "application/json",
+      "duration_ms": 57,
+      "error": null,
+      "body": "{\"chain\":\"base\",\"chain_id\":8453,\"contracts\":[{\"address\":\"0x6c561b446416e1a00e8e93e221854d6ea4171372\",\"alias\":\"pool\"}],\"factories\":[],\"name\":\"deeptrace-pool-freshness\",\"registry_hash\":\"0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25\",\"table_count\":9,\"templates\":[],\"webhooks\":[]}"
+    },
+    "/schema": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/schema",
+      "status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "duration_ms": 66,
+      "error": null,
+      "body": "nuthatch data model\n\nThe `nuthatch-init-7ZaLE4` nest on base. (seeded from the ABI - edit semantic.toml to improve this)\n\nCOVERAGE\n  sealed_through = 48767558 (the `sql` tool sees rows at or below this block);\n  tip = 48767558 - rows above sealed_through are served by `table`/`entity`, not `sql`.\n\nTABLES (one per contract event; query via the `sql` tool)\n\n  pool__burn - `Burn(address,int24,int24,uint128,uint256,uint256)` events emitted by the `pool` contract. (seeded from the ABI - edit semantic.toml to improve this)\n    grain: one row per Burn(address,int24,int24,uint128,uint256,uint256) event\n    columns: owner (address), tickLower (int24), tickUpper (int24), amount (uint128), amount0 (uint256), amount1 (uint256)\n    ⚠ big-int columns (exact text; use the `_dec` companion for SUM/AVG/compare): amount → amount_dec, amount0 → amount0_dec, amount1 → amount1_dec\n    ⚠ wide columns (>128-bit) whose `_dec` OVERFLOWS to NULL above 38 digits - use `CAST(col AS DOUBLE)` for math (e.g. sqrtPriceX96): amount0, amount1\n\n  pool__collect - `Collect(address,address,int24,int24,uint128,uint128)` events emitted by the `pool` contract. (seeded from the ABI - edit semantic.toml to improve this)\n    grain: one row per Collect(address,address,int24,int24,uint128,uint128) event\n    columns: owner (address), recipient (address), tickLower (int24), tickUpper (int24), amount0 (uint128), amount1 (uint128)\n    ⚠ big-int columns (exact text; use the `_dec` companion for SUM/AVG/compare): amount0 → amount0_dec, amount1 → amount1_dec\n\n  pool__collect_protocol - `CollectProtocol(address,address,uint128,uint128)` events emitted by the `pool` contract. (seeded from the ABI - edit semantic.toml to improve this)\n    grain: one row per CollectProtocol(address,address,uint128,uint128) event\n    columns: sender (address), recipient (address), amount0 (uint128), amount1 (uint128)\n    ⚠ big-int columns (exact text; use the `_dec` companion for SUM/AVG/compare): amount0 → amount0_dec, amount1 → amount1_dec\n\n  pool__flash - `Flash…<truncated>"
+    },
+    "/tables": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/tables",
+      "status": 200,
+      "content_type": "application/json",
+      "duration_ms": 70,
+      "error": null,
+      "body": "{\"count\":9,\"tables\":[{\"alias\":\"pool\",\"columns\":[{\"indexed\":false,\"name\":\"block_number\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":false,\"name\":\"block_hash\",\"sol_type\":\"implicit\",\"storage\":\"bytes32\"},{\"indexed\":false,\"name\":\"block_timestamp\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":false,\"name\":\"tx_hash\",\"sol_type\":\"implicit\",\"storage\":\"bytes32\"},{\"indexed\":false,\"name\":\"log_index\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":false,\"name\":\"address\",\"sol_type\":\"implicit\",\"storage\":\"address\"},{\"indexed\":false,\"name\":\"_seq\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":true,\"name\":\"owner\",\"sol_type\":\"address\",\"storage\":\"address\"},{\"indexed\":true,\"name\":\"tickLower\",\"sol_type\":\"int24\",\"storage\":\"i64\"},{\"indexed\":true,\"name\":\"tickUpper\",\"sol_type\":\"int24\",\"storage\":\"i64\"},{\"indexed\":false,\"name\":\"amount\",\"sol_type\":\"uint128\",\"storage\":\"word16\"},{\"indexed\":false,\"name\":\"amount0\",\"sol_type\":\"uint256\",\"storage\":\"word32\"},{\"indexed\":false,\"name\":\"amount1\",\"sol_type\":\"uint256\",\"storage\":\"word32\"}],\"event\":\"Burn(address,int24,int24,uint128,uint256,uint256)\",\"table\":\"pool__burn\",\"topic0\":\"0x0c396cd989a39f4459b5fa1aed6a9a8dcdbc45908acfd67e028cd568da98982c\"},{\"alias\":\"pool\",\"columns\":[{\"indexed\":false,\"name\":\"block_number\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":false,\"name\":\"block_hash\",\"sol_type\":\"implicit\",\"storage\":\"bytes32\"},{\"indexed\":false,\"name\":\"block_timestamp\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":false,\"name\":\"tx_hash\",\"sol_type\":\"implicit\",\"storage\":\"bytes32\"},{\"indexed\":false,\"name\":\"log_index\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":false,\"name\":\"address\",\"sol_type\":\"implicit\",\"storage\":\"address\"},{\"indexed\":false,\"name\":\"_seq\",\"sol_type\":\"implicit\",\"storage\":\"u64\"},{\"indexed\":true,\"name\":\"owner\",\"sol_type\":\"address\",\"storage\":\"address\"},{\"indexed\":false,\"name\":\"recipient\",\"sol_type\":\"address\",\"storage\":\"address\"},{\"indexed\":true,\"name\":\"tickLower\",\"sol_type\":\"int24\",\"storage\":\"i64\"},{\"indexed\":true,\"name\":\"tickUpper\",\"sol_type\":\"int24\",\"storage\":\"i64\"},{\"in…<truncated>"
+    },
+    "/metrics": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/metrics",
+      "status": 200,
+      "content_type": "text/plain; version=0.0.4",
+      "duration_ms": 63,
+      "error": null,
+      "body": "# HELP nuthatch_tip_height Latest block height seen from the source.\n# TYPE nuthatch_tip_height gauge\nnuthatch_tip_height 49102506\n# HELP nuthatch_last_block Highest block the indexer has committed.\n# TYPE nuthatch_last_block gauge\nnuthatch_last_block 48767558\n# HELP nuthatch_tip_lag_blocks Blocks the indexer is behind the source tip.\n# TYPE nuthatch_tip_lag_blocks gauge\nnuthatch_tip_lag_blocks 334948\n# HELP nuthatch_sealed_through Highest block sealed to the immutable cold layer.\n# TYPE nuthatch_sealed_through gauge\nnuthatch_sealed_through 48767558\n# HELP nuthatch_rss_bytes Resident set size of this process, in bytes.\n# TYPE nuthatch_rss_bytes gauge\nnuthatch_rss_bytes 112709632\n# HELP nuthatch_last_poll_unixtime Unix time of the last successful source poll (0 = never). Staleness ⇒ RPC stalled.\n# TYPE nuthatch_last_poll_unixtime gauge\nnuthatch_last_poll_unixtime 1784994360\n# HELP nuthatch_alert_outbox_depth Pending alert-webhook deliveries in the durable outbox.\n# TYPE nuthatch_alert_outbox_depth gauge\nnuthatch_alert_outbox_depth 0\n# HELP nuthatch_rows_decoded_total Rows decoded since start.\n# TYPE nuthatch_rows_decoded_total counter\nnuthatch_rows_decoded_total 5706\n# HELP nuthatch_rows_sealed_total Rows sealed to Parquet since start.\n# TYPE nuthatch_rows_sealed_total counter\nnuthatch_rows_sealed_total 5706\n# HELP nuthatch_reorgs_total Reorgs detected and rolled back since start.\n# TYPE nuthatch_reorgs_total counter\nnuthatch_reorgs_total 0\n# HELP nuthatch_http_requests_total HTTP API requests served since start.\n# TYPE nuthatch_http_requests_total counter\nnuthatch_http_requests_total 24\n# HELP nuthatch_sql_queries_total Analytical /sql queries accepted since start.\n# TYPE nuthatch_sql_queries_total counter\nnuthatch_sql_queries_total 4\n# HELP nuthatch_sql_rejections_total Analytical /sql queries rejected (guard: timeout, too-large, over-capacity).\n# TYPE nuthatch_sql_rejections_total counter\nnuthatch_sql_rejections_total 6\n# HELP nuthatch_rpc_requests_total Outbound JSON-RPC requests issued (incl. failover retri…<truncated>"
+    },
+    "/explain": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/explain?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201",
+      "status": 400,
+      "content_type": "application/json",
+      "duration_ms": 121,
+      "error": null,
+      "body": "{\"error\":\"failed to prepare query: Catalog Error: Table with name pool_swap_freshness does not exist!\\nDid you mean \\\"pool__swap\\\"?\\n\\nLINE 1: SELECT * FROM (SELECT * FROM pool_swap_freshness LIMIT 1) AS _explain LIMIT 0\\n                                     ^: Error code 1: Unknown error code\\n\\nhint: no table `pool_swap_freshness`. Call the `schema` tool for the list of tables.\",\"valid\":false}"
+    },
+    "/sql": {
+      "method": "GET",
+      "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=1",
+      "status": 400,
+      "content_type": "application/json",
+      "duration_ms": 120,
+      "error": null,
+      "body": "{\"error\":\"failed to prepare query: Catalog Error: Table with name pool_swap_freshness does not exist!\\nDid you mean \\\"pool__swap\\\"?\\n\\nLINE 1: SELECT * FROM pool_swap_freshness LIMIT 1\\n                      ^: Error code 1: Unknown error code\\n\\nhint: no table `pool_swap_freshness`. Call the `schema` tool for the list of tables.\"}"
+    }
+  },
+  "post_sql": {
+    "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201",
+    "status": 405,
+    "rejected": true,
+    "body": ""
+  },
+  "max_rows": {
+    "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=50001",
+    "max_rows_requested": 50001,
+    "status": 400,
+    "rejected": false,
+    "body": "{\"error\":\"failed to prepare query: Catalog Error: Table with name pool_swap_freshness does not exist!\\nDid you mean \\\"pool__swap\\\"?\\n\\nLINE 1: SELECT * FROM pool_swap_freshness LIMIT 1\\n                      ^: Error code 1: Unknown error code\\n\\nhint: no table `pool_swap_freshness`. Call the `schema` tool for the list of tables.\"}"
+  },
+  "concurrency": {
+    "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=1",
+    "requests": 3,
+    "issued_within_ms": 165,
+    "statuses": [503, 400, 400],
+    "ok_count": 0,
+    "guard_rejected_count": 1,
+    "verified": false,
+    "observed_concurrency_lower_bound": 0
+  },
+  "acceptance": {
+    "freshness_view_available": false,
+    "max_rows_rejection_verified": false,
+    "post_sql_rejected": true
+  }
+}
