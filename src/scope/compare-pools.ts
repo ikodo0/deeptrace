@@ -4,7 +4,7 @@ import { BASE_CHAIN_ID } from "../schemas/source-adapter.js";
  * Locked MVP-0 compare_pools allowlist for Graph-side binding.
  *
  * Values mirror `src/registry/compare-pools.json` and `records.json`.
- * Nuthatch is named for response-slot reservation only; no live fact is verified.
+ * The Nuthatch source ID resolves the active registry-pinned freshness view.
  */
 export const M0_COMPARE_POOLS_SCOPE = {
   chainId: BASE_CHAIN_ID,
@@ -34,10 +34,7 @@ export const M0_COMPARE_POOLS_SCOPE = {
       deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
     },
   ],
-  /**
-   * Reserved response/provenance slot. Not present in `records.json` until
-   * Nuthatch P5 lands; do not treat as a verified live source.
-   */
+  /** Active registry-pinned source for the Nuthatch freshness fact. */
   nuthatchSourceId: "nuthatch-pool-swaps",
 } as const;
 

@@ -374,14 +374,9 @@ service, and reissue the token to every client.
 
 ## Known gaps
 
-1. Nuthatch is not wired into `compare_pools`.
-   `src/tools/live-sources.ts` returns `Promise.resolve(null)` from
-   `fetchNuthatchResult`, so coverage always reports `nuthatch_available: false`.
-   This is independent of nest health: all three Nuthatch checks above pass.
-   Until that function calls the M5 adapter (`fetchNuthatchFreshness` in
-   `src/sources/nuthatch/adapter.ts`), a `partial` result is the correct and
-   expected output.
-2. Nuthatch backfill has not reached the chain tip, so the freshness view trails
+1. Nuthatch backfill has not reached the chain tip, so the freshness view trails
    live. Restart `nuthatch.service` to trigger RPC failover if it stalls.
-3. There is no live integration test for the MCP server. The 382-test suite is
+   `compare_pools` invokes the live freshness adapter and reports that source as
+   stale until the backfill catches up, so a `partial` result remains expected.
+2. There is no live integration test for the MCP server. The offline test suite is
    entirely offline.

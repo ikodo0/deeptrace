@@ -67,8 +67,9 @@ export async function executeComparePools(
     throw error;
   }
 
-  const graphResults = await sources.fetchGraphResults(request);
-  const nuthatchResult = await sources.fetchNuthatchResult(request);
+  const graphPromise = sources.fetchGraphResults(request);
+  const nuthatchPromise = sources.fetchNuthatchResult(request);
+  const [graphResults, nuthatchResult] = await Promise.all([graphPromise, nuthatchPromise]);
 
   const candidates = bindComparePoolsGraphResults(graphResults, request.window);
   const pools = rankCanonicalPools(candidates, {
