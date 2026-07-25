@@ -21,14 +21,16 @@ export const serverInfo = {
 
 export const COMPARE_POOLS_TOOL_NAME = "compare_pools" as const;
 
-const comparePoolsInputShape = {
-  chain_id: z.literal(BASE_CHAIN_ID),
-  token0: z.literal(M0_COMPARE_POOLS_SCOPE.token0.address),
-  token1: z.literal(M0_COMPARE_POOLS_SCOPE.token1.address),
-  window: z.enum(M0_TIME_WINDOWS).optional(),
-  ranked_by: z.enum(M0_RANKING_METRICS).optional(),
-  top_n: z.number().int().min(1).max(M0_CORE_POLICY.topN.maximum).optional(),
-};
+const comparePoolsInputSchema = z
+  .object({
+    chain_id: z.literal(BASE_CHAIN_ID),
+    token0: z.literal(M0_COMPARE_POOLS_SCOPE.token0.address),
+    token1: z.literal(M0_COMPARE_POOLS_SCOPE.token1.address),
+    window: z.enum(M0_TIME_WINDOWS).optional(),
+    ranked_by: z.enum(M0_RANKING_METRICS).optional(),
+    top_n: z.number().int().min(1).max(M0_CORE_POLICY.topN.maximum).optional(),
+  })
+  .strict();
 
 export interface CreateMcpServerOptions {
   readonly gatewayConfig?: GatewayConfig;
@@ -67,7 +69,7 @@ export function createMcpServer(options: CreateMcpServerOptions = {}): McpServer
       title: "Compare pools",
       description:
         "Compare locked Base WETH/USDC pools across configured Graph sources. Read-only.",
-      inputSchema: comparePoolsInputShape,
+      inputSchema: comparePoolsInputSchema,
       annotations: {
         title: "Compare pools",
         readOnlyHint: true,

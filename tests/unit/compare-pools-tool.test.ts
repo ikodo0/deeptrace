@@ -157,6 +157,34 @@ describe("compare_pools MCP tool", () => {
     }
   });
 
+  it("rejects unknown request fields before calling source adapters", async () => {
+    const onGraphFetch = vi.fn();
+    const { client, runtime } = await withClient(
+      createFixtureComparePoolsSources({
+        graphResults: [graphPoolA, graphPoolB],
+        onGraphFetch,
+      }),
+    );
+
+    try {
+      const result = await client.callTool({
+        name: COMPARE_POOLS_TOOL_NAME,
+        arguments: {
+          ...lockedComparePoolsRequest,
+          subgraph_id: "must-not-leak",
+        },
+      });
+      expect(result.isError).toBe(true);
+      expect((result.content as Array<{ text: string }>)[0]?.text).toMatch(
+        /Input validation error|Invalid arguments|unrecognized key/i,
+      );
+      expect(onGraphFetch).not.toHaveBeenCalled();
+    } finally {
+      await client.close();
+      await runtime.close();
+    }
+  });
+
   it("does not call adapters when rate limited", async () => {
     const onGraphFetch = vi.fn();
     const rateLimiter = new FixedWindowRateLimiter({
