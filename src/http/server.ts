@@ -19,6 +19,14 @@ interface Session {
   readonly close: () => Promise<void>;
 }
 
+interface OpenedSession {
+  readonly transport: StreamableHTTPServerTransport;
+  /** True once onsessioninitialized registered the session in the map. */
+  readonly wasRegistered: () => boolean;
+  /** Closes both the transport and the McpServer. Safe to call once. */
+  readonly dispose: () => Promise<void>;
+}
+
 export interface HttpRuntime {
   readonly server: Server;
   close(): Promise<void>;
@@ -53,6 +61,8 @@ async function readBody(request: IncomingMessage): Promise<unknown> {
  */
 export function createHttpServer(config: HttpConfig): HttpRuntime {
   const sessions = new Map<string, Session>();
+  /** In-flight opens that have reserved a slot but not yet registered. */
+  let pendingOpens = 0;
 
   const closeSession = async (sessionId: string): Promise<void> => {
     const session = sessions.get(sessionId);
@@ -63,11 +73,13 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
     await session.close();
   };
 
-  const openSession = async (): Promise<StreamableHTTPServerTransport> => {
+  const openSession = async (): Promise<OpenedSession> => {
     const mcpServer = createMcpServer();
+    let registered = false;
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       onsessioninitialized: (sessionId) => {
+        registered = true;
         sessions.set(sessionId, {
           transport,
           close: async () => {
@@ -85,7 +97,14 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
     // may hold undefined, while Transport declares them optional. Those differ
     // under exactOptionalPropertyTypes even though the runtime shape matches.
     await mcpServer.connect(transport as Transport);
-    return transport;
+    return {
+      transport,
+      wasRegistered: () => registered,
+      dispose: async () => {
+        await transport.close();
+        await mcpServer.close();
+      },
+    };
   };
 
   const server = createServer((request, response) => {
@@ -122,13 +141,21 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
           return;
         }
 
-        if (sessions.size >= MAX_SESSIONS) {
+        if (sessions.size + pendingOpens >= MAX_SESSIONS) {
           respondJson(response, 503, "session_limit", "Too many active sessions");
           return;
         }
 
-        const transport = await openSession();
-        await transport.handleRequest(request, response, body);
+        pendingOpens += 1;
+        const session = await openSession();
+        try {
+          await session.transport.handleRequest(request, response, body);
+        } finally {
+          pendingOpens -= 1;
+          if (!session.wasRegistered()) {
+            await session.dispose();
+          }
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown request error";
         console.error(`[deeptrace] HTTP request failed: ${message}`);
