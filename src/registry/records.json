@@ -1,0 +1,36 @@
+[
+  {
+    "source_id": "uniswap-v3-base-native",
+    "category": "dex",
+    "protocol": "uniswap-v3",
+    "chain_id": 8453,
+    "source_type": "native_subgraph",
+    "deployment_or_view_id": "QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR",
+    "schema_version": null,
+    "methodology_version": null,
+    "supported_entities": ["pools", "poolDayDatas", "tokens"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz"
+    }
+  },
+  {
+    "source_id": "exchange-v3-base",
+    "category": "dex",
+    "protocol": "pancakeswap-v3",
+    "chain_id": 8453,
+    "source_type": "native_subgraph",
+    "deployment_or_view_id": "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
+    "schema_version": null,
+    "methodology_version": null,
+    "supported_entities": ["pools", "poolDayDatas", "tokens"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3"
+    }
+  }
+]
