@@ -340,3 +340,257 @@ describe("record validation", () => {
     }
   });
 });
+
+function expectProfileRejected(profileOverride: unknown, pattern: RegExp): void {
+  expect(() => getActiveComparePoolGraphSources({ records, profile: profileOverride })).toThrow(
+    pattern,
+  );
+}
+
+describe("compare-pools profile validation", () => {
+  it("rejects a missing profile file", () => {
+    const missing = new URL("file:///deeptrace-does-not-exist/compare-pools.json");
+
+    expect(() => getActiveComparePoolGraphSources({ records, profile: missing })).toThrow(
+      RegistryConfigurationError,
+    );
+  });
+
+  it("rejects malformed profile JSON", () => {
+    const location = writeJsonFile("compare-pools.json", "{ not json");
+
+    expectProfileRejected(location, /compare-pools\.json: is not valid JSON/);
+  });
+
+  it("rejects fewer than three bindings", () => {
+    expectProfileRejected(
+      { ...profile, sources: profile.sources.slice(0, 2) },
+      /compare-pools\.json\.sources/,
+    );
+  });
+
+  it("rejects more than three bindings", () => {
+    expectProfileRejected(
+      { ...profile, sources: [...profile.sources, binding("test-graph-a", "d", 4)] },
+      /compare-pools\.json\.sources/,
+    );
+  });
+
+  it("rejects a duplicate source binding", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          binding("test-graph-a", "a", 1),
+          binding("test-graph-a", "b", 2),
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[1\]\.source_id: "test-graph-a" duplicates sources\[0\]/,
+    );
+  });
+
+  it("rejects a duplicate pool address", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          binding("test-graph-a", "a", 1),
+          binding("test-graph-b", "a", 2),
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[1\]\.pool_address: .* duplicates sources\[0\]/,
+    );
+  });
+
+  it("rejects a duplicate priority, which would make output order unstable", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          binding("test-graph-a", "a", 1),
+          binding("test-graph-b", "b", 1),
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[1\]\.priority: "1" duplicates sources\[0\]/,
+    );
+  });
+
+  it("rejects a binding that names an unknown source", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          binding("test-graph-a", "a", 1),
+          binding("test-graph-b", "b", 2),
+          binding("absent-source", "c", 3),
+        ],
+      },
+      /sources\[2\]\.source_id: "absent-source" is not present in records\.json/,
+    );
+  });
+
+  it("rejects a binding to an inactive record", () => {
+    const withInactive = [{ ...graphRecordC, status: "inactive" }, graphRecord, graphRecordB];
+
+    expect(() => getActiveComparePoolGraphSources({ records: withInactive, profile })).toThrow(
+      /sources\[2\]\.source_id: "test-graph-c" is inactive/,
+    );
+  });
+
+  it("rejects a binding to a non-Graph record", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          binding("test-graph-a", "a", 1),
+          binding("test-graph-b", "b", 2),
+          binding("test-nuthatch", "c", 3),
+        ],
+      },
+      /sources\[2\]\.source_id: "test-nuthatch" is not a Graph source/,
+    );
+  });
+
+  it("rejects bindings that do not share one query template", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          binding("test-graph-a", "a", 1),
+          { ...binding("test-graph-b", "b", 2), query_id: "other-query-v1" },
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[1\]\.query_id: query_id "other-query-v1" does not match sources\[0\]/,
+    );
+  });
+
+  it("rejects bindings that do not share one response contract", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          binding("test-graph-a", "a", 1),
+          { ...binding("test-graph-b", "b", 2), schema_contract_id: "other-shape-v1" },
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[1\]\.schema_contract_id: schema_contract_id "other-shape-v1"/,
+    );
+  });
+
+  it("rejects a mixed schema tier across the selected set", () => {
+    const mixedTier = [
+      graphRecord,
+      { ...graphRecordB, source_type: "standardized_subgraph" },
+      graphRecordC,
+    ];
+
+    expect(() => getActiveComparePoolGraphSources({ records: mixedTier, profile })).toThrow(
+      /source_type "standardized_subgraph" does not match sources\[0\] "native_subgraph"/,
+    );
+  });
+
+  it("rejects a checksummed pool address", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          {
+            ...binding("test-graph-a", "a", 1),
+            pool_address: "0x6C561B446416E1A00E8E93E221854D6EA4171372",
+          },
+          binding("test-graph-b", "b", 2),
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[0\]\.pool_address/,
+    );
+  });
+
+  it("rejects a truncated pool address", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          { ...binding("test-graph-a", "a", 1), pool_address: "0xabc" },
+          binding("test-graph-b", "b", 2),
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[0\]\.pool_address/,
+    );
+  });
+
+  it("rejects a token pair that names the same token twice", () => {
+    expectProfileRejected(
+      { ...profile, token1: profile.token0 },
+      /compare-pools\.json\.token1: must differ from token0/,
+    );
+  });
+
+  it("rejects a chain other than Base", () => {
+    expectProfileRejected({ ...profile, chain_id: 1 }, /compare-pools\.json\.chain_id/);
+  });
+
+  it("rejects a non-positive priority", () => {
+    expectProfileRejected(
+      {
+        ...profile,
+        sources: [
+          { ...binding("test-graph-a", "a", 1), priority: 0 },
+          binding("test-graph-b", "b", 2),
+          binding("test-graph-c", "c", 3),
+        ],
+      },
+      /sources\[0\]\.priority/,
+    );
+  });
+
+  it("rejects unknown profile keys", () => {
+    expectProfileRejected(
+      { ...profile, gateway_url: "https://example.com" },
+      /compare-pools\.json/,
+    );
+  });
+
+  it("rejects a record that does not support every entity the query needs", () => {
+    const withoutDayData = [
+      graphRecord,
+      graphRecordB,
+      { ...graphRecordC, supported_entities: ["Pool", "Token"] },
+    ];
+
+    expect(() =>
+      getActiveComparePoolGraphSources({
+        records: withoutDayData,
+        profile,
+        requiredEntities: ["Pool", "PoolDayData"],
+      }),
+    ).toThrow(/sources\[2\]\.source_id: "test-graph-c" does not support PoolDayData/);
+  });
+
+  it("reports every profile problem in one error", () => {
+    try {
+      getActiveComparePoolGraphSources({
+        records,
+        profile: {
+          ...profile,
+          token1: profile.token0,
+          sources: [
+            binding("test-graph-a", "a", 1),
+            binding("test-graph-a", "b", 1),
+            binding("absent-source", "c", 3),
+          ],
+        },
+      });
+      expect.unreachable("expected a registry configuration error");
+    } catch (error) {
+      expect(error).toBeInstanceOf(RegistryConfigurationError);
+      expect((error as RegistryConfigurationError).issues.length).toBeGreaterThan(2);
+    }
+  });
+});
