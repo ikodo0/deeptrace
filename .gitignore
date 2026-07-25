@@ -28,3 +28,4 @@ coverage/
 .yarn/cache/
 .yarn/unplugged/
 .pnp.*
+/DEEPTRACE_HANDOFF.md
