@@ -10,12 +10,11 @@
 //   NUTHATCH_BASE_URL=http://127.0.0.1:8080 node scripts/m4/http-probe.mjs
 //
 // Output: a single JSON object on stdout. No secrets, keyed URLs, or admin
-// tokens are read or printed. The base URL is taken from NUTHATCH_BASE_URL
-// (default: https://wallet-intel.tail8ae57d.ts.net) and never echoed back in
-// full beyond the host used here, which is a non-keyed tail-net name.
+// tokens are read or printed. The base URL must be supplied via
+// NUTHATCH_BASE_URL; it is never defaulted to avoid baking internal
+// infrastructure names into committed source.
 
-const DEFAULT_BASE_URL = "https://wallet-intel.tail8ae57d.ts.net";
-const BASE_URL = process.env.NUTHATCH_BASE_URL ?? DEFAULT_BASE_URL;
+const BASE_URL = process.env.NUTHATCH_BASE_URL ?? "";
 const REQUEST_TIMEOUT_MS = 15_000;
 const BODY_TRUNCATE_BYTES = 2048;
 const CONCURRENCY_PROBE_COUNT = 3;
