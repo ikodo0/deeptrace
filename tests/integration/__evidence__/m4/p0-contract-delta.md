@@ -1,18 +1,15 @@
 # P0 Contract Delta — installed Nuthatch 0.6.1 vs the M4 plan
 
-Task 3, partial. The CLI surface is captured in `p0-cli-help/`. The initial
-HTTP capability capture is retained in `p0-http-capabilities.json`, but it is
-not P5 acceptance evidence: the probed instance did not have the authored
-`pool_swap_freshness` view installed.
+Task 3, partial: CLI surface only. Ruled by Agent 1 against the committed
+evidence in `p0-cli-help/`, cross-checked against an independent capture by a
+second agent (byte-identical for all six commands).
 
 Binary: `/home/arch/.local/bin/nuthatch`, `nuthatch 0.6.1`,
 sha256 `cac413574b1a7c5536c65403abacc0ae9ce699f2580ae01773e28bb2f0d65e89`.
 
-The HTTP capture confirms that the instance exposes `/health`, `/ready`,
-`/nest`, `/schema`, `/tables`, `/metrics`, `/explain`, and GET-only `/sql`.
-It does not prove the freshness view, `max_rows`, or concurrency guards:
-`/sql` and `/explain` returned a catalog miss for `pool_swap_freshness`, and
-that unrelated error invalidated the original guard classifications.
+The HTTP surface is **not** covered here. Every claim about `/sql`, `/nest`,
+`/schema`, `/ready`, guards, implicit columns, and hot ∪ sealed view coverage
+remains unverified until the HTTP probes run.
 
 ## Confirmed — the plan was right
 
@@ -107,12 +104,10 @@ identity rather than behaviour.
 vendored and nothing re-resolved, which is a reproducibility path the plan
 does not currently use.
 
-## Still unverified — blocking P5 acceptance
+## Still unverified — blocking the rest of task 3
 
-1. A successful `/sql` and `/explain` response for the deployed
-   `pool_swap_freshness` view.
-2. Active timeout, row, byte, `max_rows`, and concurrency guards using queries
-   against tables that exist on the deployed nest.
+1. Is HTTP `/sql` GET-only, and what are its real parameter names?
+2. Active timeout, row, byte, and concurrency guards.
 3. Exact implicit column names and types, including `_seq`, decimal siblings,
    and overflow flags.
 4. **Whether authored views read hot and sealed rows together.** The single
