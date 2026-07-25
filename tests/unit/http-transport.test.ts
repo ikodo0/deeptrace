@@ -15,12 +15,18 @@ import { createHttpServer, listen, type HttpRuntime } from "../../src/http/serve
 // closeSpy. This lets the lifecycle tests assert disposal without measuring
 // memory, while keeping the real server wiring (tool registration, connect).
 const closeSpy = vi.hoisted(() => vi.fn());
+// Toggle to make openSession() fail at createMcpServer() for the reservation
+// leak regression test. Defaults to false so other tests are unaffected.
+const openSessionFailure = vi.hoisted(() => ({ enabled: false }));
 
 vi.mock("../../src/mcp/server.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../src/mcp/server.js")>();
   return {
     ...actual,
     createMcpServer: (...args: Parameters<typeof actual.createMcpServer>) => {
+      if (openSessionFailure.enabled) {
+        throw new Error("openSession forced failure");
+      }
       const server = actual.createMcpServer(...args);
       const originalClose = server.close.bind(server);
       server.close = async () => {
@@ -234,6 +240,38 @@ describe("HTTP session lifecycle", () => {
       // No new McpServer should have been created for the rejected request.
       expect(closeSpy).not.toHaveBeenCalled();
     } finally {
+      await runtime.close();
+    }
+  });
+
+  it("releases the session reservation when openSession throws", async () => {
+    // Regression: pendingOpens += 1 used to sit outside the try, so a failing
+    // openSession() left the counter incremented forever. After MAX_SESSIONS
+    // such failures the 503 guard would be permanently true with zero live
+    // sessions. The fix decrements in a finally that wraps openSession too.
+    const { runtime, base } = await startTestServer();
+    closeSpy.mockClear();
+    openSessionFailure.enabled = true;
+    try {
+      for (let i = 0; i < 64; i += 1) {
+        const response = await postInitialize(base, {
+          accept: "application/json, text/event-stream",
+        });
+        expect(response.status).toBe(500);
+      }
+      // No session was ever created, so close() must never have run.
+      expect(closeSpy).not.toHaveBeenCalled();
+
+      // Re-enable the happy path: a fresh initialize must still succeed,
+      // proving every failed reservation was returned to the pool.
+      openSessionFailure.enabled = false;
+      const valid = await postInitialize(base, {
+        accept: "application/json, text/event-stream",
+      });
+      expect(valid.status).toBe(200);
+      expect(valid.headers.get("mcp-session-id")).not.toBeNull();
+    } finally {
+      openSessionFailure.enabled = false;
       await runtime.close();
     }
   });

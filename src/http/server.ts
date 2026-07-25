@@ -147,14 +147,17 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
         }
 
         pendingOpens += 1;
-        const session = await openSession();
         try {
-          await session.transport.handleRequest(request, response, body);
+          const session = await openSession();
+          try {
+            await session.transport.handleRequest(request, response, body);
+          } finally {
+            if (!session.wasRegistered()) {
+              await session.dispose();
+            }
+          }
         } finally {
           pendingOpens -= 1;
-          if (!session.wasRegistered()) {
-            await session.dispose();
-          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown request error";
