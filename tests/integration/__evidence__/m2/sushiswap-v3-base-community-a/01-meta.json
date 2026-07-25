@@ -1,0 +1,22 @@
+{
+  "captured_at": "2026-07-25T11:52:37.393Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "8WG1adHbCgThdQHRg4FayNbxunUM1AhPJVTS5rXtEFoa",
+  "query_id": "m2-meta-v1",
+  "request": {
+    "query": "query M2Meta {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n}",
+    "variables": {}
+  },
+  "response": {
+    "errors": [
+      {
+        "message": "subgraph not found: no allocations"
+      }
+    ]
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 63,
+    "error": null
+  }
+}
