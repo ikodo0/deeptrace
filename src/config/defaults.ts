@@ -5,6 +5,13 @@ export const GATEWAY_DEFAULTS = {
   sourceTimeoutMs: 5_000,
 } as const;
 
+/** Practical deployment ceilings for environment overrides. */
+export const GATEWAY_MAXIMUMS = {
+  rateLimitMaxRequests: 300,
+  rateLimitWindowMs: 3_600_000,
+  sourceTimeoutMs: 8_000,
+} as const;
+
 export const GATEWAY_ENV_VARS = {
   rateLimitMaxRequests: "DEEPTRACE_RATE_LIMIT_MAX_REQUESTS",
   rateLimitWindowMs: "DEEPTRACE_RATE_LIMIT_WINDOW_MS",

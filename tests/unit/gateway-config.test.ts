@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   GATEWAY_DEFAULTS,
   GATEWAY_ENV_VARS,
+  GATEWAY_MAXIMUMS,
   loadGatewayConfig,
   parseBoundedPositiveInteger,
 } from "../../src/config/index.js";
@@ -28,6 +29,20 @@ describe("loadGatewayConfig", () => {
       rateLimitMaxRequests: 10,
       rateLimitWindowMs: 120_000,
       sourceTimeoutMs: 2_500,
+    });
+  });
+
+  it("accepts each practical deployment ceiling", () => {
+    expect(
+      loadGatewayConfig({
+        [GATEWAY_ENV_VARS.rateLimitMaxRequests]: String(GATEWAY_MAXIMUMS.rateLimitMaxRequests),
+        [GATEWAY_ENV_VARS.rateLimitWindowMs]: String(GATEWAY_MAXIMUMS.rateLimitWindowMs),
+        [GATEWAY_ENV_VARS.sourceTimeoutMs]: String(GATEWAY_MAXIMUMS.sourceTimeoutMs),
+      }),
+    ).toEqual({
+      rateLimitMaxRequests: GATEWAY_MAXIMUMS.rateLimitMaxRequests,
+      rateLimitWindowMs: GATEWAY_MAXIMUMS.rateLimitWindowMs,
+      sourceTimeoutMs: GATEWAY_MAXIMUMS.sourceTimeoutMs,
     });
   });
 
@@ -91,6 +106,18 @@ describe("loadGatewayConfig", () => {
     expect(configurationError.message).not.toContain("graph-api-key-should-stay-hidden");
     expect(configurationError.message).not.toContain("admin-token-should-stay-hidden");
   });
+
+  it.each([
+    [GATEWAY_ENV_VARS.rateLimitMaxRequests, GATEWAY_MAXIMUMS.rateLimitMaxRequests],
+    [GATEWAY_ENV_VARS.rateLimitWindowMs, GATEWAY_MAXIMUMS.rateLimitWindowMs],
+    [GATEWAY_ENV_VARS.sourceTimeoutMs, GATEWAY_MAXIMUMS.sourceTimeoutMs],
+  ])("rejects %s above its practical deployment ceiling", (variableName, maximum) => {
+    expect(() =>
+      loadGatewayConfig({
+        [variableName]: String(maximum + 1),
+      }),
+    ).toThrow(ConfigurationError);
+  });
 });
 
 describe("parseBoundedPositiveInteger", () => {
@@ -110,4 +137,9 @@ describe("parseBoundedPositiveInteger", () => {
       expect(configurationError.message).not.toContain(raw);
     },
   );
+
+  it("honors a caller-supplied upper bound", () => {
+    expect(parseBoundedPositiveInteger("10", "TEST_VAR", 10)).toBe(10);
+    expect(() => parseBoundedPositiveInteger("11", "TEST_VAR", 10)).toThrow(ConfigurationError);
+  });
 });
