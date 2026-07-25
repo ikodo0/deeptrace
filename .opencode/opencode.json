@@ -1,21 +1,21 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "opencode-go/grok-4.5",
-  "small_model": "opencode-go/grok-4.5",
+  "model": "openrouter/z-ai/glm-5.2",
+  "small_model": "openrouter/z-ai/glm-5.2",
   "default_agent": "build",
   "agent": {
     "code-executor": {
-      "model": "opencode-go/grok-4.5",
+      "model": "openrouter/z-ai/glm-5.2",
       "mode": "subagent",
       "description": "Implements one DeepTrace milestone sub-task with green tests and safe commits"
     },
     "code-reviewer": {
-      "model": "opencode-go/grok-4.5",
+      "model": "openrouter/z-ai/glm-5.2",
       "mode": "subagent",
       "description": "Read-only code review against contracts and milestone acceptance"
     },
     "git-commit-reviewer": {
-      "model": "opencode-go/grok-4.5",
+      "model": "openrouter/z-ai/glm-5.2",
       "mode": "subagent",
       "description": "Read-only git history and merge-gate review"
     }
