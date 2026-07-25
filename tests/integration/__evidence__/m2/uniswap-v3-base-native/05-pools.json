@@ -1,0 +1,138 @@
+{
+  "captured_at": "2026-07-25T12:01:37.439Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+  "query_id": "m2-tier-b-pools-v2",
+  "request": {
+    "query": "query M2TierBPools($token0: Bytes!, $token1: Bytes!) {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  pools(\n    first: 100\n    where: { token0: $token0, token1: $token1 }\n    orderBy: totalValueLockedUSD\n    orderDirection: desc\n  ) {\n    id feeTier totalValueLockedUSD\n    token0 { id symbol decimals }\n    token1 { id symbol decimals }\n  }\n}",
+    "variables": {
+      "token0": "0x4200000000000000000000000000000000000006",
+      "token1": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+    }
+  },
+  "response": {
+    "data": {
+      "pools": [
+        {
+          "id": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+          "feeTier": "3000",
+          "totalValueLockedUSD": "150700095.7707237035076119974091172",
+          "token0": {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": "18"
+          },
+          "token1": {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": "6"
+          }
+        },
+        {
+          "id": "0xd0b53d9277642d899df5c87a3966a349a798f224",
+          "feeTier": "500",
+          "totalValueLockedUSD": "30544521.51069483480231607490973948",
+          "token0": {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": "18"
+          },
+          "token1": {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": "6"
+          }
+        },
+        {
+          "id": "0x1c450d7d1fd98a0b04e30decfc83497b33a4f608",
+          "feeTier": "200",
+          "totalValueLockedUSD": "8241326.519878764539927109364498741",
+          "token0": {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": "18"
+          },
+          "token1": {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": "6"
+          }
+        },
+        {
+          "id": "0x0b1c2dcbbfa744ebd3fc17ff1a96a1e1eb4b2d69",
+          "feeTier": "10000",
+          "totalValueLockedUSD": "1141477.311208862813522218169295476",
+          "token0": {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": "18"
+          },
+          "token1": {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": "6"
+          }
+        },
+        {
+          "id": "0xb4cb800910b228ed3d0834cf79d697127bbb00e5",
+          "feeTier": "100",
+          "totalValueLockedUSD": "628090.663783189639560403599809527",
+          "token0": {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": "18"
+          },
+          "token1": {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": "6"
+          }
+        },
+        {
+          "id": "0x18b497f71122622557e4634c47a05647ff859f47",
+          "feeTier": "300",
+          "totalValueLockedUSD": "14428.78222114692539389659886698598",
+          "token0": {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": "18"
+          },
+          "token1": {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": "6"
+          }
+        },
+        {
+          "id": "0x56c8989222ed293e3c4a22628d8bca633ce1eb99",
+          "feeTier": "400",
+          "totalValueLockedUSD": "7479.102270753444418497890329365247",
+          "token0": {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": "18"
+          },
+          "token1": {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": "6"
+          }
+        }
+      ],
+      "_meta": {
+        "block": {
+          "number": 49095773,
+          "timestamp": 1784980893,
+          "hash": "0xfaf4cc0493056e5ccac3f68b9e148cf8e80ee0d67adf333ed27b4a62d17c185c"
+        },
+        "hasIndexingErrors": false,
+        "deployment": "QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR"
+      }
+    }
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 1509,
+    "error": null
+  }
+}

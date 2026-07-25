@@ -1,0 +1,100 @@
+[
+  {
+    "slug": "uniswap-v3-base-native",
+    "protocol_name": "Uniswap V3",
+    "subgraph_id": "GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+    "publisher": "Uniswap"
+  },
+  {
+    "slug": "uniswap-v3-base-native-recent",
+    "protocol_name": "Uniswap V3",
+    "subgraph_id": "VmwKeqb22QsuM4AcCp8qTFg2dW7EXZNg16kGgXu6bBu",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/VmwKeqb22QsuM4AcCp8qTFg2dW7EXZNg16kGgXu6bBu",
+    "publisher": "Graph Explorer publisher 0xd3bb…9d0632"
+  },
+  {
+    "slug": "uniswap-v3-base-messari",
+    "protocol_name": "Uniswap V3",
+    "subgraph_id": "FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS",
+    "publisher": "Messari standardized-subgraph publisher"
+  },
+  {
+    "slug": "sushiswap-v3-base",
+    "protocol_name": "SushiSwap V3",
+    "subgraph_id": "H6SjXCnZxJhaVHw4VDuXqtzWZ2JEBDvhwA3qysnUEjSV",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/H6SjXCnZxJhaVHw4VDuXqtzWZ2JEBDvhwA3qysnUEjSV",
+    "publisher": "SushiSwap"
+  },
+  {
+    "slug": "aerodrome-slipstream-base",
+    "protocol_name": "Aerodrome Slipstream",
+    "subgraph_id": "EeEmhjkK76RKQpZcfT2S8ZxzcV6Saq4RUw6krq1KuDJu",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/EeEmhjkK76RKQpZcfT2S8ZxzcV6Saq4RUw6krq1KuDJu",
+    "publisher": "Graph Explorer publisher 0x29ff…100662"
+  },
+  {
+    "slug": "aerodrome-base-full",
+    "protocol_name": "Aerodrome",
+    "subgraph_id": "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM",
+    "publisher": "Graph Explorer publisher 0xa4c6…05cc95"
+  },
+  {
+    "slug": "balancer-v2-base",
+    "protocol_name": "Balancer V2",
+    "subgraph_id": "E7XyutxXVLrp8njmjF16Hh38PCJuHm12RRyMt5ma4ctX",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/E7XyutxXVLrp8njmjF16Hh38PCJuHm12RRyMt5ma4ctX",
+    "publisher": "Balancer"
+  },
+  {
+    "slug": "base-slipstream-community",
+    "protocol_name": "Aerodrome Slipstream",
+    "subgraph_id": "5U2aXafXWCubcFTJiJ4szrxKXJ562JdEVdbfCo6J4cms",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/5U2aXafXWCubcFTJiJ4szrxKXJ562JdEVdbfCo6J4cms",
+    "publisher": "Graph Explorer publisher 0x1080…4f5b07"
+  },
+  {
+    "slug": "pancakeswap-v3-base",
+    "protocol_name": "PancakeSwap V3",
+    "subgraph_id": "84ADrft27B8Jo46mdknbJ3PHoJ5wK5YeNBrYTD19WnaH",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/84ADrft27B8Jo46mdknbJ3PHoJ5wK5YeNBrYTD19WnaH",
+    "publisher": "Graph Explorer publisher 0x3acc…499c23"
+  },
+  {
+    "slug": "baseswap-v2-base",
+    "protocol_name": "BaseSwap V2",
+    "subgraph_id": "SU9VhLEYR58QqvRmvCpDQarCkb6fb4cL9Pj3WgNcALD",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/SU9VhLEYR58QqvRmvCpDQarCkb6fb4cL9Pj3WgNcALD",
+    "publisher": "Graph Explorer publisher 0x4f1a…76928d"
+  },
+  {
+    "slug": "sushiswap-v3-base-community-a",
+    "protocol_name": "SushiSwap V3",
+    "subgraph_id": "8WG1adHbCgThdQHRg4FayNbxunUM1AhPJVTS5rXtEFoa",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/8WG1adHbCgThdQHRg4FayNbxunUM1AhPJVTS5rXtEFoa",
+    "publisher": "Graph Explorer publisher 0x3eb4…6a09e3"
+  },
+  {
+    "slug": "sushiswap-v3-base-community-b",
+    "protocol_name": "SushiSwap V3",
+    "subgraph_id": "9KSiDKQ3KnwyxU5yA1KkGbqF4uREHVfmUcrLyjS4itSY",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/9KSiDKQ3KnwyxU5yA1KkGbqF4uREHVfmUcrLyjS4itSY",
+    "publisher": "Graph Explorer publisher 0x3acc…499c23"
+  },
+  {
+    "slug": "pancakeswap-exchange-v3-base",
+    "protocol_name": "PancakeSwap V3",
+    "subgraph_id": "8F3ur1X2g63Lkef4JhCcfWUq8oQrghGNJFBq1vkyKDNv",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/8F3ur1X2g63Lkef4JhCcfWUq8oQrghGNJFBq1vkyKDNv",
+    "publisher": "Graph Explorer publisher 0xb165…84629a"
+  },
+  {
+    "slug": "exchange-v3-base",
+    "protocol_name": "PancakeSwap V3 candidate",
+    "subgraph_id": "BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3",
+    "explorer_url": "https://thegraph.com/explorer/subgraphs/BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3",
+    "publisher": "Graph Explorer publisher 0xd099…e348d4"
+  }
+]
