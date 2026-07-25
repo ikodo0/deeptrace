@@ -74,15 +74,7 @@ const graphRecordB = {
   locator: { ...graphRecord.locator, subgraph_id: "TestSubgraphB" },
 } satisfies SourceRegistryRecord;
 
-const graphRecordC = {
-  ...graphRecord,
-  source_id: "test-graph-c",
-  protocol: "Test DEX C",
-  deployment_or_view_id: "QmTestDeploymentC",
-  locator: { ...graphRecord.locator, subgraph_id: "TestSubgraphC" },
-} satisfies SourceRegistryRecord;
-
-const records = [graphRecord, graphRecordB, graphRecordC, nuthatchRecord];
+const records = [graphRecord, graphRecordB, nuthatchRecord];
 
 const QUERY_ID = "test-pool-metrics-v1";
 const SCHEMA_CONTRACT_ID = "test-pool-metrics-shape-v1";
@@ -106,7 +98,6 @@ const profile = {
   sources: [
     binding("test-graph-a", "a", 1),
     binding("test-graph-b", "b", 2),
-    binding("test-graph-c", "c", 3),
   ],
 };
 
@@ -149,14 +140,13 @@ describe("getSourceById", () => {
 });
 
 describe("getActiveComparePoolGraphSources", () => {
-  it("joins exactly three bindings to their registry records", () => {
+  it("joins exactly two bindings to their registry records", () => {
     const sources = getActiveComparePoolGraphSources({ records, profile });
 
-    expect(sources).toHaveLength(3);
+    expect(sources).toHaveLength(2);
     expect(sources.map((source) => source.source_id)).toEqual([
       "test-graph-a",
       "test-graph-b",
-      "test-graph-c",
     ]);
   });
 
@@ -164,19 +154,17 @@ describe("getActiveComparePoolGraphSources", () => {
     const reversed = {
       ...profile,
       sources: [
-        binding("test-graph-c", "c", 3),
-        binding("test-graph-a", "a", 1),
         binding("test-graph-b", "b", 2),
+        binding("test-graph-a", "a", 1),
       ],
     };
 
     const sources = getActiveComparePoolGraphSources({ records, profile: reversed });
 
-    expect(sources.map((source) => source.priority)).toEqual([1, 2, 3]);
+    expect(sources.map((source) => source.priority)).toEqual([1, 2]);
     expect(sources.map((source) => source.source_id)).toEqual([
       "test-graph-a",
       "test-graph-b",
-      "test-graph-c",
     ]);
   });
 
@@ -201,7 +189,7 @@ describe("getActiveComparePoolGraphSources", () => {
     expect(first?.window_methodology).toBe("completed-utc-days-v1");
   });
 
-  it("resolves all three bindings to one shared query and response contract", () => {
+  it("resolves both bindings to one shared query and response contract", () => {
     const sources = getActiveComparePoolGraphSources({ records, profile });
 
     expect(new Set(sources.map((source) => source.query_id))).toEqual(new Set([QUERY_ID]));
@@ -213,7 +201,7 @@ describe("getActiveComparePoolGraphSources", () => {
   it("reads the profile from an injected file URL", () => {
     const location = writeJsonFile("compare-pools.json", JSON.stringify(profile));
 
-    expect(getActiveComparePoolGraphSources({ records, profile: location })).toHaveLength(3);
+    expect(getActiveComparePoolGraphSources({ records, profile: location })).toHaveLength(2);
   });
 
   it("accepts entity requirements every record covers", () => {
@@ -223,7 +211,7 @@ describe("getActiveComparePoolGraphSources", () => {
       requiredEntities: ["Pool", "PoolDayData"],
     });
 
-    expect(sources).toHaveLength(3);
+    expect(sources).toHaveLength(2);
   });
 
   it("returns deeply frozen sources", () => {
@@ -362,16 +350,16 @@ describe("compare-pools profile validation", () => {
     expectProfileRejected(location, /compare-pools\.json: is not valid JSON/);
   });
 
-  it("rejects fewer than three bindings", () => {
+  it("rejects fewer than two bindings", () => {
     expectProfileRejected(
-      { ...profile, sources: profile.sources.slice(0, 2) },
+      { ...profile, sources: profile.sources.slice(0, 1) },
       /compare-pools\.json\.sources/,
     );
   });
 
-  it("rejects more than three bindings", () => {
+  it("rejects more than two bindings", () => {
     expectProfileRejected(
-      { ...profile, sources: [...profile.sources, binding("test-graph-a", "d", 4)] },
+      { ...profile, sources: [...profile.sources, binding("test-graph-a", "d", 3)] },
       /compare-pools\.json\.sources/,
     );
   });
@@ -383,7 +371,6 @@ describe("compare-pools profile validation", () => {
         sources: [
           binding("test-graph-a", "a", 1),
           binding("test-graph-a", "b", 2),
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[1\]\.source_id: "test-graph-a" duplicates sources\[0\]/,
@@ -397,7 +384,6 @@ describe("compare-pools profile validation", () => {
         sources: [
           binding("test-graph-a", "a", 1),
           binding("test-graph-b", "a", 2),
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[1\]\.pool_address: .* duplicates sources\[0\]/,
@@ -411,7 +397,6 @@ describe("compare-pools profile validation", () => {
         sources: [
           binding("test-graph-a", "a", 1),
           binding("test-graph-b", "b", 1),
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[1\]\.priority: "1" duplicates sources\[0\]/,
@@ -424,19 +409,18 @@ describe("compare-pools profile validation", () => {
         ...profile,
         sources: [
           binding("test-graph-a", "a", 1),
-          binding("test-graph-b", "b", 2),
-          binding("absent-source", "c", 3),
+          binding("absent-source", "c", 2),
         ],
       },
-      /sources\[2\]\.source_id: "absent-source" is not present in records\.json/,
+      /sources\[1\]\.source_id: "absent-source" is not present in records\.json/,
     );
   });
 
   it("rejects a binding to an inactive record", () => {
-    const withInactive = [{ ...graphRecordC, status: "inactive" }, graphRecord, graphRecordB];
+    const withInactive = [{ ...graphRecordB, status: "inactive" }, graphRecord];
 
     expect(() => getActiveComparePoolGraphSources({ records: withInactive, profile })).toThrow(
-      /sources\[2\]\.source_id: "test-graph-c" is inactive/,
+      /sources\[1\]\.source_id: "test-graph-b" is inactive/,
     );
   });
 
@@ -446,11 +430,10 @@ describe("compare-pools profile validation", () => {
         ...profile,
         sources: [
           binding("test-graph-a", "a", 1),
-          binding("test-graph-b", "b", 2),
-          binding("test-nuthatch", "c", 3),
+          binding("test-nuthatch", "c", 2),
         ],
       },
-      /sources\[2\]\.source_id: "test-nuthatch" is not a Graph source/,
+      /sources\[1\]\.source_id: "test-nuthatch" is not a Graph source/,
     );
   });
 
@@ -461,7 +444,6 @@ describe("compare-pools profile validation", () => {
         sources: [
           binding("test-graph-a", "a", 1),
           { ...binding("test-graph-b", "b", 2), query_id: "other-query-v1" },
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[1\]\.query_id: query_id "other-query-v1" does not match sources\[0\]/,
@@ -475,7 +457,6 @@ describe("compare-pools profile validation", () => {
         sources: [
           binding("test-graph-a", "a", 1),
           { ...binding("test-graph-b", "b", 2), schema_contract_id: "other-shape-v1" },
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[1\]\.schema_contract_id: schema_contract_id "other-shape-v1"/,
@@ -486,7 +467,6 @@ describe("compare-pools profile validation", () => {
     const mixedTier = [
       graphRecord,
       { ...graphRecordB, source_type: "standardized_subgraph" },
-      graphRecordC,
     ];
 
     expect(() => getActiveComparePoolGraphSources({ records: mixedTier, profile })).toThrow(
@@ -504,7 +484,6 @@ describe("compare-pools profile validation", () => {
             pool_address: "0x6C561B446416E1A00E8E93E221854D6EA4171372",
           },
           binding("test-graph-b", "b", 2),
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[0\]\.pool_address/,
@@ -518,7 +497,6 @@ describe("compare-pools profile validation", () => {
         sources: [
           { ...binding("test-graph-a", "a", 1), pool_address: "0xabc" },
           binding("test-graph-b", "b", 2),
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[0\]\.pool_address/,
@@ -543,7 +521,6 @@ describe("compare-pools profile validation", () => {
         sources: [
           { ...binding("test-graph-a", "a", 1), priority: 0 },
           binding("test-graph-b", "b", 2),
-          binding("test-graph-c", "c", 3),
         ],
       },
       /sources\[0\]\.priority/,
@@ -560,8 +537,7 @@ describe("compare-pools profile validation", () => {
   it("rejects a record that does not support every entity the query needs", () => {
     const withoutDayData = [
       graphRecord,
-      graphRecordB,
-      { ...graphRecordC, supported_entities: ["Pool", "Token"] },
+      { ...graphRecordB, supported_entities: ["Pool", "Token"] },
     ];
 
     expect(() =>
@@ -570,7 +546,7 @@ describe("compare-pools profile validation", () => {
         profile,
         requiredEntities: ["Pool", "PoolDayData"],
       }),
-    ).toThrow(/sources\[2\]\.source_id: "test-graph-c" does not support PoolDayData/);
+    ).toThrow(/sources\[1\]\.source_id: "test-graph-b" does not support PoolDayData/);
   });
 
   it("reports every profile problem in one error", () => {
@@ -583,7 +559,6 @@ describe("compare-pools profile validation", () => {
           sources: [
             binding("test-graph-a", "a", 1),
             binding("test-graph-a", "b", 1),
-            binding("absent-source", "c", 3),
           ],
         },
       });

@@ -36,10 +36,10 @@ const DEFAULT_RECORDS_URL = new URL("./records.json", import.meta.url);
 const DEFAULT_PROFILE_URL = new URL("./compare-pools.json", import.meta.url);
 
 /**
- * MVP-0 compares exactly three Graph deployments. Enforcing the count here
- * makes the M2 three-source decision a load-time invariant.
+ * MVP-0 compares exactly two Graph deployments (owner-amended from three).
+ * Enforcing the count here makes the M2 selection a load-time invariant.
  */
-export const COMPARE_POOLS_SOURCE_COUNT = 3;
+export const COMPARE_POOLS_SOURCE_COUNT = 2;
 
 const nonEmptyStringSchema = z
   .string()
@@ -313,7 +313,7 @@ function collectDuplicateIssues(
 }
 
 /**
- * The same query text must serve all three deployments, so the values that
+ * The same query text must serve every selected deployment, so the values that
  * define that contract have to be identical across the set.
  */
 function collectSharedValueIssues(
