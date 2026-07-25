@@ -49,6 +49,5 @@ Use an absolute path to the built entry point:
 }
 ```
 
-Source deployment environment variables are documented in
-`docs/deployment.md`. Live source adapters and `compare_pools` are integrated in
-later milestones.
+Current Nuthatch deployment notes live in `docs/deployment.md`. Live source
+adapter configuration and `compare_pools` are integrated in later milestones.
