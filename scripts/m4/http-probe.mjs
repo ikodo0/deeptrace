@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 
-import { isFreshnessViewAvailable, isMaxRowsRejection, requireBaseUrl } from "./http-probe-lib.mjs";
+import {
+  buildAcceptance,
+  GUARD_QUERY,
+  isMaxRowsRejection,
+  isProbeAccepted,
+  MAX_ROWS_QUERY,
+  requireBaseUrl,
+} from "./http-probe-lib.mjs";
 
 // HTTP probe for the Nuthatch 0.6.1 read-only API surface.
 //
@@ -30,8 +37,6 @@ const CONCURRENCY_PROBE_COUNT = 3;
 const MAX_ROWS_REJECT = 50_001;
 const EXPLAIN_QUERY = "SELECT * FROM pool_swap_freshness LIMIT 1";
 const SQL_QUERY = "SELECT * FROM pool_swap_freshness LIMIT 1";
-const GUARD_QUERY = "SELECT count(*) FROM pool__swap a, pool__swap b, pool__swap c";
-const MAX_ROWS_QUERY = "SELECT * FROM pool__swap LIMIT 1";
 
 function redactUrl(url) {
   return String(url).replaceAll(
@@ -169,21 +174,20 @@ async function probeConcurrencyGuard() {
 
 const endpoints = await probeGetEndpoints();
 const maxRows = await probeMaxRowsRejection();
+const postSql = await probePostSqlRejected();
+const acceptance = buildAcceptance({ endpoints, maxRows, postSql });
 const output = {
   target_host: new URL(BASE_URL).host,
   probe_version: "0.6.1",
   generated_at: new Date().toISOString(),
   endpoints,
-  post_sql: await probePostSqlRejected(),
+  post_sql: postSql,
   max_rows: maxRows,
   concurrency: await probeConcurrencyGuard(),
-  acceptance: {
-    freshness_view_available: isFreshnessViewAvailable(endpoints),
-    max_rows_rejection_verified: maxRows.rejected,
-  },
+  acceptance,
 };
 
 process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
-if (!output.acceptance.freshness_view_available || !output.acceptance.max_rows_rejection_verified) {
+if (!isProbeAccepted(acceptance)) {
   process.exitCode = 1;
 }

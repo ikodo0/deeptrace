@@ -101,6 +101,7 @@
   },
   "acceptance": {
     "freshness_view_available": false,
-    "max_rows_rejection_verified": false
+    "max_rows_rejection_verified": false,
+    "post_sql_rejected": true
   }
 }

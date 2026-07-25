@@ -3,8 +3,12 @@ import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 
 import {
+  buildAcceptance,
+  GUARD_QUERY,
   isFreshnessViewAvailable,
   isMaxRowsRejection,
+  isProbeAccepted,
+  MAX_ROWS_QUERY,
   requireBaseUrl,
 } from "../../scripts/m4/http-probe-lib.mjs";
 
@@ -57,6 +61,24 @@ describe("M4 HTTP probe validation", () => {
       }),
     ).toBe(false);
   });
+
+  it("requires POST /sql rejection for acceptance", () => {
+    const accepted = buildAcceptance({
+      endpoints: { "/sql": { status: 200 }, "/explain": { status: 200 } },
+      maxRows: { rejected: true },
+      postSql: { rejected: false },
+    });
+
+    expect(accepted.post_sql_rejected).toBe(false);
+    expect(isProbeAccepted(accepted)).toBe(false);
+  });
+
+  it("runs max_rows and concurrency guards against the existing raw table", () => {
+    expect(MAX_ROWS_QUERY).toContain("pool__swap");
+    expect(GUARD_QUERY).toContain("pool__swap");
+    expect(MAX_ROWS_QUERY).not.toContain("pool_swap_freshness");
+    expect(GUARD_QUERY).not.toContain("pool_swap_freshness");
+  });
 });
 
 describe("M4 committed artifacts", () => {
@@ -75,6 +97,7 @@ describe("M4 committed artifacts", () => {
     expect(evidence.acceptance).toEqual({
       freshness_view_available: false,
       max_rows_rejection_verified: false,
+      post_sql_rejected: true,
     });
     expect(isMaxRowsRejection(evidence.max_rows)).toBe(false);
   });
