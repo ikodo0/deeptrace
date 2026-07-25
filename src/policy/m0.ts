@@ -14,7 +14,7 @@ export const M0_RANKING_TIE_BREAK = [
   "source_id_asc",
 ] as const;
 
-export const M0_WARNING_ORDER = ["source_order", "warning_code", "source_id"] as const;
+export const M0_WARNING_ORDER = ["source_order", "warning_text"] as const;
 
 /**
  * Product limits and deterministic behavior locked by M0-01A.
@@ -44,7 +44,9 @@ export const M0_CORE_POLICY = {
     maximumResponseBytes: 65_536,
   },
   freshness: {
-    staleAfterSeconds: 300,
+    qualityStaleAfterSeconds: 300,
+    enforcementLayer: "core_quality",
+    preservesAdapterStatus: true,
   },
   coverage: {
     expectedGraphResults: 3,

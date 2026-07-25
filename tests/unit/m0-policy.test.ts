@@ -30,7 +30,7 @@ describe("M0 core policy", () => {
       "pool_address_asc",
       "source_id_asc",
     ]);
-    expect(M0_WARNING_ORDER).toEqual(["source_order", "warning_code", "source_id"]);
+    expect(M0_WARNING_ORDER).toEqual(["source_order", "warning_text"]);
   });
 
   it("locks complete, partial, and failed coverage boundaries", () => {
@@ -56,6 +56,26 @@ describe("M0 core policy", () => {
     );
     expect(M0_CORE_POLICY.gateway.sourceTimeoutMs).toBe(GATEWAY_DEFAULTS.sourceTimeoutMs);
     expect(M0_CORE_POLICY.gateway.maximumSourceTimeoutMs).toBe(GATEWAY_MAXIMUMS.sourceTimeoutMs);
+    expect(M0_CORE_POLICY.gateway.rateLimit.resetPolicy).toBe("fixed_window");
+    expect(M0_CORE_POLICY.gateway.endToEndTimeoutMs).toBe(15_000);
+    expect(M0_CORE_POLICY.gateway.maximumResponseBytes).toBe(65_536);
+  });
+
+  it("locks freshness and reasoning limits", () => {
+    expect(M0_CORE_POLICY.freshness).toEqual({
+      qualityStaleAfterSeconds: 300,
+      enforcementLayer: "core_quality",
+      preservesAdapterStatus: true,
+    });
+    expect(M0_CORE_POLICY.reasoning).toEqual({
+      maximumProviderAttempts: 2,
+      providerAttemptTimeoutMs: 2_000,
+      totalTimeoutMs: 5_000,
+      maximumInputBytes: 32_768,
+      maximumOutputBytes: 8_192,
+      maximumHighlights: 5,
+      maximumCaveats: 5,
+    });
   });
 
   it("fits source and provider attempts inside their total deadlines", () => {

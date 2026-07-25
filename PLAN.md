@@ -430,16 +430,19 @@ lock a separate price source and timestamp methodology.
 
 * Source queries run in parallel with a default 5-second and maximum 8-second timeout.
 * The complete request has a 15-second deadline and a 64 KiB response limit.
-* Known source lag is `queried_at - indexed_block_timestamp`; a source is stale when
-  that lag exceeds 300 seconds.
+* Known source lag is `queried_at - indexed_block_timestamp`. The core quality layer
+  treats lag above 300 seconds as stale coverage without rewriting the adapter-owned
+  source status. Validated `ok` data is preserved, while the overall response becomes
+  `partial` and includes a freshness warning.
 * A failed source does not erase successful source results.
-* `complete` requires all three Graph pool results and the required Nuthatch fact.
+* `complete` requires all three Graph pool results and the required Nuthatch fact,
+  with none stale under the core quality threshold.
 * `partial` requires at least one valid Graph pool result while expected coverage is
   missing, stale or unavailable.
 * `failed` means no valid Graph pool record can be compared. A Nuthatch-only result
   does not make pool comparison successful.
 * Partial responses list missing coverage and explicit warnings.
-* Warnings are ordered by configured source order, warning code and source ID.
+* Warnings are ordered by configured source order and then warning text.
 * API keys and endpoint credentials never appear in output.
 * Tool inputs have size and range limits.
 * Histories use cursor pagination over a stable source block range.
@@ -554,7 +557,9 @@ The reasoning implementation lives in:
 src/reasoning/
 ```
 
-It uses one bounded model call and writes only to `ai_reasoning`. Structured `data`, metrics, coverage, freshness and provenance remain the source of truth.
+It uses one bounded reasoning operation with at most two ordered provider attempts and
+writes only to `ai_reasoning`. Structured `data`, metrics, coverage, freshness and
+provenance remain the source of truth.
 
 The reasoning output follows a typed schema. Every referenced source ID must exist in `provenance`. If the model provider is temporarily unavailable, DeepTrace still returns the verified structured result with `ai_reasoning.status` set to `unavailable`.
 
@@ -635,7 +640,7 @@ Internal modules may contain many functions, but only implemented high-level han
 ### 6. Integrate AI Reasoning
 
 * implement the reasoning module against its typed output schema;
-* add one bounded model call and graceful provider fallback;
+* add one bounded reasoning operation with graceful provider fallback;
 * validate every reasoning source reference against provenance;
 * test factual consistency, latency and response size.
 
