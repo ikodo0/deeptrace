@@ -20,3 +20,8 @@ export {
   type ResultFreshness,
   type ResultProvenance,
 } from "./compare-pools.js";
+export {
+  comparePoolsRequestSchema,
+  type ComparePoolsRequest,
+  type ComparePoolsRequestInput,
+} from "./compare-pools-request.js";

@@ -19,8 +19,8 @@ export const M0_WARNING_ORDER = ["source_order", "warning_text"] as const;
 /**
  * Product limits and deterministic behavior locked by M0-01A.
  *
- * Live pair, deployment, and Nuthatch selections belong to M0-01B and are
- * intentionally absent.
+ * Live pair and deployment binding lands in M0-02B (`src/scope/compare-pools.ts`).
+ * A verified Nuthatch freshness fact remains outstanding and must not be invented.
  */
 export const M0_CORE_POLICY = {
   chainId: BASE_CHAIN_ID,
@@ -49,7 +49,8 @@ export const M0_CORE_POLICY = {
     preservesAdapterStatus: true,
   },
   coverage: {
-    expectedGraphResults: 3,
+    /** Owner-amended MVP-0 Graph scope: two Tier-B deployments, not three. */
+    expectedGraphResults: 2,
     requiresNuthatchForComplete: true,
     minimumGraphResultsForPartial: 1,
   },

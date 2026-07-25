@@ -21,7 +21,7 @@ export const fixturePair = [
   },
 ] as const satisfies CanonicalPair;
 
-const graphSourceIds = ["fixture-dex-a", "fixture-dex-b", "fixture-dex-c"] as const;
+const graphSourceIds = ["fixture-dex-a", "fixture-dex-b"] as const;
 const nuthatchSourceId = "fixture-nuthatch";
 
 function graphProvenance(sourceId: string, protocol: string): ResultProvenance {
@@ -40,7 +40,6 @@ function graphProvenance(sourceId: string, protocol: string): ResultProvenance {
 const graphProvenanceEntries = [
   graphProvenance(graphSourceIds[0], "protocol-a"),
   graphProvenance(graphSourceIds[1], "protocol-b"),
-  graphProvenance(graphSourceIds[2], "protocol-c"),
 ] as const;
 
 const nuthatchProvenance = {
@@ -84,11 +83,6 @@ const completePools = [
     volume_usd: "300000",
     fees_usd: "0",
   }),
-  poolRecord(3, graphSourceIds[2], "protocol-c", "0xcccccccccccccccccccccccccccccccccccccccc", {
-    tvl_usd: "750000",
-    volume_usd: "125000.5",
-    fees_usd: "375.1",
-  }),
 ] as const;
 
 function observedFreshness(
@@ -127,14 +121,13 @@ export const completeComparePoolsFixture = {
     },
   },
   coverage: {
-    requested_deployments: 3,
-    successful_deployments: 3,
+    requested_deployments: 2,
+    successful_deployments: 2,
     nuthatch_available: true,
   },
   freshness: [
     observedFreshness(graphSourceIds[0], 12_345_678, 12),
     observedFreshness(graphSourceIds[1], 12_345_670, 28),
-    observedFreshness(graphSourceIds[2], 12_345_660, 48),
     {
       ...observedFreshness(nuthatchSourceId, 12_345_678, 8),
       indexed_block_hash: `0x${"1".repeat(64)}`,
@@ -170,7 +163,7 @@ export const partialComparePoolsFixture = {
     nuthatch_freshness_fact: null,
   },
   coverage: {
-    requested_deployments: 3,
+    requested_deployments: 2,
     successful_deployments: 2,
     nuthatch_available: false,
   },
@@ -178,20 +171,12 @@ export const partialComparePoolsFixture = {
     observedFreshness(graphSourceIds[0], 12_345_678, 12),
     observedFreshness(graphSourceIds[1], 12_345_000, 600, "stale"),
     {
-      source_id: graphSourceIds[2],
-      status: "unavailable",
-    },
-    {
       source_id: nuthatchSourceId,
       status: "unavailable",
     },
   ],
   provenance: allProvenance,
-  warnings: [
-    "fixture-dex-c was unavailable",
-    "fixture-nuthatch was unavailable",
-    "fixture-dex-b exceeded the freshness threshold",
-  ],
+  warnings: ["fixture-nuthatch was unavailable", "fixture-dex-b exceeded the freshness threshold"],
   pagination: null,
   ai_reasoning: {
     status: "unavailable",
@@ -206,7 +191,7 @@ export const failedComparePoolsFixture = {
   status: "failed",
   data: null,
   coverage: {
-    requested_deployments: 3,
+    requested_deployments: 2,
     successful_deployments: 0,
     nuthatch_available: false,
   },
