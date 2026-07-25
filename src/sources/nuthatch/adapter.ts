@@ -76,6 +76,23 @@ function failedResult(
   };
 }
 
+/**
+ * Builds a contract-valid Nuthatch failure with registry-backed provenance.
+ * Live gateway setup failures use this rather than dropping the source or
+ * inventing a freshness observation.
+ */
+export function createNuthatchFailureResult(
+  record: NuthatchSourceRegistryRecord,
+  status: Extract<NuthatchSourceResult, { data: null }>["status"],
+  warning: string,
+): NuthatchSourceResult {
+  return failedResult(record, status, {
+    warnings: [warning],
+    latencyMs: 0,
+    freshness: null,
+  });
+}
+
 function classifyHttpFailure(result: NuthatchHttpErr): FailureSourceStatus {
   if (result.error.kind === "timeout") {
     return "timeout";

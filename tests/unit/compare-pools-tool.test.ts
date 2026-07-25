@@ -34,6 +34,28 @@ describe("executeComparePools", () => {
     ).rejects.toBeInstanceOf(ComparePoolsRequestError);
     expect(onGraphFetch).not.toHaveBeenCalled();
   });
+
+  it("starts Graph and Nuthatch without waiting for either source", async () => {
+    let releaseGraph: ((results: typeof graphResults) => void) | undefined;
+    const graphResults = [graphPoolA, graphPoolB] as const;
+    const graphPending = new Promise<typeof graphResults>((resolve) => {
+      releaseGraph = resolve;
+    });
+    const onGraphFetch = vi.fn(() => graphPending);
+    const onNuthatchFetch = vi.fn(() => Promise.resolve(null));
+
+    const execution = executeComparePools(lockedComparePoolsRequest, {
+      fetchGraphResults: onGraphFetch,
+      fetchNuthatchResult: onNuthatchFetch,
+    });
+
+    expect(onGraphFetch).toHaveBeenCalledTimes(1);
+    expect(onNuthatchFetch).toHaveBeenCalledTimes(1);
+    releaseGraph?.(graphResults);
+    await expect(execution).resolves.toMatchObject({
+      coverage: { successful_deployments: 2 },
+    });
+  });
 });
 
 describe("createLiveComparePoolsSources", () => {
