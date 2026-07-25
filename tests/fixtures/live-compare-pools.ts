@@ -52,7 +52,7 @@ const nuthatchProvenance = {
   source_type: "nuthatch_view" as const,
   protocol: "uniswap-v3",
   chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-  deployment_or_view_id: "unverified-nuthatch-view",
+  deployment_or_view_id: "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
   schema_version: null,
   methodology_version: null,
   query_id: "nuthatch-pool-swap-freshness-v1",

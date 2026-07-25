@@ -57,6 +57,14 @@ describe("settleComparePoolsResult", () => {
       source_id: "nuthatch-pool-swaps",
       status: "unavailable",
     });
+    expect(response.provenance[2]).toMatchObject({
+      source_id: "nuthatch-pool-swaps",
+      source_type: "nuthatch_view",
+      protocol: "uniswap-v3",
+      deployment_or_view_id: "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+      query_id: "nuthatch-pool-swap-freshness-v1",
+    });
+    expect(response.provenance[2]?.deployment_or_view_id).not.toBe("unverified-nuthatch-view");
     expect(response.warnings.some((warning) => warning.includes("nuthatch-pool-swaps"))).toBe(true);
   });
 
@@ -83,6 +91,35 @@ describe("settleComparePoolsResult", () => {
       status: "unavailable",
     });
     expect(response.warnings.some((warning) => warning.includes("timed out"))).toBe(true);
+    expect(comparePoolsResponseSchema.parse(response).status).toBe("partial");
+  });
+
+  it("maps non-ok Graph results with retained freshness to unavailable publicly", () => {
+    const unsupportedPancake = {
+      ...graphPoolB,
+      status: "unsupported" as const,
+      data: null,
+      warnings: ["Graph response shape is unsupported."],
+    };
+    const pools = rankCanonicalPools(
+      bindComparePoolsGraphResults([graphPoolA, unsupportedPancake], "24h"),
+      { rankedBy: "volume_usd" },
+    );
+    const response = settleComparePoolsResult({
+      pair: livePair,
+      window: "24h",
+      rankedBy: "volume_usd",
+      pools,
+      graphResults: [graphPoolA, unsupportedPancake],
+      nuthatchResult: null,
+    });
+
+    expect(unsupportedPancake.freshness).not.toBeNull();
+    expect(response.freshness.find((entry) => entry.source_id === "exchange-v3-base")).toEqual({
+      source_id: "exchange-v3-base",
+      status: "unavailable",
+    });
+    expect(response.status).toBe("partial");
     expect(comparePoolsResponseSchema.parse(response).status).toBe("partial");
   });
 
