@@ -117,7 +117,11 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
         }
 
         if (!isAuthorized(request.headers.authorization, config.token)) {
-          response.setHeader("www-authenticate", 'Bearer realm="deeptrace"');
+          // No WWW-Authenticate challenge. The endpoint is public, and a realm
+          // challenge makes browsers open a username/password dialog that
+          // cannot supply a bearer token — confusing for anyone who opens the
+          // URL, and useless to MCP clients, which read the token from their
+          // own configuration rather than negotiating.
           respondJson(response, 401, "unauthorized", "Missing or invalid bearer token");
           return;
         }
