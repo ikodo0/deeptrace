@@ -1,0 +1,11 @@
+Serve the Model Context Protocol over stdio (bridges to a running `nuthatch dev`)
+
+Usage: nuthatch mcp [OPTIONS]
+
+Options:
+      --url <URL>     Base URL of the running `nuthatch dev` HTTP API to bridge to [default:
+                      http://127.0.0.1:8288]
+      --print-config  Print a copy-paste MCP client config (Claude Code `.mcp.json` + the `claude
+                      mcp add` one-liner) and exit, instead of running the stdio server. This is the
+                      "wire it up in one step" helper
+  -h, --help          Print help

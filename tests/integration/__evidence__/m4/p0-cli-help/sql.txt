@@ -1,0 +1,15 @@
+Query a nest's data with SQL - the live tip and sealed history, one surface. Prints a table
+
+Usage: nuthatch sql [OPTIONS] [QUERY]
+
+Arguments:
+  [QUERY]  The SQL query (SELECT/WITH). Tables are `{alias}__{event}`, e.g. `usdc__transfer`. Omit
+           to open an interactive REPL (`.tables`, `.schema <t>`, history; `.exit` to quit)
+
+Options:
+      --dir <DIR>  Nest directory (queried directly when no `nuthatch dev` holds the store)
+                   [default: .]
+      --url <URL>  The running instance's API, used when the local store is locked by `nuthatch dev`
+                   [default: http://127.0.0.1:8288]
+      --json       Emit newline-delimited JSON instead of a table (for piping to jq etc.)
+  -h, --help       Print help
