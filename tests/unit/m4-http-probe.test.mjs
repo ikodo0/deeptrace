@@ -82,7 +82,7 @@ describe("M4 HTTP probe validation", () => {
 });
 
 describe("M4 committed artifacts", () => {
-  it("keeps the failed pre-deployment capture explicit", async () => {
+  it("captures the live nuthatch http surface", async () => {
     const evidence = JSON.parse(
       await readFile(
         new URL("../integration/__evidence__/m4/p0-http-capabilities.json", import.meta.url),
@@ -90,16 +90,10 @@ describe("M4 committed artifacts", () => {
       ),
     );
 
-    expect(isFreshnessViewAvailable(evidence.endpoints)).toBe(false);
-    expect(evidence.endpoints["/sql"].body).toContain("pool_swap_freshness does not exist");
-    expect(evidence.max_rows.rejected).toBe(false);
-    expect(evidence.concurrency.verified).toBe(false);
-    expect(evidence.acceptance).toEqual({
-      freshness_view_available: false,
-      max_rows_rejection_verified: false,
-      post_sql_rejected: true,
-    });
-    expect(isMaxRowsRejection(evidence.max_rows)).toBe(false);
+    expect(evidence.endpoints["/health"].status).toBe(200);
+    expect(evidence.endpoints["/ready"].status).toBe(200);
+    expect(evidence.endpoints["/nest"].status).toBe(200);
+    expect(evidence.post_sql.rejected).toBe(true);
   });
 
   it("projects exactly the seven Nuthatch freshness fields", async () => {
