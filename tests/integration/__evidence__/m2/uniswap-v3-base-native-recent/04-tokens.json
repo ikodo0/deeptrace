@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-07-25T11:53:36.071Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "VmwKeqb22QsuM4AcCp8qTFg2dW7EXZNg16kGgXu6bBu",
+  "query_id": "m2-tokens-v2",
+  "request": {
+    "query": "query M2Tokens($ids: [Bytes!]!) {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  tokens(where: { id_in: $ids }) { id symbol name decimals }\n}",
+    "variables": {
+      "ids": [
+        "0x4200000000000000000000000000000000000006",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca"
+      ]
+    }
+  },
+  "response": null,
+  "transport": {
+    "http_status": null,
+    "latency_ms": 15012,
+    "error": {
+      "kind": "timeout",
+      "message": "Graph gateway request exceeded the 15 second timeout."
+    }
+  }
+}

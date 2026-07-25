@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-07-25T11:52:33.023Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "E7XyutxXVLrp8njmjF16Hh38PCJuHm12RRyMt5ma4ctX",
+  "query_id": "m2-tier-a-marker-v2",
+  "request": {
+    "query": "query M2TierAMarker {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  dexAmmProtocols(first: 1) {\n    id name schemaVersion methodologyVersion network\n  }\n}",
+    "variables": {}
+  },
+  "response": {
+    "errors": [
+      {
+        "locations": [
+          {
+            "line": 7,
+            "column": 3
+          }
+        ],
+        "message": "Type `Query` has no field `dexAmmProtocols`"
+      }
+    ]
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 88,
+    "error": null
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "captured_at": "2026-07-25T11:53:46.515Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "84ADrft27B8Jo46mdknbJ3PHoJ5wK5YeNBrYTD19WnaH",
+  "query_id": "m2-tokens-v2",
+  "request": {
+    "query": "query M2Tokens($ids: [Bytes!]!) {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  tokens(where: { id_in: $ids }) { id symbol name decimals }\n}",
+    "variables": {
+      "ids": [
+        "0x4200000000000000000000000000000000000006",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca"
+      ]
+    }
+  },
+  "response": {
+    "errors": [
+      {
+        "locations": [
+          {
+            "column": 3,
+            "line": 7
+          }
+        ],
+        "message": "Type `Query` has no field `tokens`"
+      }
+    ]
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 248,
+    "error": null
+  }
+}

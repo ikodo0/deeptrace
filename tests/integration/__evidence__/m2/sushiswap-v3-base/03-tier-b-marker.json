@@ -1,0 +1,33 @@
+{
+  "captured_at": "2026-07-25T11:52:28.644Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "H6SjXCnZxJhaVHw4VDuXqtzWZ2JEBDvhwA3qysnUEjSV",
+  "query_id": "m2-tier-b-marker-v3",
+  "request": {
+    "query": "query M2TierBMarker {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  factories(first: 1) { id }\n}",
+    "variables": {}
+  },
+  "response": {
+    "data": {
+      "factories": [
+        {
+          "id": "0x71524b4f93c58fcbf659783284e38825f0622859"
+        }
+      ],
+      "_meta": {
+        "block": {
+          "number": 49095500,
+          "timestamp": 1784980347,
+          "hash": "0x398f0f259aadc86360441c182f808bfadeae8edc17b68995489ee6efa3f66f9f"
+        },
+        "hasIndexingErrors": false,
+        "deployment": "QmaMCPHr8m8o2udNrTYjottDoMDM7HBgaE1z6FGu9rjKtK"
+      }
+    }
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 173,
+    "error": null
+  }
+}

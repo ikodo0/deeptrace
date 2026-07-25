@@ -1,0 +1,22 @@
+{
+  "captured_at": "2026-07-25T11:52:39.565Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "8F3ur1X2g63Lkef4JhCcfWUq8oQrghGNJFBq1vkyKDNv",
+  "query_id": "m2-tier-a-marker-v2",
+  "request": {
+    "query": "query M2TierAMarker {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  dexAmmProtocols(first: 1) {\n    id name schemaVersion methodologyVersion network\n  }\n}",
+    "variables": {}
+  },
+  "response": {
+    "errors": [
+      {
+        "message": "subgraph not found: no allocations"
+      }
+    ]
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 52,
+    "error": null
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "captured_at": "2026-07-25T11:53:58.535Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3",
+  "query_id": "m2-tokens-v2",
+  "request": {
+    "query": "query M2Tokens($ids: [Bytes!]!) {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  tokens(where: { id_in: $ids }) { id symbol name decimals }\n}",
+    "variables": {
+      "ids": [
+        "0x4200000000000000000000000000000000000006",
+        "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca"
+      ]
+    }
+  },
+  "response": {
+    "data": {
+      "tokens": [
+        {
+          "id": "0x4200000000000000000000000000000000000006",
+          "symbol": "WETH",
+          "name": "Wrapped Ether",
+          "decimals": "18"
+        },
+        {
+          "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "symbol": "USDC",
+          "name": "USD Coin",
+          "decimals": "6"
+        },
+        {
+          "id": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+          "symbol": "USDbC",
+          "name": "USD Base Coin",
+          "decimals": "6"
+        }
+      ],
+      "_meta": {
+        "block": {
+          "number": 49095544,
+          "timestamp": 1784980435,
+          "hash": "0xb75803c6d89a562738fe558853fd17f7aba5aed2ab714b9a905999c38066f063"
+        },
+        "hasIndexingErrors": false,
+        "deployment": "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g"
+      }
+    }
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 110,
+    "error": null
+  }
+}

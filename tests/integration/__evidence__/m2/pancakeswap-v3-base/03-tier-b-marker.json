@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-07-25T11:52:35.751Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "84ADrft27B8Jo46mdknbJ3PHoJ5wK5YeNBrYTD19WnaH",
+  "query_id": "m2-tier-b-marker-v3",
+  "request": {
+    "query": "query M2TierBMarker {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  factories(first: 1) { id }\n}",
+    "variables": {}
+  },
+  "response": {
+    "errors": [
+      {
+        "locations": [
+          {
+            "column": 3,
+            "line": 7
+          }
+        ],
+        "message": "Type `Query` has no field `factories`"
+      }
+    ]
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 213,
+    "error": null
+  }
+}

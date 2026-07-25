@@ -1,0 +1,70 @@
+{
+  "captured_at": "2026-07-25T11:52:29.098Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "H6SjXCnZxJhaVHw4VDuXqtzWZ2JEBDvhwA3qysnUEjSV",
+  "query_id": "m2-tier-b-lineage-v1",
+  "request": {
+    "query": "query M2TierBLineage {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  factoryType: __type(name: \"Factory\") { fields { name } }\n  poolType: __type(name: \"Pool\") { fields { name } }\n  dayType: __type(name: \"PoolDayData\") { fields { name } }\n}",
+    "variables": {}
+  },
+  "response": {
+    "data": {
+      "_meta": {
+        "block": {
+          "number": 49095500,
+          "timestamp": 1784980347,
+          "hash": "0x398f0f259aadc86360441c182f808bfadeae8edc17b68995489ee6efa3f66f9f"
+        },
+        "hasIndexingErrors": false,
+        "deployment": "QmaMCPHr8m8o2udNrTYjottDoMDM7HBgaE1z6FGu9rjKtK"
+      },
+      "factoryType": {
+        "fields": [
+          {
+            "name": "id"
+          },
+          {
+            "name": "type"
+          },
+          {
+            "name": "volumeUSD"
+          },
+          {
+            "name": "volumeNative"
+          },
+          {
+            "name": "liquidityUSD"
+          },
+          {
+            "name": "liquidityNative"
+          },
+          {
+            "name": "feesUSD"
+          },
+          {
+            "name": "feesNative"
+          },
+          {
+            "name": "pairCount"
+          },
+          {
+            "name": "transactionCount"
+          },
+          {
+            "name": "tokenCount"
+          },
+          {
+            "name": "userCount"
+          }
+        ]
+      },
+      "poolType": null,
+      "dayType": null
+    }
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 203,
+    "error": null
+  }
+}
