@@ -283,6 +283,7 @@ describe("compare_pools response schemas", () => {
       comparePoolsResponseSchema.safeParse({
         ...completeComparePoolsFixture,
         status: "partial",
+        warnings: ["fixture-nuthatch was unavailable"],
         freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
           index === 3 ? { source_id: entry.source_id, status: "unavailable" } : entry,
         ),
@@ -299,6 +300,36 @@ describe("compare_pools response schemas", () => {
                 indexed_block: 12_345_678,
                 indexed_block_timestamp: 1_699_999_992,
                 indexed_block_hash: `0x${"2".repeat(64)}`,
+                queried_at: 1_700_000_000,
+                lag_seconds: 8,
+              }
+            : entry,
+        ),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires failed Nuthatch coverage to match observed freshness", () => {
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...failedComparePoolsFixture,
+        coverage: {
+          ...failedComparePoolsFixture.coverage,
+          nuthatch_available: true,
+        },
+      }).success,
+    ).toBe(false);
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...failedComparePoolsFixture,
+        freshness: failedComparePoolsFixture.freshness.map((entry, index) =>
+          index === 3
+            ? {
+                source_id: entry.source_id,
+                status: "fresh",
+                indexed_block: 12_345_678,
+                indexed_block_timestamp: 1_699_999_992,
+                indexed_block_hash: `0x${"3".repeat(64)}`,
                 queried_at: 1_700_000_000,
                 lag_seconds: 8,
               }

@@ -412,6 +412,18 @@ export const comparePoolsResponseSchema = z
         path: ["data", "nuthatch_freshness_fact"],
       });
     }
+
+    if (
+      response.data === null &&
+      response.coverage.nuthatch_available !==
+        (nuthatchFreshness !== undefined && nuthatchFreshness.status !== "unavailable")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Failed response Nuthatch coverage must match observed freshness",
+        path: ["coverage", "nuthatch_available"],
+      });
+    }
   });
 
 export type CanonicalToken = z.infer<typeof canonicalTokenSchema>;
