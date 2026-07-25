@@ -29,3 +29,4 @@ coverage/
 .yarn/unplugged/
 .pnp.*
 /DEEPTRACE_HANDOFF.md
+/DEV_PLAN.md
