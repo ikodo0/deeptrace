@@ -119,6 +119,22 @@ function collectMetricValues(
   return { values, hadNull, hadMalformed };
 }
 
+function finalizeWindowAggregate(
+  collected: { values: string[]; hadNull: boolean; hadMalformed: boolean },
+  eligible: boolean,
+  expectedCount: number,
+): string | null {
+  if (
+    !eligible ||
+    collected.hadNull ||
+    collected.hadMalformed ||
+    collected.values.length !== expectedCount
+  ) {
+    return null;
+  }
+  return sumMetric(collected.values);
+}
+
 /**
  * Aggregate completed UTC daily snapshots into 24h and 7d window values.
  *
@@ -219,8 +235,8 @@ export function aggregateDailySnapshots(
       return day.date - recentSeven[i - 1]!.date === SECONDS_PER_DAY;
     });
 
-  const volume7d = sevenConsecutive ? sumMetric(volume7dValues.values) : null;
-  const fees7d = sevenConsecutive ? sumMetric(fees7dValues.values) : null;
+  const volume7d = finalizeWindowAggregate(volume7dValues, sevenConsecutive, recentSeven.length);
+  const fees7d = finalizeWindowAggregate(fees7dValues, sevenConsecutive, recentSeven.length);
 
   if (!sevenConsecutive && completed.length >= 7) {
     warnings.push({
@@ -236,8 +252,8 @@ export function aggregateDailySnapshots(
 
   return {
     aggregates: {
-      volume_usd_24h: volume24hValues.values.length > 0 ? sumMetric(volume24hValues.values) : null,
-      fees_usd_24h: fees24hValues.values.length > 0 ? sumMetric(fees24hValues.values) : null,
+      volume_usd_24h: finalizeWindowAggregate(volume24hValues, true, 1),
+      fees_usd_24h: finalizeWindowAggregate(fees24hValues, true, 1),
       volume_usd_7d: volume7d,
       fees_usd_7d: fees7d,
     },

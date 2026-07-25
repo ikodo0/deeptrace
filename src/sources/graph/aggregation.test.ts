@@ -100,6 +100,36 @@ describe("aggregateDailySnapshots — 7d", () => {
     expect(result.aggregates.volume_usd_7d).toBe("700");
     expect(result.aggregates.fees_usd_7d).toBeNull();
   });
+
+  it("nulls 7d volume when one day in the window is null without under-summing", () => {
+    const snapshots = sevenConsecutiveDays();
+    snapshots[3] = day(4, null, "1.00");
+
+    const result = aggregateDailySnapshots(snapshots, REF);
+
+    expect(result.aggregates.volume_usd_7d).toBeNull();
+    expect(result.aggregates.fees_usd_7d).toBe("7");
+    expect(
+      result.warnings.some(
+        (warning) => warning.code === "null_metric" && warning.message.includes("volume_usd_7d"),
+      ),
+    ).toBe(true);
+  });
+
+  it("nulls 7d fees when one day in the window is malformed without under-summing", () => {
+    const snapshots = sevenConsecutiveDays();
+    snapshots[2] = day(5, "100.00", "not-a-decimal");
+
+    const result = aggregateDailySnapshots(snapshots, REF);
+
+    expect(result.aggregates.volume_usd_7d).toBe("700");
+    expect(result.aggregates.fees_usd_7d).toBeNull();
+    expect(
+      result.warnings.some(
+        (warning) => warning.code === "malformed_metric" && warning.message.includes("fees_usd_7d"),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("aggregateDailySnapshots — ordering and gaps", () => {
