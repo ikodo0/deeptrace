@@ -308,14 +308,6 @@ export function settleComparePoolsResult(input: SettleComparePoolsInput): Compar
     throw new QualityError("Partial responses require at least one warning.");
   }
 
-  const ai_reasoning = {
-    status: "unavailable" as const,
-    summary: "",
-    highlights: [] as string[],
-    caveats: [] as string[],
-    source_ids: [] as string[],
-  };
-
   if (status === "failed") {
     return {
       status,
@@ -332,7 +324,6 @@ export function settleComparePoolsResult(input: SettleComparePoolsInput): Compar
           ? orderedWarnings
           : sortWarnings(["No valid Graph pool record was available"]),
       pagination: null,
-      ai_reasoning,
     };
   }
 
@@ -351,6 +342,5 @@ export function settleComparePoolsResult(input: SettleComparePoolsInput): Compar
     provenance,
     warnings: orderedWarnings,
     pagination: null,
-    ai_reasoning,
   };
 }

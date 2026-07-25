@@ -26,7 +26,7 @@ view; otherwise freshness is null.
 
 Adapters must catch operational and source-shape failures at their boundary and
 return a non-`ok` result. No source exception crosses into normalization,
-metrics, MCP, or reasoning code.
+metrics, MCP, or client presentation code.
 
 ## Numeric and identity rules
 

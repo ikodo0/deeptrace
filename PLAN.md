@@ -38,8 +38,8 @@ It must:
 * rank the pools by one requested metric;
 * return coverage, freshness and provenance;
 * preserve successful results when one source is unavailable;
-* add grounded `ai_reasoning` only after the structured result is verified;
-* expose the flow through MCP and the single `SKILL.md`.
+* return verified structured data only (no internal model call);
+* expose the flow through MCP and the single `SKILL.md` for client-side presentation.
 
 ### Scope to Lock Before Coding
 
@@ -68,7 +68,7 @@ MVP-0 is complete when:
 * repeated requests over the same source blocks are deterministic;
 * one unavailable source produces a partial result rather than total failure;
 * every metric identifies its source and time window;
-* AI reasoning references only returned facts and provenance IDs;
+* the client skill presents only returned facts and provenance IDs (no invented metrics);
 * the complete flow can be demonstrated in under two minutes.
 
 ## Next Milestones
@@ -101,7 +101,7 @@ DeepTrace is a semantic research layer rather than another raw GraphQL gateway. 
 * wallet- and pool-centric Nuthatch views;
 * deterministic cross-source normalization and calculations;
 * shared coverage, freshness and provenance semantics;
-* permanent grounded AI reasoning over verified results.
+* client-side presentation via `SKILL.md` over verified structured results (no internal LLM).
 
 ## Public Interface
 
@@ -116,7 +116,7 @@ find_large_swaps
 
 MVP-0 registers only `compare_pools`. The remaining tools are added in the order defined under **Next Milestones**.
 
-The user's AI chooses the appropriate available tool. DeepTrace retrieves and verifies the data, applies its internal reasoning layer, and returns both structured facts and a grounded explanation.
+The user's AI chooses the appropriate available tool. DeepTrace retrieves and verifies the data and returns structured facts only. The user's AI + `SKILL.md` turn that payload into prose.
 
 ### Tool Contracts
 
@@ -141,7 +141,7 @@ The single `SKILL.md` teaches the user's AI:
 * how to continue using `next_cursor`;
 * how to interpret metric methodology;
 * how to report coverage, freshness and provenance;
-* how to present `ai_reasoning` without replacing structured facts.
+* how to present structured results without inventing metrics or replacing facts.
 
 During MVP-0 the skill documents `compare_pools` only. Future tool instructions are added when those tools are implemented.
 
@@ -188,12 +188,12 @@ Coverage + Freshness + Provenance
         └── Partial result with explicit warnings
         │
         ▼
-DeepTrace AI Reasoning
-grounded explanation · highlights · caveats · source references
+Final MCP Response
+structured facts only (status · data · coverage · freshness · provenance · warnings)
         │
         ▼
-Final MCP Response
-structured facts + ai_reasoning
+User's AI + SKILL.md
+presentation · highlights · caveats · source citations (outside DeepTrace)
 ```
 
 Messari and Nuthatch are parallel data backends. Nuthatch does not run remote Subgraphs, and Standardized Subgraphs do not replace the custom Nuthatch indexes.
@@ -204,7 +204,7 @@ Messari and Nuthatch are parallel data backends. Nuthatch does not run remote Su
 2. **Category-level standardization:** one query pattern is reusable across compatible DEX deployments. DEX, lending and vault categories still use separate adapters.
 3. **Small public surface:** only implemented high-level tools are registered through MCP—one in MVP-0 and four at the global target. Source queries, registries, normalizers and calculators are internal code.
 4. **Deterministic data path:** validation, routing, querying, unit conversion, deduplication, formulas, ranking and pagination run in code.
-5. **Reasoning after verification:** the internal model receives the final quality-checked payload. It does not create source records or change calculated fields.
+5. **No internal generative step:** DeepTrace never calls a model provider. Presentation belongs to the user's AI and `SKILL.md`.
 6. **Read-only operation:** DeepTrace reads and explains data; it does not sign or submit blockchain transactions.
 7. **Bounded research:** every result identifies the exact sources and scope that were searched.
 
@@ -468,13 +468,6 @@ Every tool returns the same top-level envelope:
     "returned": 0,
     "has_more": false,
     "next_cursor": null
-  },
-  "ai_reasoning": {
-    "status": "complete",
-    "summary": "",
-    "highlights": [],
-    "caveats": [],
-    "source_ids": []
   }
 }
 ```
@@ -518,57 +511,27 @@ The exact numeric values below are placeholders; the shape is the contract that 
   "freshness": {},
   "provenance": [],
   "warnings": [],
-  "pagination": null,
-  "ai_reasoning": {
-    "status": "complete",
-    "summary": "",
-    "highlights": [],
-    "caveats": [],
-    "source_ids": []
-  }
+  "pagination": null
 }
 ```
 
 `compare_pools` returns a bounded ranked set and therefore does not require pagination in MVP-0.
 
-## AI Reasoning Layer
+## Presentation Boundary (No Internal AI)
 
-AI reasoning is a permanent DeepTrace capability. It runs after normalization, deterministic metrics and the coverage gate.
+Decided 2026-07-25: DeepTrace does **not** call a model provider. After
+coverage/freshness/provenance settlement, the MCP returns the verified structured
+envelope only. There is no `ai_reasoning` field.
 
-The reasoning layer receives:
+Presentation is the job of the **user's AI** guided by `SKILL.md`. That skill must:
 
-* the validated user request;
-* the final structured result;
-* versioned metric formulas;
-* coverage and freshness;
-* provenance identifiers.
+* present only values present in `data`;
+* cite `source_ids` / `provenance` when claiming facts;
+* always surface `warnings`, coverage holes, and freshness status;
+* never invent rankings, USD values, or Nuthatch facts.
 
-It produces:
-
-* a concise factual summary;
-* important relationships and highlights;
-* explanations of derived metrics;
-* explicit caveats for partial coverage or stale sources;
-* references to provenance records used in the explanation.
-
-The reasoning implementation lives in:
-
-```text
-src/reasoning/
-```
-
-It uses one bounded reasoning operation with at most two ordered provider attempts and
-writes only to `ai_reasoning`. Structured `data`, metrics, coverage, freshness and
-provenance remain the source of truth.
-
-The reasoning output follows a typed schema. Every referenced source ID must exist in `provenance`. If the model provider is temporarily unavailable, DeepTrace still returns the verified structured result with `ai_reasoning.status` set to `unavailable`.
-
-MVP-0 accepts an ordered primary provider and one optional fallback through injected
-provider adapters. Each attempt has a 2-second deadline within a 5-second total
-reasoning budget. Reasoning input is limited to 32 KiB and validated output to 8 KiB,
-with at most five highlights and five caveats. Provider failure never changes the
-structured response status. Vendor and model identifiers are deployment
-configuration, not public request fields.
+Do not implement `src/reasoning/` or provider keys unless a later milestone
+explicitly reopens internal AI.
 
 ## Suggested Project Structure
 
@@ -584,7 +547,6 @@ src/
   normalization/   identities, decimals, prices and deduplication
   metrics/         deterministic calculations and rankings
   quality/         coverage, freshness, provenance and warnings
-  reasoning/       permanent grounded AI reasoning
 skill/
   SKILL.md
 tests/
@@ -605,7 +567,6 @@ Internal modules may contain many functions, but only implemented high-level han
 * select the Nuthatch pool and the fresh fact it uniquely contributes;
 * define the USD price source and timestamp policy;
 * finalize `PoolComparisonRecord`, the `compare_pools` request/response schema, limits and timeouts;
-* select the model provider, model, reasoning schema and latency budget;
 * select the deployment transport.
 
 ### 2. Build the Nuthatch Path
@@ -637,15 +598,9 @@ Internal modules may contain many functions, but only implemented high-level han
 * add rate limits and read-only policy;
 * add setup and client configuration.
 
-### 6. Integrate AI Reasoning
+### 6. Ship
 
-* implement the reasoning module against its typed output schema;
-* add one bounded reasoning operation with graceful provider fallback;
-* validate every reasoning source reference against provenance;
-* test factual consistency, latency and response size.
-
-### 7. Ship
-
+* write one `SKILL.md` that teaches the client AI to present only returned facts;
 * live integration and parity tests;
 * documented source coverage;
 * open-source attribution and license;
@@ -675,14 +630,10 @@ Internal modules may contain many functions, but only implemented high-level han
 
 For selected events visible in both Graph and Nuthatch, compare transaction hash, log index, token addresses, raw amounts, pool identity and source block.
 
-### AI Reasoning
+### Client Presentation (skill)
 
-* summary facts exist in the structured payload;
-* cited source IDs exist in provenance;
-* derived metrics are explained with the registered methodology;
-* partial coverage appears in caveats;
-* provider failure preserves the structured result;
-* latency and output size remain within configured limits.
+* skill instructs the client AI to cite only returned `source_ids` and surface warnings/freshness;
+* no DeepTrace provider/model tests (no internal AI).
 
 ## Demo Flow
 
@@ -690,4 +641,4 @@ For selected events visible in both Graph and Nuthatch, compare transaction hash
 2. Show three normalized pool records ranked by the locked metric.
 3. Show the fresh fact contributed by Nuthatch.
 4. Repeat with one unavailable source and show the partial result.
-5. Show coverage, freshness, provenance and grounded `ai_reasoning`.
+5. Show coverage, freshness, and provenance; let the client chat pane narrate from structured data.

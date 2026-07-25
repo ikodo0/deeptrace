@@ -61,30 +61,17 @@ describe("M0 core policy", () => {
     expect(M0_CORE_POLICY.gateway.maximumResponseBytes).toBe(65_536);
   });
 
-  it("locks freshness and reasoning limits", () => {
+  it("locks freshness limits", () => {
     expect(M0_CORE_POLICY.freshness).toEqual({
       qualityStaleAfterSeconds: 300,
       enforcementLayer: "core_quality",
       preservesAdapterStatus: true,
     });
-    expect(M0_CORE_POLICY.reasoning).toEqual({
-      maximumProviderAttempts: 2,
-      providerAttemptTimeoutMs: 2_000,
-      totalTimeoutMs: 5_000,
-      maximumInputBytes: 32_768,
-      maximumOutputBytes: 8_192,
-      maximumHighlights: 5,
-      maximumCaveats: 5,
-    });
   });
 
-  it("fits source and provider attempts inside their total deadlines", () => {
-    expect(
-      M0_CORE_POLICY.reasoning.maximumProviderAttempts *
-        M0_CORE_POLICY.reasoning.providerAttemptTimeoutMs,
-    ).toBeLessThanOrEqual(M0_CORE_POLICY.reasoning.totalTimeoutMs);
-    expect(
-      M0_CORE_POLICY.gateway.maximumSourceTimeoutMs + M0_CORE_POLICY.reasoning.totalTimeoutMs,
-    ).toBeLessThanOrEqual(M0_CORE_POLICY.gateway.endToEndTimeoutMs);
+  it("fits source timeouts inside the end-to-end deadline", () => {
+    expect(M0_CORE_POLICY.gateway.maximumSourceTimeoutMs).toBeLessThanOrEqual(
+      M0_CORE_POLICY.gateway.endToEndTimeoutMs,
+    );
   });
 });

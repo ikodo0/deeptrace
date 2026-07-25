@@ -142,16 +142,6 @@ export const resultProvenanceSchema = z
   })
   .strict();
 
-export const aiReasoningSchema = z
-  .object({
-    status: z.enum(["complete", "unavailable"]),
-    summary: z.string(),
-    highlights: z.array(nonEmptyStringSchema).max(M0_CORE_POLICY.reasoning.maximumHighlights),
-    caveats: z.array(nonEmptyStringSchema).max(M0_CORE_POLICY.reasoning.maximumCaveats),
-    source_ids: z.array(nonEmptyStringSchema).refine(hasUniqueValues, "Expected unique source IDs"),
-  })
-  .strict();
-
 export const nuthatchFreshnessFactSchema = z
   .object({
     pool_address: ethereumAddressSchema,
@@ -194,7 +184,6 @@ const responseQualityShape = {
     ),
   warnings: z.array(nonEmptyStringSchema),
   pagination: z.null(),
-  ai_reasoning: aiReasoningSchema,
 };
 
 const successfulResponseSchema = (status: "complete" | "partial") =>
@@ -229,10 +218,7 @@ export const comparePoolsResponseSchema = z
     const provenanceById = new Map(
       response.provenance.map((provenance) => [provenance.source_id, provenance]),
     );
-    const referencedIds = [
-      ...response.freshness.map(({ source_id }) => source_id),
-      ...response.ai_reasoning.source_ids,
-    ];
+    const referencedIds = [...response.freshness.map(({ source_id }) => source_id)];
     const graphSourceCount = response.provenance.filter(
       ({ source_type }) => source_type !== "nuthatch_view",
     ).length;
@@ -432,7 +418,6 @@ export type PoolComparisonRecord = z.infer<typeof poolComparisonRecordSchema>;
 export type Coverage = z.infer<typeof coverageSchema>;
 export type ResultFreshness = z.infer<typeof resultFreshnessSchema>;
 export type ResultProvenance = z.infer<typeof resultProvenanceSchema>;
-export type AiReasoning = z.infer<typeof aiReasoningSchema>;
 export type NuthatchFreshnessFact = z.infer<typeof nuthatchFreshnessFactSchema>;
 export type PoolComparisonData = z.infer<typeof poolComparisonDataSchema>;
 export type ComparePoolsResponse = z.infer<typeof comparePoolsResponseSchema>;

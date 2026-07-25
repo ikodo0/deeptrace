@@ -136,13 +136,6 @@ export const completeComparePoolsFixture = {
   provenance: allProvenance,
   warnings: [],
   pagination: null,
-  ai_reasoning: {
-    status: "complete",
-    summary: "Protocol A has the highest measured 24-hour volume.",
-    highlights: ["Protocol A ranks first by source-reported volume."],
-    caveats: [],
-    source_ids: [graphSourceIds[0]],
-  },
 } as const satisfies ComparePoolsResponse;
 
 export const partialComparePoolsFixture = {
@@ -178,13 +171,6 @@ export const partialComparePoolsFixture = {
   provenance: allProvenance,
   warnings: ["fixture-nuthatch was unavailable", "fixture-dex-b exceeded the freshness threshold"],
   pagination: null,
-  ai_reasoning: {
-    status: "unavailable",
-    summary: "",
-    highlights: [],
-    caveats: [],
-    source_ids: [],
-  },
 } as const satisfies ComparePoolsResponse;
 
 export const failedComparePoolsFixture = {
@@ -208,13 +194,6 @@ export const failedComparePoolsFixture = {
   provenance: allProvenance,
   warnings: ["No valid Graph pool record was available"],
   pagination: null,
-  ai_reasoning: {
-    status: "unavailable",
-    summary: "",
-    highlights: [],
-    caveats: [],
-    source_ids: [],
-  },
 } as const satisfies ComparePoolsResponse;
 
 export const comparePoolsFixtures = [

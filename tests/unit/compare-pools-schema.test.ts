@@ -219,9 +219,11 @@ describe("compare_pools response schemas", () => {
     expect(
       comparePoolsResponseSchema.safeParse({
         ...completeComparePoolsFixture,
-        ai_reasoning: {
-          ...completeComparePoolsFixture.ai_reasoning,
-          source_ids: ["invented-source"],
+        data: {
+          ...completeComparePoolsFixture.data,
+          pools: completeComparePoolsFixture.data.pools.map((pool, index) =>
+            index === 0 ? { ...pool, source_ids: ["invented-source"] } : pool,
+          ),
         },
       }).success,
     ).toBe(false);
