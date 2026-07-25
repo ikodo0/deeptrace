@@ -156,7 +156,10 @@ export const poolComparisonDataSchema = z
     pair: canonicalPairSchema,
     window: z.enum(M0_TIME_WINDOWS),
     ranked_by: z.enum(M0_RANKING_METRICS),
-    pools: z.array(poolComparisonRecordSchema).min(1).max(M0_CORE_POLICY.topN.maximum),
+    pools: z
+      .array(poolComparisonRecordSchema)
+      .min(M0_CORE_POLICY.coverage.minimumGraphResultsForPartial)
+      .max(M0_CORE_POLICY.topN.maximum),
     nuthatch_freshness_fact: nuthatchFreshnessFactSchema.nullable(),
   })
   .strict();
@@ -208,6 +211,9 @@ export const comparePoolsResponseSchema = z
   .superRefine((response, context) => {
     const provenanceIds = new Set(response.provenance.map(({ source_id }) => source_id));
     const freshnessIds = new Set(response.freshness.map(({ source_id }) => source_id));
+    const provenanceById = new Map(
+      response.provenance.map((provenance) => [provenance.source_id, provenance]),
+    );
     const referencedIds = [
       ...response.freshness.map(({ source_id }) => source_id),
       ...response.ai_reasoning.source_ids,
@@ -239,6 +245,21 @@ export const comparePoolsResponseSchema = z
       });
     }
 
+    for (const freshness of response.freshness) {
+      if (
+        freshness.status !== "unavailable" &&
+        provenanceById.get(freshness.source_id)?.source_type === "nuthatch_view" &&
+        freshness.indexed_block_hash === null
+      ) {
+        context.addIssue({
+          code: "custom",
+          message: "Observed Nuthatch freshness requires an indexed block hash",
+          path: ["freshness"],
+        });
+        break;
+      }
+    }
+
     if (response.data !== null) {
       referencedIds.push(
         ...response.data.pools.flatMap(({ source_ids }) => source_ids),
@@ -268,6 +289,18 @@ export const comparePoolsResponseSchema = z
             path: ["data", "pools", index],
           });
         }
+
+        if (
+          pool.source_ids.some(
+            (sourceId) => provenanceById.get(sourceId)?.source_type === "nuthatch_view",
+          )
+        ) {
+          context.addIssue({
+            code: "custom",
+            message: "Pool financial records must reference Graph provenance",
+            path: ["data", "pools", index, "source_ids"],
+          });
+        }
       }
 
       if (
@@ -283,7 +316,8 @@ export const comparePoolsResponseSchema = z
 
       const hasDegradedCoverage =
         response.coverage.successful_deployments < M0_CORE_POLICY.coverage.expectedGraphResults ||
-        !response.coverage.nuthatch_available ||
+        (M0_CORE_POLICY.coverage.requiresNuthatchForComplete &&
+          !response.coverage.nuthatch_available) ||
         response.freshness.some(({ status }) => status !== "fresh");
 
       if (response.status === "complete" && hasDegradedCoverage) {
@@ -299,6 +333,14 @@ export const comparePoolsResponseSchema = z
           code: "custom",
           message: "Partial responses require missing, stale, or unavailable coverage",
           path: ["status"],
+        });
+      }
+
+      if (response.status === "partial" && response.warnings.length === 0) {
+        context.addIssue({
+          code: "custom",
+          message: "Partial responses require an explicit warning",
+          path: ["warnings"],
         });
       }
     } else if (response.coverage.successful_deployments !== 0) {

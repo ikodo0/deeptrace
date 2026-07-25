@@ -80,17 +80,31 @@ describe("compare_pools response schemas", () => {
     expect(
       comparePoolsResponseSchema.safeParse({
         ...completeComparePoolsFixture,
+        data: {
+          ...completeComparePoolsFixture.data,
+          nuthatch_freshness_fact: null,
+        },
         coverage: {
           ...completeComparePoolsFixture.coverage,
           nuthatch_available: false,
         },
+        freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
+          index === 3 ? { source_id: entry.source_id, status: "unavailable" } : entry,
+        ),
       }).success,
     ).toBe(false);
     expect(
       comparePoolsResponseSchema.safeParse({
         ...completeComparePoolsFixture,
         freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
-          index === 0 ? { ...entry, status: "stale" } : entry,
+          index === 0
+            ? {
+                ...entry,
+                status: "stale",
+                indexed_block_timestamp: entry.queried_at - 301,
+                lag_seconds: 301,
+              }
+            : entry,
         ),
       }).success,
     ).toBe(false);
@@ -115,8 +129,27 @@ describe("compare_pools response schemas", () => {
     expect(
       comparePoolsResponseSchema.safeParse({
         ...completeComparePoolsFixture,
+        freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
+          index === 0 ? { ...entry, source_id: "fixture-unknown" } : entry,
+        ),
+      }).success,
+    ).toBe(false);
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...completeComparePoolsFixture,
         provenance: completeComparePoolsFixture.provenance.map((entry, index) =>
           index === 3 ? { ...entry, source_type: "native_subgraph" } : entry,
+        ),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires observed Nuthatch freshness to include a block hash", () => {
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...completeComparePoolsFixture,
+        freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
+          index === 3 ? { ...entry, indexed_block_hash: null } : entry,
         ),
       }).success,
     ).toBe(false);
@@ -189,6 +222,38 @@ describe("compare_pools response schemas", () => {
             source_id: "fixture-dex-a",
           },
         },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects Nuthatch provenance for pool financial records", () => {
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...completeComparePoolsFixture,
+        data: {
+          ...completeComparePoolsFixture.data,
+          pools: completeComparePoolsFixture.data.pools.map((pool, index) =>
+            index === 0 ? { ...pool, source_ids: ["fixture-nuthatch"] } : pool,
+          ),
+        },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires degraded partial responses to include warnings", () => {
+    expect(
+      comparePoolsResponseSchema.safeParse({
+        ...partialComparePoolsFixture,
+        warnings: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects uppercase public addresses", () => {
+    expect(
+      poolComparisonRecordSchema.safeParse({
+        ...completeComparePoolsFixture.data.pools[0],
+        pool_address: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
       }).success,
     ).toBe(false);
   });
