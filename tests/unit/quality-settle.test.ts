@@ -267,4 +267,29 @@ describe("settleComparePoolsResult", () => {
     });
     expect(comparePoolsResponseSchema.parse(response).status).toBe("partial");
   });
+
+  it("emits a Top-N truncation warning when ranked pools are below ok Graph count", () => {
+    const pools = rankCanonicalPools(
+      bindComparePoolsGraphResults([graphPoolA, graphPoolB], "24h"),
+      {
+        rankedBy: "volume_usd",
+        topN: 1,
+      },
+    );
+    const response = settleComparePoolsResult({
+      pair: livePair,
+      window: "24h",
+      rankedBy: "volume_usd",
+      pools,
+      graphResults: [graphPoolA, graphPoolB],
+      nuthatchResult: null,
+    });
+
+    expect(response.status).toBe("partial");
+    expect(response.data?.pools).toHaveLength(1);
+    expect(
+      response.warnings.some((warning) => warning.includes("Top-N truncated ranked pools")),
+    ).toBe(true);
+    expect(comparePoolsResponseSchema.parse(response).status).toBe("partial");
+  });
 });

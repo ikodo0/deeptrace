@@ -298,7 +298,13 @@ export function settleComparePoolsResult(input: SettleComparePoolsInput): Compar
   });
 
   const warnings = settlementWarnings(orderedGraph, input.nuthatchResult, freshness);
-  if (status === "partial" && warnings.length === 0) {
+  if (input.pools.length < okGraphCount) {
+    warnings.push(
+      `Top-N truncated ranked pools from ${String(okGraphCount)} to ${String(input.pools.length)}.`,
+    );
+  }
+  const orderedWarnings = sortWarnings(warnings);
+  if (status === "partial" && orderedWarnings.length === 0) {
     throw new QualityError("Partial responses require at least one warning.");
   }
 
@@ -322,7 +328,9 @@ export function settleComparePoolsResult(input: SettleComparePoolsInput): Compar
       freshness,
       provenance,
       warnings:
-        warnings.length > 0 ? warnings : sortWarnings(["No valid Graph pool record was available"]),
+        orderedWarnings.length > 0
+          ? orderedWarnings
+          : sortWarnings(["No valid Graph pool record was available"]),
       pagination: null,
       ai_reasoning,
     };
@@ -341,7 +349,7 @@ export function settleComparePoolsResult(input: SettleComparePoolsInput): Compar
     coverage,
     freshness,
     provenance,
-    warnings,
+    warnings: orderedWarnings,
     pagination: null,
     ai_reasoning,
   };
