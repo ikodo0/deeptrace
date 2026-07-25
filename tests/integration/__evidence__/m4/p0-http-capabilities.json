@@ -93,11 +93,7 @@
     "url": "https://wallet-intel.tail8ae57d.ts.net/sql?q=SELECT%20*%20FROM%20pool_swap_freshness%20LIMIT%201&max_rows=1",
     "requests": 3,
     "issued_within_ms": 165,
-    "statuses": [
-      503,
-      400,
-      400
-    ],
+    "statuses": [503, 400, 400],
     "ok_count": 0,
     "guard_rejected_count": 1,
     "observed_concurrency_lower_bound": 0
