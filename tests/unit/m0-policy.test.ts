@@ -35,7 +35,7 @@ describe("M0 core policy", () => {
 
   it("locks complete, partial, and failed coverage boundaries", () => {
     expect(M0_CORE_POLICY.coverage).toEqual({
-      expectedGraphResults: 3,
+      expectedGraphResults: 2,
       requiresNuthatchForComplete: true,
       minimumGraphResultsForPartial: 1,
     });

@@ -89,7 +89,7 @@ describe("compare_pools response schemas", () => {
           nuthatch_available: false,
         },
         freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
-          index === 3 ? { source_id: entry.source_id, status: "unavailable" } : entry,
+          index === 2 ? { source_id: entry.source_id, status: "unavailable" } : entry,
         ),
       }).success,
     ).toBe(false);
@@ -138,7 +138,7 @@ describe("compare_pools response schemas", () => {
       comparePoolsResponseSchema.safeParse({
         ...completeComparePoolsFixture,
         provenance: completeComparePoolsFixture.provenance.map((entry, index) =>
-          index === 3 ? { ...entry, source_type: "native_subgraph" } : entry,
+          index === 2 ? { ...entry, source_type: "native_subgraph" } : entry,
         ),
       }).success,
     ).toBe(false);
@@ -149,7 +149,7 @@ describe("compare_pools response schemas", () => {
       comparePoolsResponseSchema.safeParse({
         ...completeComparePoolsFixture,
         freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
-          index === 3 ? { ...entry, indexed_block_hash: null } : entry,
+          index === 2 ? { ...entry, indexed_block_hash: null } : entry,
         ),
       }).success,
     ).toBe(false);
@@ -273,7 +273,7 @@ describe("compare_pools response schemas", () => {
             partialComparePoolsFixture.data.pools[0],
             {
               ...partialComparePoolsFixture.data.pools[1],
-              source_ids: ["fixture-dex-c"],
+              source_ids: ["fixture-unknown"],
             },
           ],
         },
@@ -285,7 +285,7 @@ describe("compare_pools response schemas", () => {
         status: "partial",
         warnings: ["fixture-nuthatch was unavailable"],
         freshness: completeComparePoolsFixture.freshness.map((entry, index) =>
-          index === 3 ? { source_id: entry.source_id, status: "unavailable" } : entry,
+          index === 2 ? { source_id: entry.source_id, status: "unavailable" } : entry,
         ),
       }).success,
     ).toBe(false);
@@ -293,7 +293,7 @@ describe("compare_pools response schemas", () => {
       comparePoolsResponseSchema.safeParse({
         ...partialComparePoolsFixture,
         freshness: partialComparePoolsFixture.freshness.map((entry, index) =>
-          index === 3
+          index === 2
             ? {
                 source_id: entry.source_id,
                 status: "fresh",
@@ -323,7 +323,7 @@ describe("compare_pools response schemas", () => {
       comparePoolsResponseSchema.safeParse({
         ...failedComparePoolsFixture,
         freshness: failedComparePoolsFixture.freshness.map((entry, index) =>
-          index === 3
+          index === 2
             ? {
                 source_id: entry.source_id,
                 status: "fresh",

@@ -244,7 +244,7 @@ export const comparePoolsResponseSchema = z
     ) {
       context.addIssue({
         code: "custom",
-        message: "Provenance must contain three Graph sources and one Nuthatch source",
+        message: `Provenance must contain ${String(M0_CORE_POLICY.coverage.expectedGraphResults)} Graph sources and one Nuthatch source`,
         path: ["provenance"],
       });
     }
