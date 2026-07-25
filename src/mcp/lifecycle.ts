@@ -1,6 +1,6 @@
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 
-import { createMcpServer } from "./server.js";
+import { createMcpServer, type CreateMcpServerOptions } from "./server.js";
 
 export type ShutdownSignal = "SIGINT" | "SIGTERM";
 
@@ -14,8 +14,11 @@ export interface ShutdownSignalTarget {
   off(signal: ShutdownSignal, listener: () => void): unknown;
 }
 
-export async function startMcpServer(transport: Transport): Promise<McpServerRuntime> {
-  const server = createMcpServer();
+export async function startMcpServer(
+  transport: Transport,
+  options: CreateMcpServerOptions = {},
+): Promise<McpServerRuntime> {
+  const server = createMcpServer(options);
   await server.connect(transport);
 
   let closePromise: Promise<void> | undefined;
