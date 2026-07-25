@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-07-25T11:52:36.200Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "SU9VhLEYR58QqvRmvCpDQarCkb6fb4cL9Pj3WgNcALD",
+  "query_id": "m2-meta-v1",
+  "request": {
+    "query": "query M2Meta {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n}",
+    "variables": {}
+  },
+  "response": {
+    "data": {
+      "_meta": {
+        "block": {
+          "number": 49095503,
+          "timestamp": 1784980353,
+          "hash": "0x2e83a9aa7d1a52857ac3706897b89bcd5a3c5b36116f6cea546831989013311c"
+        },
+        "hasIndexingErrors": false,
+        "deployment": "QmVL9dQdAGfqRbfbjpTXUGZNhFh2rpcPJ8XT5bYXVPvXyr"
+      }
+    }
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 198,
+    "error": null
+  }
+}
