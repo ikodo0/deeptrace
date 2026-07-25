@@ -1,0 +1,13 @@
+[Unit]
+Description=Poll Nuthatch backfill progress every two minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+RandomizedDelaySec=15s
+Persistent=true
+Unit=nuthatch-watchdog.service
+
+[Install]
+WantedBy=timers.target
+
