@@ -8,6 +8,7 @@ import { getActiveComparePoolGraphSources } from "../../src/registry/index.js";
 import { poolSourceResultSchema } from "../../src/schemas/source-adapter.js";
 import {
   fetchComparePoolGraphSource,
+  TIER_B_METRICS_QUERY,
   TIER_B_METRICS_QUERY_ID,
 } from "../../src/sources/graph/index.js";
 import { sumDecimals } from "../../src/sources/graph/decimal.js";
@@ -130,6 +131,54 @@ describe("fetchComparePoolGraphSource", () => {
     expect(result.data.fees_usd_24h).toBe(data.poolDayDatas[1]!.feesUSD);
     expect(result.data.volume_usd_7d).toBeNull();
     expect(result.data.fees_usd_7d).toBeNull();
+  });
+
+  it("requests eight day snapshots so seven completed days survive the partial day", () => {
+    // The newest poolDayDatas row is the in-progress UTC day, which
+    // aggregation discards. Fetching seven would leave six completed days and
+    // make the 7d window permanently null in production.
+    expect(TIER_B_METRICS_QUERY).toContain("first: 8");
+  });
+
+  it("sums 7d over completed days when the newest row is the partial day", async () => {
+    expect(uniswap).toBeDefined();
+    const data = structuredClone(await loadEvidenceData("uniswap-v3-base-native")) as {
+      poolDayDatas: Array<{ date: number; volumeUSD: string; feesUSD: string; tvlUSD?: string }>;
+    };
+
+    // Evidence holds seven rows, newest first. Production now fetches eight, so
+    // append one older day: the newest stays partial and seven complete days
+    // remain — exactly the shape the live query returns.
+    const oldest = data.poolDayDatas[data.poolDayDatas.length - 1]!;
+    data.poolDayDatas.push({
+      ...oldest,
+      date: oldest.date - 86_400,
+      volumeUSD: "1000.5",
+      feesUSD: "3.0015",
+    });
+    expect(data.poolDayDatas).toHaveLength(8);
+
+    const newest = data.poolDayDatas[0]!;
+    // Mid-way through the newest day, so that row is not a completed day.
+    const nowSeconds = newest.date + 3_600;
+
+    const result = await fetchComparePoolGraphSource(uniswap!, {
+      apiKey: "key",
+      fetchImpl: () => Promise.resolve(jsonResponse({ data })),
+      nowSeconds,
+    });
+
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") {
+      return;
+    }
+
+    const completed = data.poolDayDatas.slice(1);
+    expect(completed).toHaveLength(7);
+    expect(result.data.volume_usd_7d).toBe(sumDecimals(completed.map((day) => day.volumeUSD)));
+    expect(result.data.fees_usd_7d).toBe(sumDecimals(completed.map((day) => day.feesUSD)));
+    // The 24h window still tracks only the most recent completed day.
+    expect(result.data.volume_usd_24h).toBe(completed[0]!.volumeUSD);
   });
 
   it("returns timeout without freshness when the gateway aborts", async () => {
