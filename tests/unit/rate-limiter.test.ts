@@ -60,10 +60,32 @@ describe("FixedWindowRateLimiter", () => {
     await limiter.execute("client", callback);
     await expect(limiter.execute("client", callback)).rejects.toBeInstanceOf(RateLimitError);
 
-    clock.advance(GATEWAY_DEFAULTS.rateLimitWindowMs);
+    clock.advance(GATEWAY_DEFAULTS.rateLimitWindowMs - 1);
+    await expect(limiter.execute("client", callback)).rejects.toBeInstanceOf(RateLimitError);
+
+    clock.advance(1);
 
     await expect(limiter.execute("client", callback)).resolves.toBe("ok");
     expect(callback).toHaveBeenCalledTimes(2);
+  });
+
+  it("prunes expired keys on the next cleanup boundary", async () => {
+    const clock = createManualClock();
+    const limiter = new FixedWindowRateLimiter({
+      maxRequests: 1,
+      windowMs: GATEWAY_DEFAULTS.rateLimitWindowMs,
+      clock: clock.now,
+    });
+
+    await limiter.execute("a", () => "a");
+    await limiter.execute("b", () => "b");
+    await limiter.execute("c", () => "c");
+    expect(limiter.trackedKeyCount).toBe(3);
+
+    clock.advance(GATEWAY_DEFAULTS.rateLimitWindowMs);
+    await limiter.execute("d", () => "d");
+
+    expect(limiter.trackedKeyCount).toBe(1);
   });
 
   it("tracks keys independently", async () => {

@@ -22,6 +22,7 @@ export class FixedWindowRateLimiter {
   private readonly windowMs: number;
   private readonly clock: Clock;
   private readonly windows = new Map<string, WindowState>();
+  private lastCleanupMs: number | undefined;
 
   constructor(options: FixedWindowRateLimiterOptions) {
     this.maxRequests = assertBoundedPositiveInteger(options.maxRequests, "maxRequests");
@@ -29,8 +30,13 @@ export class FixedWindowRateLimiter {
     this.clock = options.clock ?? systemClock;
   }
 
+  get trackedKeyCount(): number {
+    return this.windows.size;
+  }
+
   async execute<T>(key: string, callback: () => T | Promise<T>): Promise<T> {
     const now = this.clock();
+    this.pruneExpiredWindows(now);
     const state = this.windows.get(key);
 
     if (state === undefined || now - state.windowStartMs >= this.windowMs) {
@@ -44,5 +50,19 @@ export class FixedWindowRateLimiter {
 
     state.count += 1;
     return await callback();
+  }
+
+  private pruneExpiredWindows(now: number): void {
+    if (this.lastCleanupMs !== undefined && now - this.lastCleanupMs < this.windowMs) {
+      return;
+    }
+
+    for (const [key, state] of this.windows) {
+      if (now - state.windowStartMs >= this.windowMs) {
+        this.windows.delete(key);
+      }
+    }
+
+    this.lastCleanupMs = now;
   }
 }

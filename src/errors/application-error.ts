@@ -27,8 +27,8 @@ export class ConfigurationError extends ApplicationError {
 }
 
 export class RateLimitError extends ApplicationError {
-  constructor(message = "Rate limit exceeded") {
-    super(ErrorCode.RATE_LIMITED, message);
+  constructor() {
+    super(ErrorCode.RATE_LIMITED, "Rate limit exceeded");
     this.name = "RateLimitError";
   }
 }

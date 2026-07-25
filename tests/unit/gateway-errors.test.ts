@@ -34,4 +34,9 @@ describe("typed application errors", () => {
     expect(error.message).toBe("Rate limit exceeded");
     expect(error.message).not.toContain(secret);
   });
+
+  it("does not accept caller-provided rate-limit messages", () => {
+    expect(RateLimitError).toHaveLength(0);
+    expect(new RateLimitError().message).toBe("Rate limit exceeded");
+  });
 });
