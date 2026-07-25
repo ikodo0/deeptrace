@@ -38,9 +38,24 @@ function parseEnv(contents: string): Map<string, string> {
   return values;
 }
 
+async function readEnvFile(envPath: string): Promise<Map<string, string>> {
+  try {
+    return parseEnv(await readFile(envPath, "utf8"));
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return new Map();
+    }
+    throw error;
+  }
+}
+
 export async function loadGraphApiKey(envPath = ".env"): Promise<string> {
-  const fileValues = parseEnv(await readFile(envPath, "utf8"));
-  const key = process.env.GRAPH_API_KEY ?? fileValues.get("GRAPH_API_KEY");
+  const fromEnv = process.env.GRAPH_API_KEY;
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  const key = (await readEnvFile(envPath)).get("GRAPH_API_KEY");
   if (!key) {
     throw new Error("GRAPH_API_KEY is unset or empty.");
   }
