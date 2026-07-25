@@ -3,6 +3,10 @@
 .env.*
 !.env.example
 
+# Local planning docs — working notes, not part of the deliverable
+/DATA_PIPE_PLAN.md
+/docs/M*_PLAN.md
+
 # TypeScript / Node
 node_modules/
 dist/
