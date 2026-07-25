@@ -28,7 +28,8 @@ to stdout:
 NUTHATCH_BASE_URL=http://127.0.0.1:8288 node scripts/m4/http-probe.mjs
 ```
 
-It exits non-zero unless the freshness view answers both `/sql` and `/explain`
-and the `max_rows` ceiling is rejected explicitly. Redirect stdout to a file
-only after the command exits successfully. There is no offline mode; a
-filesystem-only sandbox cannot produce HTTP acceptance evidence.
+It exits non-zero unless the freshness view answers both `/sql` and `/explain`,
+POST `/sql` is rejected with 405, and the `max_rows` ceiling is rejected
+explicitly. Redirect stdout to a file only after the command exits
+successfully. There is no offline mode; a filesystem-only sandbox cannot
+produce HTTP acceptance evidence.
