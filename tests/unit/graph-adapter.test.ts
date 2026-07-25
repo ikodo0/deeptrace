@@ -137,6 +137,7 @@ describe("fetchComparePoolGraphSource", () => {
     // The newest poolDayDatas row is the in-progress UTC day, which
     // aggregation discards. Fetching seven would leave six completed days and
     // make the 7d window permanently null in production.
+    expect(TIER_B_METRICS_QUERY_ID).toBe("m3-tier-b-metrics-v2");
     expect(TIER_B_METRICS_QUERY).toContain("first: 8");
   });
 

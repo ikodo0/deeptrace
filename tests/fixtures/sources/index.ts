@@ -19,7 +19,8 @@ const usdc = {
   decimals: 6,
 } as const;
 
-// Point-in-time values from tests/integration/__evidence__/m2/*/07-common-metrics.json.
+// Point-in-time values from tests/integration/__evidence__/m2/*/07-common-metrics.json,
+// with provenance updated to the active production query revision.
 // 7d aggregates stay null here so Person 2 null-handling stays covered; M3.6 owns real 7d sums.
 
 export const graphPoolA = {
@@ -50,7 +51,7 @@ export const graphPoolA = {
     deployment_or_view_id: "QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR",
     schema_version: null,
     methodology_version: null,
-    query_id: "m2-tier-b-metrics-v1",
+    query_id: "m3-tier-b-metrics-v2",
   },
   warnings: ["Fixture retains null 7d aggregates; production 7d sums land in M3.6."],
   latency_ms: 120,
@@ -84,7 +85,7 @@ export const graphPoolB = {
     deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
     schema_version: null,
     methodology_version: null,
-    query_id: "m2-tier-b-metrics-v1",
+    query_id: "m3-tier-b-metrics-v2",
   },
   warnings: ["Fixture retains null 7d aggregates; production 7d sums land in M3.6."],
   latency_ms: 301,
@@ -119,7 +120,7 @@ export const graphPoolC = {
     deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
     schema_version: null,
     methodology_version: null,
-    query_id: "m2-tier-b-metrics-v1",
+    query_id: "m3-tier-b-metrics-v2",
   },
   warnings: ["Synthetic fixture: fees windows forced null for Person 2 null-handling coverage."],
   latency_ms: 301,
@@ -138,7 +139,7 @@ export const graphPoolCTimeout = {
     deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
     schema_version: null,
     methodology_version: null,
-    query_id: "m2-tier-b-metrics-v1",
+    query_id: "m3-tier-b-metrics-v2",
   },
   warnings: ["Synthetic timeout over real exchange-v3-base provenance."],
   latency_ms: 15000,
