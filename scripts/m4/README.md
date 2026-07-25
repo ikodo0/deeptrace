@@ -1,9 +1,8 @@
 # M4 contract probe
 
 `contract-probe.mjs` captures the installed Nuthatch CLI and read-only HTTP
-surface into `tests/integration/__evidence__/m4` (or `--out-dir`). For P0,
-clone an existing non-production nest into a disposable temporary directory
-and compare two independent runs:
+surface. For P0, clone an existing non-production nest into a disposable
+temporary directory and compare two independent runs:
 
 ```sh
 node scripts/m4/contract-probe.mjs \
@@ -18,18 +17,10 @@ probes it, stops it, and removes it. The comparison ignores capture timestamps,
 request duration, `/metrics`, and changing index-watermark fields.
 
 For the later read-only smoke test, replace `--nest-source` with `--base-url`.
-The harness writes normalized JSON evidence files to `--out-dir`. It does not
-print the complete capture to stdout.
+The harness does not write evidence files; callers retain its complete JSON
+stdout as the raw capture and derive Task 2 evidence from that.
 
-`http-probe.mjs` probes an already-running instance and prints one JSON document
-to stdout:
-
-```sh
-NUTHATCH_BASE_URL=http://127.0.0.1:8288 node scripts/m4/http-probe.mjs
-```
-
-It exits non-zero unless the freshness view answers both `/sql` and `/explain`,
-POST `/sql` is rejected with 405, and the `max_rows` ceiling is rejected
-explicitly. Redirect stdout to a file only after the command exits
-successfully. There is no offline mode; a filesystem-only sandbox cannot
-produce HTTP acceptance evidence.
+In a filesystem-only sandbox that forbids loopback listeners, add `--offline`.
+That still proves the CLI capture and disposable `init --from` cycle are
+repeatable, but deliberately leaves the `http` array empty; it is not a
+substitute for Task 2's HTTP capture on the dev box.
