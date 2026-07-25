@@ -2,7 +2,7 @@
 //   DEEPTRACE_MCP_URL=... DEEPTRACE_HTTP_TOKEN=... npm run smoke:mcp
 //
 // Uses only built-in fetch and node:process. No new dependencies.
-// Never prints the token, any Authorization header, or a full session id.
+// Never prints the token, any Authorization header, or a session id.
 
 import process from "node:process";
 
@@ -126,7 +126,7 @@ const initOk = await runCheck("initialize", async () => {
   const sid = headers.get("mcp-session-id") ?? "";
   if (status === 200 && sid !== "") {
     sessionId = sid;
-    return { ok: true, detail: `status=200 sid=${sid.slice(0, 8)}` };
+    return { ok: true, detail: `status=200 session=established` };
   }
   if (status !== 200) {
     return { ok: false, detail: `status=${status} (expected 200)` };
@@ -145,77 +145,95 @@ const sessionHeaders = () => ({
   "mcp-session-id": sessionId,
 });
 
-// Check 4: notifications/initialized -> expect 202
-await runCheck("notifications/initialized", async () => {
-  const { status } = await postJson(
-    MCP_URL,
-    { jsonrpc: "2.0", method: "notifications/initialized" },
-    { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
-  );
-  return { ok: status === 202, detail: `status=${status} (expected 202)` };
-});
+async function closeSession() {
+  try {
+    const response = await fetch(MCP_URL, {
+      method: "DELETE",
+      headers: sessionHeaders(),
+      signal: AbortSignal.timeout(SHORT_TIMEOUT_MS),
+    });
+    await response.text();
+  } catch {
+    // Session termination is best effort and must not hide the smoke result.
+  }
+}
 
-// Check 5: tools/list -> SSE payload contains compare_pools
-await runCheck("tools/list", async () => {
-  const { status, text } = await postJson(
-    MCP_URL,
-    { jsonrpc: "2.0", id: 3, method: "tools/list" },
-    { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
-  );
-  const msg = parseSse(text);
-  const tools = msg?.result?.tools ?? [];
-  const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
-  const ok = status === 200 && names.includes("compare_pools");
-  const detail = status !== 200 ? `status=${status} (expected 200)` : `tools=[${names.join(",")}]`;
-  return { ok, detail };
-});
+try {
+  // Check 4: notifications/initialized -> expect 202
+  await runCheck("notifications/initialized", async () => {
+    const { status } = await postJson(
+      MCP_URL,
+      { jsonrpc: "2.0", method: "notifications/initialized" },
+      { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
+    );
+    return { ok: status === 202, detail: `status=${status} (expected 202)` };
+  });
 
-// Check 6: tools/call compare_pools with locked args
-await runCheck("tools/call", async () => {
-  const { status, text } = await postJson(
-    MCP_URL,
-    {
-      jsonrpc: "2.0",
-      id: 4,
-      method: "tools/call",
-      params: {
-        name: "compare_pools",
-        arguments: {
-          chain_id: 8453,
-          token0: "0x4200000000000000000000000000000000000006",
-          token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-          window: "24h",
-          ranked_by: "tvl_usd",
+  // Check 5: tools/list -> SSE payload contains compare_pools
+  await runCheck("tools/list", async () => {
+    const { status, text } = await postJson(
+      MCP_URL,
+      { jsonrpc: "2.0", id: 3, method: "tools/list" },
+      { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
+    );
+    const msg = parseSse(text);
+    const tools = msg?.result?.tools ?? [];
+    const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
+    const ok = status === 200 && names.includes("compare_pools");
+    const detail =
+      status !== 200 ? `status=${status} (expected 200)` : `tools=[${names.join(",")}]`;
+    return { ok, detail };
+  });
+
+  // Check 6: tools/call compare_pools with locked args
+  await runCheck("tools/call", async () => {
+    const { status, text } = await postJson(
+      MCP_URL,
+      {
+        jsonrpc: "2.0",
+        id: 4,
+        method: "tools/call",
+        params: {
+          name: "compare_pools",
+          arguments: {
+            chain_id: 8453,
+            token0: "0x4200000000000000000000000000000000000006",
+            token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            window: "24h",
+            ranked_by: "tvl_usd",
+          },
         },
       },
-    },
-    { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
-  );
-  if (status !== 200) {
-    return { ok: false, detail: `status=${status} (expected 200)` };
-  }
-  const msg = parseSse(text);
-  const rawText = msg?.result?.content?.[0]?.text;
-  if (typeof rawText !== "string") {
-    return { ok: false, detail: `status=200 no content[0].text` };
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch (err) {
-    return { ok: false, detail: `result not JSON: ${err.message}` };
-  }
-  const st = parsed?.status;
-  const coverage = parsed?.coverage ?? {};
-  const success = coverage.successful_deployments;
-  const requested = coverage.requested_deployments;
-  const covStr =
-    typeof success === "number" && typeof requested === "number"
-      ? `${success}/${requested}`
-      : "?/?";
-  const ok = st === "complete" || st === "partial";
-  return { ok, detail: `status=${st} ${covStr}` };
-});
+      { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
+    );
+    if (status !== 200) {
+      return { ok: false, detail: `status=${status} (expected 200)` };
+    }
+    const msg = parseSse(text);
+    const rawText = msg?.result?.content?.[0]?.text;
+    if (typeof rawText !== "string") {
+      return { ok: false, detail: `status=200 no content[0].text` };
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (err) {
+      return { ok: false, detail: `result not JSON: ${err.message}` };
+    }
+    const st = parsed?.status;
+    const coverage = parsed?.coverage ?? {};
+    const success = coverage.successful_deployments;
+    const requested = coverage.requested_deployments;
+    const covStr =
+      typeof success === "number" && typeof requested === "number"
+        ? `${success}/${requested}`
+        : "?/?";
+    const ok = st === "complete" || st === "partial";
+    return { ok, detail: `status=${st} ${covStr}` };
+  });
+} finally {
+  await closeSession();
+}
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
