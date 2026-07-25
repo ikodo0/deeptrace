@@ -14,6 +14,8 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -24,7 +26,8 @@
     "globals": "^17.7.0",
     "prettier": "3.9.6",
     "typescript": "^5.9.0",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
