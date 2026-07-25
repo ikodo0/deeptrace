@@ -6,7 +6,8 @@ export default defineConfig({
       "**/node_modules/**",
       "**/dist/**",
       "scripts/m2/**/*.test.ts",
-      "src/sources/graph/**/*.test.ts",
+      // M2.7 helper uses node:test, not vitest — keep it out of the vitest run.
+      "src/sources/graph/deployment-assertion.test.ts",
     ],
   },
 });
