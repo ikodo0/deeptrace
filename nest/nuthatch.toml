@@ -1,0 +1,17 @@
+[nest]
+name = "deeptrace-pool-freshness"
+chain = "base"
+chain_id = 8453
+rpc_urls = [
+    "https://mainnet.base.org",
+    "https://base-rpc.publicnode.com",
+    "https://base.drpc.org",
+    "https://base-pokt.nodies.app",
+]
+schema_version = 1
+
+[[contracts]]
+alias = "pool"
+address = "0x6c561b446416e1a00e8e93e221854d6ea4171372"
+start_block = 48756851
+abi = "abis/pool.json"
