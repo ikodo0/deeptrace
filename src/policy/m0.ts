@@ -54,13 +54,4 @@ export const M0_CORE_POLICY = {
     requiresNuthatchForComplete: true,
     minimumGraphResultsForPartial: 1,
   },
-  reasoning: {
-    maximumProviderAttempts: 2,
-    providerAttemptTimeoutMs: 2_000,
-    totalTimeoutMs: 5_000,
-    maximumInputBytes: 32_768,
-    maximumOutputBytes: 8_192,
-    maximumHighlights: 5,
-    maximumCaveats: 5,
-  },
 } as const;

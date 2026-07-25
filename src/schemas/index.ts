@@ -1,5 +1,4 @@
 export {
-  aiReasoningSchema,
   canonicalPairSchema,
   canonicalTokenSchema,
   comparePoolsResponseSchema,
@@ -9,7 +8,6 @@ export {
   poolComparisonRecordSchema,
   resultFreshnessSchema,
   resultProvenanceSchema,
-  type AiReasoning,
   type CanonicalPair,
   type CanonicalToken,
   type ComparePoolsResponse,

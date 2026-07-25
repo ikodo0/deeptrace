@@ -125,13 +125,6 @@ export const livePartialComparePoolsFixture = {
   provenance: liveProvenance,
   warnings: ["nuthatch-pool-swaps live freshness fact is not yet verified"],
   pagination: null,
-  ai_reasoning: {
-    status: "unavailable",
-    summary: "",
-    highlights: [],
-    caveats: [],
-    source_ids: [],
-  },
 } as const satisfies ComparePoolsResponse;
 
 /** One Graph timeout + one Graph ok; Nuthatch unavailable. */
@@ -174,13 +167,6 @@ export const livePartialOneGraphTimeoutFixture = {
     "nuthatch-pool-swaps live freshness fact is not yet verified",
   ],
   pagination: null,
-  ai_reasoning: {
-    status: "unavailable",
-    summary: "",
-    highlights: [],
-    caveats: [],
-    source_ids: [],
-  },
 } as const satisfies ComparePoolsResponse;
 
 /** All Graph sources unavailable; Nuthatch unavailable. */
@@ -200,13 +186,6 @@ export const liveFailedComparePoolsFixture = {
   provenance: liveProvenance,
   warnings: ["No valid Graph pool record was available"],
   pagination: null,
-  ai_reasoning: {
-    status: "unavailable",
-    summary: "",
-    highlights: [],
-    caveats: [],
-    source_ids: [],
-  },
 } as const satisfies ComparePoolsResponse;
 
 /** Stale Graph freshness with missing Nuthatch. */
@@ -250,13 +229,6 @@ export const liveStaleGraphComparePoolsFixture = {
     "nuthatch-pool-swaps live freshness fact is not yet verified",
   ],
   pagination: null,
-  ai_reasoning: {
-    status: "unavailable",
-    summary: "",
-    highlights: [],
-    caveats: [],
-    source_ids: [],
-  },
 } as const satisfies ComparePoolsResponse;
 
 export const liveComparePoolsFixtures = [
