@@ -1,11 +1,10 @@
 import type {
-  NuthatchFreshnessData,
-  PoolSourceData,
-  SourceResult,
+  NuthatchSourceResult,
+  PoolSourceResult,
 } from "../../../src/schemas/source-adapter.js";
 
-export type PoolSourceFixture = SourceResult<PoolSourceData>;
-export type NuthatchSourceFixture = SourceResult<NuthatchFreshnessData>;
+export type PoolSourceFixture = PoolSourceResult;
+export type NuthatchSourceFixture = NuthatchSourceResult;
 export type MvpSourceFixture = PoolSourceFixture | NuthatchSourceFixture;
 
 const weth = {
@@ -51,7 +50,7 @@ export const graphPoolA = {
   },
   warnings: [],
   latency_ms: 101,
-} satisfies SourceResult<PoolSourceData>;
+} satisfies PoolSourceResult;
 
 export const graphPoolB = {
   source_id: "fixture-graph-dex-b",
@@ -84,7 +83,7 @@ export const graphPoolB = {
   },
   warnings: [],
   latency_ms: 114,
-} satisfies SourceResult<PoolSourceData>;
+} satisfies PoolSourceResult;
 
 export const graphPoolC = {
   source_id: "fixture-graph-dex-c",
@@ -117,7 +116,7 @@ export const graphPoolC = {
   },
   warnings: ["Fixture source does not expose seven-day aggregates."],
   latency_ms: 98,
-} satisfies SourceResult<PoolSourceData>;
+} satisfies PoolSourceResult;
 
 export const graphPoolCTimeout = {
   source_id: "fixture-graph-dex-c",
@@ -135,7 +134,7 @@ export const graphPoolCTimeout = {
   },
   warnings: ["Fixture source timed out before returning data."],
   latency_ms: 5000,
-} satisfies SourceResult<PoolSourceData>;
+} satisfies PoolSourceResult;
 
 export const nuthatchFreshness = {
   source_id: "fixture-nuthatch-pool-swaps",
@@ -166,7 +165,7 @@ export const nuthatchFreshness = {
   },
   warnings: [],
   latency_ms: 42,
-} satisfies SourceResult<NuthatchFreshnessData>;
+} satisfies NuthatchSourceResult;
 
 export const completeSourceScenario = [
   graphPoolA,

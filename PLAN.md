@@ -45,17 +45,19 @@ It must:
 
 | Item | MVP-0 value |
 | :--- | :--- |
-| Chain | `TBD` — exactly one |
+| Chain | Base (`8453`) |
 | Token pair | `TBD` — exactly one canonical pair |
 | Standardized DEX deployments | `TBD` — exactly three verified live deployments |
 | Nuthatch contracts/views | `TBD` — one pool or a small verified set |
 | Time windows | `24h` and `7d` |
 | Initial metrics | TVL, volume and fees |
-| Ranking metric | `TBD` from the initial metrics |
-| USD price source | `TBD` — one documented source |
+| Ranking metric | `volume_usd` by default; TVL and fees are selectable |
+| Top-N | Default and maximum `3` |
+| USD price source | Source-reported USD values only; no repricing in MVP-0 |
 | Public tool implemented | `compare_pools` |
 
-Implementation starts only after every `TBD` in this table is resolved.
+Live integration starts only after every remaining `TBD` in this table is resolved.
+Core policy values are executable constants in `src/policy/m0.ts`.
 
 ### MVP-0 Definition of Done
 
@@ -247,11 +249,11 @@ Every configured backend has a versioned registry record:
 
 ```json
 {
-  "source_id": "dex-uniswap-v3-mainnet",
+  "source_id": "dex-uniswap-v3-base",
   "source_type": "standardized_subgraph",
   "category": "dex",
   "protocol": "uniswap-v3",
-  "chain_id": 1,
+  "chain_id": 8453,
   "deployment_or_view_id": "Qm...",
   "schema_version": "4.0.1",
   "methodology_version": "1.0.0",
@@ -408,32 +410,46 @@ This is a pool-level historical fee yield, not an individual LP return or a pred
 
 ### USD Values
 
-Every normalized USD value records:
-
-* price;
-* price timestamp;
-* price source;
-* token amount used;
-* status when no supported price is available.
-
-Missing prices remain explicit rather than being replaced with model-generated estimates.
+MVP-0 consumes the USD values reported by each selected source without external
+repricing. Every normalized value keeps its source ID, time window, unit, methodology
+version and availability status. `"0"` is measured zero; `null` is unavailable.
+Missing values remain explicit rather than being replaced with model-generated
+estimates. Any later feature that calculates USD values from token amounts must first
+lock a separate price source and timestamp methodology.
 
 ### Rankings and Thresholds
 
-* Rankings use the requested metric and deterministic tie-breaking.
+* Rankings use the requested metric in descending order with unavailable values last.
+* Ties use normalized protocol ascending, pool address ascending and source ID
+  ascending, in that order.
 * Top-N is applied after filtering and normalization.
+* MVP-0 defaults to Top-3 and rejects values above three.
 * Large-swap selection applies the request threshold to normalized USD notional.
 
 ## Reliability and Operations
 
-* Source queries run in parallel with bounded timeouts.
+* Source queries run in parallel with a default 5-second and maximum 8-second timeout.
+* The complete request has a 15-second deadline and a 64 KiB response limit.
+* Known source lag is `queried_at - indexed_block_timestamp`. The core quality layer
+  treats lag above 300 seconds as stale coverage without rewriting the adapter-owned
+  source status. Validated `ok` data is preserved, while the overall response becomes
+  `partial` and includes a freshness warning.
 * A failed source does not erase successful source results.
-* Responses use `complete`, `partial` or `failed` status.
+* `complete` requires all three Graph pool results and the required Nuthatch fact,
+  with none stale under the core quality threshold.
+* `partial` requires at least one valid Graph pool result while expected coverage is
+  missing, stale or unavailable.
+* `failed` means no valid Graph pool record can be compared. A Nuthatch-only result
+  does not make pool comparison successful.
 * Partial responses list missing coverage and explicit warnings.
+* Warnings are ordered by configured source order and then warning text.
 * API keys and endpoint credentials never appear in output.
 * Tool inputs have size and range limits.
 * Histories use cursor pagination over a stable source block range.
 * Read-only policy and rate limits are enforced at the gateway.
+* The default rate limit is 30 requests per 60-second fixed window. Deployment
+  overrides cannot exceed 300 requests or a one-hour window, and reset occurs at the
+  fixed-window boundary.
 
 ## Result Contract
 
@@ -473,7 +489,7 @@ The exact numeric values below are placeholders; the shape is the contract that 
 {
   "status": "complete",
   "data": {
-    "chain_id": 1,
+    "chain_id": 8453,
     "pair": ["WETH", "USDC"],
     "window": "24h",
     "ranked_by": "volume_usd",
@@ -541,9 +557,18 @@ The reasoning implementation lives in:
 src/reasoning/
 ```
 
-It uses one bounded model call and writes only to `ai_reasoning`. Structured `data`, metrics, coverage, freshness and provenance remain the source of truth.
+It uses one bounded reasoning operation with at most two ordered provider attempts and
+writes only to `ai_reasoning`. Structured `data`, metrics, coverage, freshness and
+provenance remain the source of truth.
 
 The reasoning output follows a typed schema. Every referenced source ID must exist in `provenance`. If the model provider is temporarily unavailable, DeepTrace still returns the verified structured result with `ai_reasoning.status` set to `unavailable`.
+
+MVP-0 accepts an ordered primary provider and one optional fallback through injected
+provider adapters. Each attempt has a 2-second deadline within a 5-second total
+reasoning budget. Reasoning input is limited to 32 KiB and validated output to 8 KiB,
+with at most five highlights and five caveats. Provider failure never changes the
+structured response status. Vendor and model identifiers are deployment
+configuration, not public request fields.
 
 ## Suggested Project Structure
 
@@ -615,7 +640,7 @@ Internal modules may contain many functions, but only implemented high-level han
 ### 6. Integrate AI Reasoning
 
 * implement the reasoning module against its typed output schema;
-* add one bounded model call and graceful provider fallback;
+* add one bounded reasoning operation with graceful provider fallback;
 * validate every reasoning source reference against provenance;
 * test factual consistency, latency and response size.
 
