@@ -1,0 +1,29 @@
+Package a nest as a content-addressed blob - the deploy unit (RFC-0012)
+
+Usage: nuthatch nest <COMMAND>
+
+Commands:
+  bundle   Bundle a nest into one portable, content-addressed `.bundle` file - its authored inputs
+           (config, ABIs, views, labels, skills) plus a `manifest.json` pinning the expected
+           decode-registry hash. Share the `.bundle` anywhere (a URL, a file); anyone can `load` it
+           to run your exact nest, verified by hash. Prints the bundle's content address
+  load     Load a bundle: verify a `.bundle` (or a URL to one, or an unpacked bundle dir) and
+           install it as a runnable nest. Checks the manifest format, every file's hash, and that
+           the decode registry regenerated from the inputs matches the manifest - so a loaded nest
+           decodes exactly as authored. With `--registry`, the positional is a `name[@version]`
+           reference resolved against that store
+  publish  Publish a `.bundle` to a registry (RFC-0019) under `name@version`, advancing `latest`.
+           The registry is a decoupled, optional store - a filesystem path now; object storage lands
+           next. A self-built bundle and `nest load <file|dir>` never need one. Prints the content
+           address
+  diff     Classify an update between two nests as compatible or breaking (RFC-0020). Compatible =
+           additive only (safe to hot-swap on the same endpoint); breaking = a consumer-observable
+           change (needs a new endpoint). Each argument is a nest directory or a `schema.json` path
+  upgrade  Hot-upgrade a running nest to a compatible new version with zero downtime (RFC-0020):
+           serve the old version, index the new one concurrently, then atomically flip the endpoint
+           once it catches up. A breaking update is refused (it needs a new endpoint). The served
+           address never changes
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help

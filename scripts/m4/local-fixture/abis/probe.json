@@ -1,0 +1,12 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      { "indexed": true, "name": "who", "type": "address" },
+      { "indexed": false, "name": "amount", "type": "uint256" },
+      { "indexed": false, "name": "signedAmount", "type": "int256" }
+    ],
+    "name": "Probe",
+    "type": "event"
+  }
+]

@@ -1,0 +1,13 @@
+Run a nest's invariant/parity checks (`checks/*.sql`) against recorded expected results
+
+Usage: nuthatch check [OPTIONS] [NAME]
+
+Arguments:
+  [NAME]  Optional check-name filter (substring). Omit to run every `checks/*.sql`. E.g. `parity`
+
+Options:
+      --dir <DIR>  Nest directory (must contain a `checks/` folder) [default: .]
+      --update     Record current query results as the expected fixtures (`checks/expected/*.json`)
+                   instead of comparing - the authoring mode, run once against known-good sealed
+                   data
+  -h, --help       Print help
