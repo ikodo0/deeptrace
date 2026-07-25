@@ -5,7 +5,10 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 
+import { loadGatewayConfig } from "../config/env.js";
+import { FixedWindowRateLimiter } from "../gateway/index.js";
 import { createMcpServer } from "../mcp/server.js";
+import { createLiveComparePoolsSources } from "../tools/index.js";
 import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
 
@@ -64,6 +67,20 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
   /** In-flight opens that have reserved a slot but not yet registered. */
   let pendingOpens = 0;
 
+  // Built once per process, not once per session. A limiter constructed inside
+  // createMcpServer would give every session its own private window, so the
+  // configured ceiling would be multiplied by the number of live sessions
+  // instead of protecting the upstream gateway. Loading the gateway config here
+  // also fails fast at startup rather than per request.
+  const gatewayConfig = loadGatewayConfig();
+  const rateLimiter = new FixedWindowRateLimiter({
+    maxRequests: gatewayConfig.rateLimitMaxRequests,
+    windowMs: gatewayConfig.rateLimitWindowMs,
+  });
+  const sources = createLiveComparePoolsSources({
+    timeoutMs: gatewayConfig.sourceTimeoutMs,
+  });
+
   const closeSession = async (sessionId: string): Promise<void> => {
     const session = sessions.get(sessionId);
     if (session === undefined) {
@@ -74,7 +91,7 @@ export function createHttpServer(config: HttpConfig): HttpRuntime {
   };
 
   const openSession = async (): Promise<OpenedSession> => {
-    const mcpServer = createMcpServer();
+    const mcpServer = createMcpServer({ gatewayConfig, rateLimiter, sources });
     let registered = false;
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
