@@ -1,5 +1,5 @@
 import { ConfigurationError } from "../errors/application-error.js";
-import { GATEWAY_DEFAULTS, GATEWAY_ENV_VARS } from "./defaults.js";
+import { GATEWAY_DEFAULTS, GATEWAY_ENV_VARS, GATEWAY_MAXIMUMS } from "./defaults.js";
 import { parseBoundedPositiveInteger } from "./positive-integer.js";
 
 export interface GatewayConfig {
@@ -14,6 +14,7 @@ function readOptionalBoundedPositiveInteger(
   env: EnvSource,
   variableName: string,
   fallback: number,
+  maximum: number,
   invalidNames: string[],
 ): number {
   const raw = env[variableName];
@@ -22,7 +23,7 @@ function readOptionalBoundedPositiveInteger(
   }
 
   try {
-    return parseBoundedPositiveInteger(raw, variableName);
+    return parseBoundedPositiveInteger(raw, variableName, maximum);
   } catch (error) {
     if (error instanceof ConfigurationError) {
       invalidNames.push(variableName);
@@ -44,18 +45,21 @@ export function loadGatewayConfig(env: EnvSource = process.env): GatewayConfig {
     env,
     GATEWAY_ENV_VARS.rateLimitMaxRequests,
     GATEWAY_DEFAULTS.rateLimitMaxRequests,
+    GATEWAY_MAXIMUMS.rateLimitMaxRequests,
     invalidNames,
   );
   const rateLimitWindowMs = readOptionalBoundedPositiveInteger(
     env,
     GATEWAY_ENV_VARS.rateLimitWindowMs,
     GATEWAY_DEFAULTS.rateLimitWindowMs,
+    GATEWAY_MAXIMUMS.rateLimitWindowMs,
     invalidNames,
   );
   const sourceTimeoutMs = readOptionalBoundedPositiveInteger(
     env,
     GATEWAY_ENV_VARS.sourceTimeoutMs,
     GATEWAY_DEFAULTS.sourceTimeoutMs,
+    GATEWAY_MAXIMUMS.sourceTimeoutMs,
     invalidNames,
   );
 
