@@ -213,7 +213,7 @@ await runCheck("tools/call", async () => {
     typeof success === "number" && typeof requested === "number"
       ? `${success}/${requested}`
       : "?/?";
-  const ok = st === "ok" || st === "partial";
+  const ok = st === "complete" || st === "partial";
   return { ok, detail: `status=${st} ${covStr}` };
 });
 
