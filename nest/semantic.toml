@@ -2,17 +2,18 @@
 #
 # Describes the single-row result returned by
 # `views/pool_swap_freshness.sql` against the Nuthatch instance indexing the
-# Uniswap V3 Base WETH/USDC 0.3% pool (feeTier 3000).
+# Uniswap V3 Base WETH/USDC 0.05% pool.
 
 [view]
 name = "pool_swap_freshness"
 sql = "views/pool_swap_freshness.sql"
 table = "pool__swap"
+instance = "https://wallet-intel.tail8ae57d.ts.net"
 
 [view.pool]
 chain = "base"
 address = "0x6c561b446416e1a00e8e93e221854d6ea4171372"
-fee_tier = "0.3%"
+fee_tier = "0.05%"
 protocol = "uniswap-v3"
 
 [view.freshness]
