@@ -65,8 +65,8 @@ receive the code, so `https:` and non-loopback `http:` are both refused.
 
 ### Minting a token directly
 
-Open <https://mcp.ikodo.dev/auth> in a browser and press the button. The token is blurred
-until you point at it, and one click selects the whole value to copy.
+Open <https://mcp.ikodo.dev/auth> in a browser and press the button. The token is covered by
+asterisks until you point at it, and one click selects the whole value to copy.
 
 The endpoint is built for that page and always answers in HTML — `POST` mints and returns
 `201` with the token in the page body; there is no JSON representation. A script therefore

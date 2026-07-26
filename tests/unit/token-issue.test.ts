@@ -130,20 +130,26 @@ describe("self-serve token issuance", () => {
     }
   });
 
-  it("keeps the issued token blurred until the reader asks for it", async () => {
+  it("covers the issued token with asterisks until the reader asks for it", async () => {
     const { runtime, origin } = await startServer();
     try {
       const body = await (await fetch(`${origin}/auth`, { method: "POST" })).text();
+      const token = extractToken(body);
 
-      // Blur is presentation only. The value must stay selectable underneath,
-      // or the click-then-copy path this page documents stops working, and it
-      // must stay script-free so the page keeps its own CSP.
-      expect(body).toContain('class="token secret"');
-      expect(body).toContain("filter:blur(");
+      // Only one of the two spans is ever laid out: the asterisks leave on
+      // reveal so they can never land in a copy, and the value stays out of the
+      // layout while covered so it cannot be read off a screen share. Both
+      // swaps have to stay script-free, or the page loses its own CSP.
+      expect(token).not.toBe("");
+      expect(body).toContain(
+        `<span class="mask" aria-hidden="true">${"*".repeat(token.length)}</span>`,
+      );
+      expect(body).toContain(`<span class="real">${token}</span>`);
+      expect(body).toContain(".token.secret .real{display:none}");
+      expect(body).toMatch(/\.token\.secret:hover \.mask[^{]*\{display:none\}/u);
+      expect(body).toMatch(/\.token\.secret:hover \.real[^{]*\{display:inline\}/u);
       expect(body).toContain("user-select:all");
-      expect(body).toMatch(/\.token\.secret:hover[^{]*\{filter:none\}/u);
       expect(body).not.toMatch(/<script/u);
-      expect(extractToken(body)).not.toBe("");
     } finally {
       await runtime.close();
     }
