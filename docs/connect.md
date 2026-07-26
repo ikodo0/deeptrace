@@ -33,15 +33,8 @@ connections should use the root URL.
 
 ## Claude Code
 
-Claude Code supports environment-variable expansion in HTTP headers. Export the
-token in the shell that launches Claude Code:
-
-```sh
-read -rsp "DeepTrace token: " DEEPTRACE_TOKEN
-export DEEPTRACE_TOKEN
-```
-
-Then add this project-level `.mcp.json`:
+Claude Code supports environment-variable expansion in HTTP headers. Add this
+project-level `.mcp.json`:
 
 ```json
 {
@@ -51,20 +44,78 @@ Then add this project-level `.mcp.json`:
       "url": "https://mcp.ikodo.dev",
       "headers": {
         "Authorization": "Bearer ${DEEPTRACE_TOKEN}"
+      },
+      "alwaysLoad": true
+    }
+  }
+}
+```
+
+`alwaysLoad` keeps DeepTrace's single read-only tool immediately available. The
+file contains only the variable reference, not the secret.
+
+## OpenCode
+
+Add this to the user-level `~/.config/opencode/opencode.json` or to a project's
+`opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "deeptrace": {
+      "type": "remote",
+      "url": "https://mcp.ikodo.dev",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:DEEPTRACE_TOKEN}"
       }
     }
   }
 }
 ```
 
-The file contains only the variable reference, not the secret. Confirm the
-connection:
+Setting `oauth` to `false` tells OpenCode that this server uses the configured
+bearer token instead of starting OAuth discovery.
+
+## Codex
+
+Add this to `~/.codex/config.toml`, or to `.codex/config.toml` in a trusted
+project:
+
+```toml
+[mcp_servers.deeptrace]
+url = "https://mcp.ikodo.dev"
+bearer_token_env_var = "DEEPTRACE_TOKEN"
+```
+
+The Codex CLI, IDE extension, and ChatGPT desktop Codex experience share this
+MCP configuration.
+
+## Set the token and verify
+
+In Bash or Zsh, read the token without writing it to shell history:
+
+```sh
+read -rsp "DeepTrace token: " DEEPTRACE_TOKEN
+export DEEPTRACE_TOKEN
+```
+
+Launch the AI client from that shell. Then verify the connection:
 
 ```sh
 claude mcp list
+opencode mcp list
+codex mcp list
 ```
 
-## Other AI clients
+Claude Code and Codex use DeepTrace's MCP server instructions to understand
+when and how to use the tool. OpenCode receives the same safety guidance in the
+tool description and all three clients receive a declared output schema plus
+structured results.
+
+## Other clients
 
 Use the four settings in the table when a client supports remote Streamable
 HTTP MCP servers and custom headers. Client configuration formats differ, so
@@ -102,12 +153,14 @@ parity.
 A `partial` result can still contain useful evidence. Read its coverage,
 freshness, warnings, and provenance before relying on the ranking.
 
-## Use the agent skill
+## Optional agent skill
 
 Clients that support Agent Skills can install the
 [`deeptrace-pool-research`](../skills/deeptrace-pool-research/SKILL.md) folder.
 The skill makes the AI preserve exact decimal strings, separate Graph metrics
 from Nuthatch facts, surface partial coverage, and avoid invented fallbacks.
+It is not required for Claude Code, OpenCode, or Codex to use DeepTrace safely:
+the MCP server already supplies its essential instructions.
 
 ## Troubleshoot
 

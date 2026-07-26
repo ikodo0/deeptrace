@@ -16,10 +16,12 @@ client. A normal user does not need Tailscale, a Graph API key, Nuthatch access,
 or a local checkout. See [Connect an AI client](docs/connect.md) for the short
 setup and compatibility notes.
 
-The installable
+The optional installable
 [DeepTrace Pool Research skill](skills/deeptrace-pool-research/SKILL.md)
-teaches a client AI how to call `compare_pools`, explain the separate Graph and
-Nuthatch evidence, and preserve warnings and provenance.
+adds a richer workflow. The MCP server itself supplies essential usage
+instructions, described inputs, a declared output schema, and structured
+results so Claude Code, OpenCode, and Codex work without a separate skill
+installation.
 
 ## Requirements
 
