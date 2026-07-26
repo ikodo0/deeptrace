@@ -135,6 +135,30 @@ describe("self-serve token issuance", () => {
     }
   });
 
+  it("does not set a referrer policy that nulls its own form's origin", async () => {
+    const { runtime, origin } = await startServer();
+    try {
+      // `no-referrer` is the one policy that makes a browser send
+      // `Origin: null`, and the allowlist refuses that value. Setting it here
+      // means the page rejects the only form it serves, which no test using an
+      // explicit origin can catch.
+      const page = await fetch(`${origin}/auth`);
+      expect(page.headers.get("referrer-policy")).not.toBe("no-referrer");
+      await page.text();
+
+      const nulled = await fetch(`${origin}/auth`, {
+        method: "POST",
+        headers: { origin: "null", "content-type": "application/x-www-form-urlencoded" },
+        body: "",
+      });
+
+      expect(nulled.status).toBe(403);
+      await nulled.text();
+    } finally {
+      await runtime.close();
+    }
+  });
+
   it("refuses a mint posted from another site", async () => {
     const { runtime, origin } = await startServer();
     try {

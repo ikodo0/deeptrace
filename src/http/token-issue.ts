@@ -15,6 +15,11 @@ const WINDOW_MS = 60 * 60 * 1000;
 /**
  * The connection page forbids forms outright. This page needs exactly one, so
  * it carries its own policy with `form-action 'self'` and nothing else added.
+ *
+ * The referrer policy is `same-origin` rather than `no-referrer` because
+ * `no-referrer` is the one policy that makes a browser send `Origin: null`.
+ * This page's own form would then be rejected by the origin allowlist that
+ * protects it. `same-origin` still sends nothing to other sites.
  */
 const PAGE_HEADERS = {
   "cache-control": "no-store",
@@ -22,7 +27,7 @@ const PAGE_HEADERS = {
     "default-src 'none'; base-uri 'none'; connect-src 'none'; font-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'none'; script-src 'none'; style-src 'unsafe-inline'",
   "cross-origin-opener-policy": "same-origin",
   "cross-origin-resource-policy": "same-origin",
-  "referrer-policy": "no-referrer",
+  "referrer-policy": "same-origin",
   "x-content-type-options": "nosniff",
   "x-frame-options": "DENY",
 } as const;
