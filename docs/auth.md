@@ -64,17 +64,24 @@ receive the code, so `https:` and non-loopback `http:` are both refused.
 
 ### Minting a token directly
 
-Open <https://mcp.ikodo.dev/auth> in a browser and press the button. For CI, scripts, and
-anything that cannot open a browser, the same endpoint accepts a `POST`:
+Open <https://mcp.ikodo.dev/auth> in a browser and press the button.
+
+The endpoint is built for that page and always answers in HTML — `POST` mints and returns
+`201` with the token in the page body; there is no JSON representation. A script therefore
+has to scrape it:
 
 ```sh
-curl -sS -X POST https://mcp.ikodo.dev/auth
+TOKEN=$(curl -sS -X POST https://mcp.ikodo.dev/auth | grep -o 'dt_[A-Za-z0-9_-]\{20,\}' | head -1)
 ```
+
+Minting is rate limited per caller address per hour. Exceeding it returns `429` with an HTML
+page, and no `dt_` value, so a scrape like the one above yields an empty string rather than
+an error — check that the token is non-empty before using it.
 
 Tokens look like `dt_` followed by 32 random bytes in base64url. The server keeps only a
 SHA-256 digest of each one, so the store holds no recoverable secret and lookup is by digest
 rather than comparison. A token is shown once and cannot be recovered — mint a new one
-instead.
+instead, and reuse the one you have rather than minting per run.
 
 ## Handle the token safely
 
