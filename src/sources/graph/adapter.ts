@@ -11,13 +11,25 @@ import {
 
 import { aggregateDailySnapshots, type DailySnapshot } from "./aggregation.js";
 import { assertDeployment, deploymentMismatchWarning } from "./deployment-assertion.js";
-import { TIER_B_METRICS_QUERY, TIER_B_METRICS_QUERY_ID } from "./queries.js";
+import {
+  TIER_A_METRICS_QUERY,
+  TIER_A_METRICS_QUERY_ID,
+  TIER_B_METRICS_QUERY,
+  TIER_B_METRICS_QUERY_ID,
+} from "./queries.js";
+import {
+  isRecord,
+  NON_NEGATIVE_DECIMAL,
+  NON_NEGATIVE_INT_STRING,
+  normalizeAddress,
+  parseFinancial,
+  parseFreshness,
+  parseToken,
+  resolveGraphApiKey,
+} from "./response.js";
 import { postGraphGateway, type GraphTransportResult } from "./transport.js";
 
-const ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
-const BLOCK_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/;
-const NON_NEGATIVE_DECIMAL = /^(?:0|[1-9]\d*)(?:\.\d+)?$/;
-const NON_NEGATIVE_INT_STRING = /^(?:0|[1-9]\d*)$/;
+const SECONDS_PER_DAY = 86_400;
 
 export interface FetchComparePoolGraphOptions {
   /** Bearer token for the Graph gateway. Prefer injection in tests. */
@@ -30,16 +42,28 @@ export interface FetchComparePoolGraphOptions {
   readonly env?: Readonly<Record<string, string | undefined>>;
 }
 
-function resolveApiKey(options: FetchComparePoolGraphOptions): string | null {
-  if (options.apiKey !== undefined && options.apiKey.trim() !== "") {
-    return options.apiKey;
-  }
-  const env = options.env ?? process.env;
-  const fromEnv = env.GRAPH_API_KEY;
-  if (fromEnv !== undefined && fromEnv.trim() !== "") {
-    return fromEnv;
-  }
-  return null;
+/** Everything a metrics query yields before window aggregation is applied. */
+interface ParsedPoolMetrics {
+  readonly pool_address: string;
+  readonly token0: TokenMetadata;
+  readonly token1: TokenMetadata;
+  readonly fee_tier_bps: number | null;
+  readonly tvl_usd: string | null;
+  readonly snapshots: readonly DailySnapshot[];
+}
+
+/**
+ * One supported metrics query: the document to send, the response field that
+ * carries the pool entity, and the parser that flattens the two schema tiers
+ * onto one shape.
+ */
+interface PoolMetricsQuery {
+  readonly query: string;
+  readonly poolField: string;
+  readonly parse: (
+    data: Record<string, unknown>,
+    pool: Record<string, unknown>,
+  ) => ParsedPoolMetrics | null;
 }
 
 function provenanceFor(
@@ -81,44 +105,8 @@ function failedResult(
   };
 }
 
-function normalizeAddress(value: string): string | null {
-  if (!ADDRESS_PATTERN.test(value)) {
-    return null;
-  }
-  return value.toLowerCase();
-}
-
-function parseToken(raw: unknown): TokenMetadata | null {
-  if (raw === null || typeof raw !== "object") {
-    return null;
-  }
-  const token = raw as Record<string, unknown>;
-  if (
-    typeof token.id !== "string" ||
-    typeof token.symbol !== "string" ||
-    typeof token.decimals !== "string"
-  ) {
-    return null;
-  }
-  const address = normalizeAddress(token.id);
-  if (address === null) {
-    return null;
-  }
-  const symbol = token.symbol.trim();
-  if (symbol === "") {
-    return null;
-  }
-  if (!NON_NEGATIVE_INT_STRING.test(token.decimals)) {
-    return null;
-  }
-  const decimals = Number(token.decimals);
-  if (!Number.isSafeInteger(decimals) || decimals < 0) {
-    return null;
-  }
-  return { address, symbol, decimals };
-}
-
-function parseFeeTierBps(raw: unknown): number | null {
+/** Native `feeTier` is expressed in hundredths of a basis point (3000 = 30 bps). */
+function parseNativeFeeTierBps(raw: unknown): number | null {
   if (typeof raw !== "string" || !NON_NEGATIVE_INT_STRING.test(raw)) {
     return null;
   }
@@ -129,86 +117,163 @@ function parseFeeTierBps(raw: unknown): number | null {
   return feeTier / 100;
 }
 
-function parseFinancial(raw: unknown): string | null {
+/**
+ * Messari expresses a fee as a percentage decimal string ("0.3" = 30 bps).
+ * Scaling by 100 digitwise keeps the conversion off IEEE-754; a tier finer
+ * than one basis point has no integer representation and stays null.
+ */
+function parsePercentageFeeBps(raw: unknown): number | null {
   if (typeof raw !== "string" || !NON_NEGATIVE_DECIMAL.test(raw)) {
     return null;
   }
-  return raw;
+  const [whole = "0", fraction = ""] = raw.split(".");
+  if (fraction.length > 2) {
+    return null;
+  }
+  const bps = Number(`${whole}${fraction.padEnd(2, "0")}`);
+  return Number.isSafeInteger(bps) && bps >= 0 ? bps : null;
 }
 
-function parseDayDatas(raw: unknown): DailySnapshot[] | null {
+function parseTradingFeeBps(raw: unknown): number | null {
+  if (!Array.isArray(raw)) {
+    return null;
+  }
+  const trading = raw.filter(
+    (entry) => isRecord(entry) && entry.feeType === "FIXED_TRADING_FEE",
+  ) as Record<string, unknown>[];
+  if (trading.length !== 1) {
+    return null;
+  }
+  return parsePercentageFeeBps(trading[0]!.feePercentage);
+}
+
+/** Reads a `volumeUSD`-style metric that the source may legitimately omit. */
+function parseOptionalMetric(raw: unknown): { value: string | null; valid: boolean } {
+  if (raw === null || raw === undefined) {
+    return { value: null, valid: true };
+  }
+  if (typeof raw !== "string") {
+    return { value: null, valid: false };
+  }
+  return { value: raw, valid: true };
+}
+
+function parseTierBSnapshots(raw: unknown): DailySnapshot[] | null {
   if (!Array.isArray(raw)) {
     return null;
   }
   const days: DailySnapshot[] = [];
   for (const entry of raw) {
-    if (entry === null || typeof entry !== "object") {
+    if (!isRecord(entry)) {
       return null;
     }
-    const day = entry as Record<string, unknown>;
-    if (typeof day.date !== "number" || !Number.isInteger(day.date) || day.date < 0) {
+    if (typeof entry.date !== "number" || !Number.isInteger(entry.date) || entry.date < 0) {
       return null;
     }
-    const volumeUSD =
-      day.volumeUSD === null || day.volumeUSD === undefined
-        ? null
-        : typeof day.volumeUSD === "string"
-          ? day.volumeUSD
-          : null;
-    const feesUSD =
-      day.feesUSD === null || day.feesUSD === undefined
-        ? null
-        : typeof day.feesUSD === "string"
-          ? day.feesUSD
-          : null;
-    if (day.volumeUSD !== null && day.volumeUSD !== undefined && volumeUSD === null) {
+    const volume = parseOptionalMetric(entry.volumeUSD);
+    const fees = parseOptionalMetric(entry.feesUSD);
+    if (!volume.valid || !fees.valid) {
       return null;
     }
-    if (day.feesUSD !== null && day.feesUSD !== undefined && feesUSD === null) {
-      return null;
-    }
-    days.push({ date: day.date, volumeUSD, feesUSD });
+    days.push({ date: entry.date, volumeUSD: volume.value, feesUSD: fees.value });
   }
   return days;
 }
 
-function parseFreshness(meta: Record<string, unknown>, queriedAt: number): SourceFreshness | null {
-  const block = meta.block;
-  if (block === null || typeof block !== "object") {
+/**
+ * Messari snapshots are keyed by `day`, the count of days since the unix
+ * epoch. Aggregation works in UTC-midnight seconds, so convert on the way in.
+ */
+function parseTierASnapshots(raw: unknown): DailySnapshot[] | null {
+  if (!Array.isArray(raw)) {
     return null;
   }
-  const blockRecord = block as Record<string, unknown>;
-  if (
-    typeof blockRecord.number !== "number" ||
-    !Number.isInteger(blockRecord.number) ||
-    blockRecord.number < 0 ||
-    typeof blockRecord.timestamp !== "number" ||
-    !Number.isInteger(blockRecord.timestamp) ||
-    blockRecord.timestamp < 0
-  ) {
+  const days: DailySnapshot[] = [];
+  for (const entry of raw) {
+    if (!isRecord(entry)) {
+      return null;
+    }
+    if (typeof entry.day !== "number" || !Number.isInteger(entry.day) || entry.day < 0) {
+      return null;
+    }
+    const volume = parseOptionalMetric(entry.dailyVolumeUSD);
+    const revenue = parseOptionalMetric(entry.dailyTotalRevenueUSD);
+    if (!volume.valid || !revenue.valid) {
+      return null;
+    }
+    days.push({
+      date: entry.day * SECONDS_PER_DAY,
+      volumeUSD: volume.value,
+      feesUSD: revenue.value,
+    });
+  }
+  return days;
+}
+
+function parseTierAPool(
+  data: Record<string, unknown>,
+  pool: Record<string, unknown>,
+): ParsedPoolMetrics | null {
+  const poolAddress = typeof pool.id === "string" ? normalizeAddress(pool.id) : null;
+  const snapshots = parseTierASnapshots(data.liquidityPoolDailySnapshots);
+  if (poolAddress === null || snapshots === null || !Array.isArray(pool.inputTokens)) {
     return null;
   }
 
-  const freshness: SourceFreshness = {
-    indexed_block: blockRecord.number,
-    indexed_block_timestamp: blockRecord.timestamp,
-    queried_at: queriedAt,
+  // A two-sided pool is the only shape the locked pair can be checked against.
+  if (pool.inputTokens.length !== 2) {
+    return null;
+  }
+  const token0 = parseToken(pool.inputTokens[0]);
+  const token1 = parseToken(pool.inputTokens[1]);
+  if (token0 === null || token1 === null) {
+    return null;
+  }
+
+  return {
+    pool_address: poolAddress,
+    token0,
+    token1,
+    fee_tier_bps: parseTradingFeeBps(pool.fees),
+    tvl_usd: parseFinancial(pool.totalValueLockedUSD),
+    snapshots,
   };
-
-  if (typeof blockRecord.hash === "string" && BLOCK_HASH_PATTERN.test(blockRecord.hash)) {
-    freshness.indexed_block_hash = blockRecord.hash.toLowerCase();
-  }
-
-  if (typeof meta.hasIndexingErrors === "boolean") {
-    freshness.has_indexing_errors = meta.hasIndexingErrors;
-  }
-
-  return freshness;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+function parseTierBPool(
+  data: Record<string, unknown>,
+  pool: Record<string, unknown>,
+): ParsedPoolMetrics | null {
+  const poolAddress = typeof pool.id === "string" ? normalizeAddress(pool.id) : null;
+  const token0 = parseToken(pool.token0);
+  const token1 = parseToken(pool.token1);
+  const snapshots = parseTierBSnapshots(data.poolDayDatas);
+  if (poolAddress === null || token0 === null || token1 === null || snapshots === null) {
+    return null;
+  }
+
+  return {
+    pool_address: poolAddress,
+    token0,
+    token1,
+    fee_tier_bps: parseNativeFeeTierBps(pool.feeTier),
+    tvl_usd: parseFinancial(pool.totalValueLockedUSD),
+    snapshots,
+  };
 }
+
+const POOL_METRICS_QUERIES: Readonly<Record<string, PoolMetricsQuery>> = {
+  [TIER_A_METRICS_QUERY_ID]: {
+    query: TIER_A_METRICS_QUERY,
+    poolField: "liquidityPool",
+    parse: parseTierAPool,
+  },
+  [TIER_B_METRICS_QUERY_ID]: {
+    query: TIER_B_METRICS_QUERY,
+    poolField: "pool",
+    parse: parseTierBPool,
+  },
+};
 
 /**
  * Queries one locked compare-pools Graph binding and maps it to `PoolSourceResult`.
@@ -222,10 +287,11 @@ export async function fetchComparePoolGraphSource(
   const requestedTimeoutMs = options.timeoutMs ?? GATEWAY_DEFAULTS.sourceTimeoutMs;
   const timeoutMs = Math.min(Math.max(1, requestedTimeoutMs), GATEWAY_MAXIMUMS.sourceTimeoutMs);
 
-  if (source.query_id !== TIER_B_METRICS_QUERY_ID) {
+  const selected = POOL_METRICS_QUERIES[source.query_id];
+  if (selected === undefined) {
     return failedResult(source, "unsupported", {
       warnings: [
-        `Unsupported Graph query_id "${source.query_id}"; expected "${TIER_B_METRICS_QUERY_ID}".`,
+        `Unsupported Graph query_id "${source.query_id}"; expected one of ${Object.keys(POOL_METRICS_QUERIES).join(", ")}.`,
       ],
       latencyMs: 0,
       freshness: null,
@@ -240,7 +306,7 @@ export async function fetchComparePoolGraphSource(
     });
   }
 
-  const apiKey = resolveApiKey(options);
+  const apiKey = resolveGraphApiKey(options);
   if (apiKey === null) {
     return failedResult(source, "error", {
       warnings: ["GRAPH_API_KEY is unset or empty."],
@@ -263,7 +329,7 @@ export async function fetchComparePoolGraphSource(
 
   const transport: GraphTransportResult = await postGraphGateway(
     source.record.locator.subgraph_id,
-    TIER_B_METRICS_QUERY,
+    selected.query,
     { pool: poolVariable },
     {
       apiKey,
@@ -337,7 +403,8 @@ export async function fetchComparePoolGraphSource(
     });
   }
 
-  if (data.pool === null) {
+  const poolEntity = data[selected.poolField];
+  if (poolEntity === null || poolEntity === undefined) {
     return failedResult(source, "unsupported", {
       warnings: [`Pool ${poolVariable} was not found on the registered Graph deployment.`],
       latencyMs: transport.latencyMs,
@@ -346,7 +413,7 @@ export async function fetchComparePoolGraphSource(
     });
   }
 
-  if (!isRecord(data.pool)) {
+  if (!isRecord(poolEntity)) {
     return failedResult(source, "unsupported", {
       warnings: ["Graph pool payload has an unexpected shape."],
       latencyMs: transport.latencyMs,
@@ -364,12 +431,8 @@ export async function fetchComparePoolGraphSource(
     });
   }
 
-  const poolAddress = typeof data.pool.id === "string" ? normalizeAddress(data.pool.id) : null;
-  const token0 = parseToken(data.pool.token0);
-  const token1 = parseToken(data.pool.token1);
-  const dayDatas = parseDayDatas(data.poolDayDatas);
-
-  if (poolAddress === null || token0 === null || token1 === null || dayDatas === null) {
+  const parsed = selected.parse(data, poolEntity);
+  if (parsed === null) {
     return failedResult(source, "unsupported", {
       warnings: ["Graph pool metrics payload failed shape validation."],
       latencyMs: transport.latencyMs,
@@ -378,10 +441,10 @@ export async function fetchComparePoolGraphSource(
     });
   }
 
-  if (poolAddress !== poolVariable) {
+  if (parsed.pool_address !== poolVariable) {
     return failedResult(source, "unsupported", {
       warnings: [
-        `Graph pool id "${poolAddress}" does not match the registry pool "${poolVariable}".`,
+        `Graph pool id "${parsed.pool_address}" does not match the registry pool "${poolVariable}".`,
       ],
       latencyMs: transport.latencyMs,
       freshness,
@@ -394,8 +457,8 @@ export async function fetchComparePoolGraphSource(
   if (
     expectedToken0 === null ||
     expectedToken1 === null ||
-    token0.address !== expectedToken0 ||
-    token1.address !== expectedToken1
+    parsed.token0.address !== expectedToken0 ||
+    parsed.token1.address !== expectedToken1
   ) {
     return failedResult(source, "unsupported", {
       warnings: ["Graph pool tokens do not match the locked compare-pools pair."],
@@ -405,18 +468,18 @@ export async function fetchComparePoolGraphSource(
     });
   }
 
-  const aggregation = aggregateDailySnapshots(dayDatas, nowSeconds);
+  const aggregation = aggregateDailySnapshots(parsed.snapshots, nowSeconds);
   const warnings = aggregation.warnings.map((warning) => warning.message);
   if (freshness.has_indexing_errors === true) {
     warnings.push("Graph _meta.hasIndexingErrors is true for this response.");
   }
 
   const poolData: PoolSourceData = {
-    pool_address: poolAddress,
-    token0,
-    token1,
-    fee_tier_bps: parseFeeTierBps(data.pool.feeTier),
-    tvl_usd: parseFinancial(data.pool.totalValueLockedUSD),
+    pool_address: parsed.pool_address,
+    token0: parsed.token0,
+    token1: parsed.token1,
+    fee_tier_bps: parsed.fee_tier_bps,
+    tvl_usd: parsed.tvl_usd,
     volume_usd_24h: aggregation.aggregates.volume_usd_24h,
     volume_usd_7d: aggregation.aggregates.volume_usd_7d,
     fees_usd_24h: aggregation.aggregates.fees_usd_24h,

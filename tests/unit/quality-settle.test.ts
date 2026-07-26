@@ -49,8 +49,8 @@ describe("settleComparePoolsResult", () => {
     expect(response.data?.nuthatch_freshness_fact).toBeNull();
     expect(response.data?.pools).toHaveLength(2);
     expect(response.freshness.map((entry) => entry.source_id)).toEqual([
-      "uniswap-v3-base-native",
-      "exchange-v3-base",
+      graphPoolA.source_id,
+      graphPoolB.source_id,
       "nuthatch-pool-swaps",
     ]);
     expect(response.freshness[2]).toEqual({
@@ -85,9 +85,9 @@ describe("settleComparePoolsResult", () => {
     expect(response.status).toBe("partial");
     expect(response.coverage.successful_deployments).toBe(1);
     expect(response.data?.pools).toHaveLength(1);
-    expect(response.data?.pools[0]?.source_ids).toEqual(["uniswap-v3-base-native"]);
-    expect(response.freshness.find((entry) => entry.source_id === "exchange-v3-base")).toEqual({
-      source_id: "exchange-v3-base",
+    expect(response.data?.pools[0]?.source_ids).toEqual([graphPoolA.source_id]);
+    expect(response.freshness.find((entry) => entry.source_id === graphPoolB.source_id)).toEqual({
+      source_id: graphPoolB.source_id,
       status: "unavailable",
     });
     expect(response.warnings.some((warning) => warning.includes("timed out"))).toBe(true);
@@ -95,14 +95,14 @@ describe("settleComparePoolsResult", () => {
   });
 
   it("maps non-ok Graph results with retained freshness to unavailable publicly", () => {
-    const unsupportedPancake = {
+    const unsupportedFeeLow = {
       ...graphPoolB,
       status: "unsupported" as const,
       data: null,
       warnings: ["Graph response shape is unsupported."],
     };
     const pools = rankCanonicalPools(
-      bindComparePoolsGraphResults([graphPoolA, unsupportedPancake], "24h"),
+      bindComparePoolsGraphResults([graphPoolA, unsupportedFeeLow], "24h"),
       { rankedBy: "volume_usd" },
     );
     const response = settleComparePoolsResult({
@@ -110,13 +110,13 @@ describe("settleComparePoolsResult", () => {
       window: "24h",
       rankedBy: "volume_usd",
       pools,
-      graphResults: [graphPoolA, unsupportedPancake],
+      graphResults: [graphPoolA, unsupportedFeeLow],
       nuthatchResult: null,
     });
 
-    expect(unsupportedPancake.freshness).not.toBeNull();
-    expect(response.freshness.find((entry) => entry.source_id === "exchange-v3-base")).toEqual({
-      source_id: "exchange-v3-base",
+    expect(unsupportedFeeLow.freshness).not.toBeNull();
+    expect(response.freshness.find((entry) => entry.source_id === graphPoolB.source_id)).toEqual({
+      source_id: graphPoolB.source_id,
       status: "unavailable",
     });
     expect(response.status).toBe("partial");
@@ -124,9 +124,9 @@ describe("settleComparePoolsResult", () => {
   });
 
   it("returns failed when every Graph source is unavailable", () => {
-    const timedOutUniswap = {
+    const timedOutFeeHigh = {
       ...graphPoolCTimeout,
-      source_id: "uniswap-v3-base-native",
+      source_id: graphPoolA.source_id,
       protocol: "uniswap-v3",
       provenance: graphPoolA.provenance,
     };
@@ -135,7 +135,7 @@ describe("settleComparePoolsResult", () => {
       window: "24h",
       rankedBy: "volume_usd",
       pools: [],
-      graphResults: [timedOutUniswap, graphPoolCTimeout],
+      graphResults: [timedOutFeeHigh, graphPoolCTimeout],
       nuthatchResult: null,
     });
 
@@ -147,7 +147,7 @@ describe("settleComparePoolsResult", () => {
   });
 
   it("marks quality freshness stale from lag without rewriting adapter ok status", () => {
-    const staleUniswap = {
+    const staleFeeHigh = {
       ...graphPoolA,
       freshness: {
         ...graphPoolA.freshness,
@@ -155,7 +155,7 @@ describe("settleComparePoolsResult", () => {
       },
     };
     const pools = rankCanonicalPools(
-      bindComparePoolsGraphResults([staleUniswap, graphPoolB], "24h"),
+      bindComparePoolsGraphResults([staleFeeHigh, graphPoolB], "24h"),
       { rankedBy: "volume_usd" },
     );
     const response = settleComparePoolsResult({
@@ -163,13 +163,13 @@ describe("settleComparePoolsResult", () => {
       window: "24h",
       rankedBy: "volume_usd",
       pools,
-      graphResults: [staleUniswap, graphPoolB],
+      graphResults: [staleFeeHigh, graphPoolB],
       nuthatchResult: null,
     });
 
-    expect(staleUniswap.status).toBe("ok");
+    expect(staleFeeHigh.status).toBe("ok");
     expect(response.freshness[0]).toMatchObject({
-      source_id: "uniswap-v3-base-native",
+      source_id: graphPoolA.source_id,
       status: "stale",
       lag_seconds: 301,
     });
@@ -204,9 +204,9 @@ describe("settleComparePoolsResult", () => {
   });
 
   it("keeps failed Graph settlement schema-valid when Nuthatch is ok", () => {
-    const timedOutUniswap = {
+    const timedOutFeeHigh = {
       ...graphPoolCTimeout,
-      source_id: "uniswap-v3-base-native",
+      source_id: graphPoolA.source_id,
       protocol: "uniswap-v3",
       provenance: graphPoolA.provenance,
     };
@@ -246,7 +246,7 @@ describe("settleComparePoolsResult", () => {
       window: "24h",
       rankedBy: "volume_usd",
       pools: [],
-      graphResults: [timedOutUniswap, graphPoolCTimeout],
+      graphResults: [timedOutFeeHigh, graphPoolCTimeout],
       nuthatchResult: nuthatchOk,
     });
 

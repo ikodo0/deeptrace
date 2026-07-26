@@ -34,8 +34,8 @@ describe("bindComparePoolsGraphResult", () => {
       "24h",
     );
     expect(candidates.map((candidate) => candidate.source_ids[0])).toEqual([
-      "uniswap-v3-base-native",
-      "exchange-v3-base",
+      graphPoolA.source_id,
+      graphPoolB.source_id,
     ]);
     expect(candidates[0]?.pool_address).toBe(M0_COMPARE_POOLS_SCOPE.graphSources[0].pool_address);
     expect(candidates[1]?.pool_address).toBe(M0_COMPARE_POOLS_SCOPE.graphSources[1].pool_address);
@@ -44,8 +44,8 @@ describe("bindComparePoolsGraphResult", () => {
   it("matches live compare_pools fixture pool identities after explicit ranking", () => {
     const candidates = bindComparePoolsGraphResults([graphPoolA, graphPoolB], "24h");
     const ranked = [
-      toPoolComparisonRecord(candidates[1]!, 1),
-      toPoolComparisonRecord(candidates[0]!, 2),
+      toPoolComparisonRecord(candidates[0]!, 1),
+      toPoolComparisonRecord(candidates[1]!, 2),
     ];
 
     expect(ranked.map((pool) => pool.pool_address)).toEqual(

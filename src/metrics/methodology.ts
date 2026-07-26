@@ -20,9 +20,9 @@ export const M0_POOL_METRICS_METHODOLOGY = {
       "Pass through the selected completed-UTC-day window volume USD decimal string or null.",
   },
   fees_usd: {
-    selection: "source_reported_window_fees_usd_passthrough",
+    selection: "source_reported_window_total_revenue_usd_passthrough",
     description:
-      "Pass through the selected completed-UTC-day window fees USD decimal string or null.",
+      "Pass through the selected completed-UTC-day window fee revenue USD decimal string or null. The Messari dex-amm standard has no per-day fee field, so this is dailyTotalRevenueUSD: supply-side plus protocol-side revenue accrued that day. On the compared Uniswap V3 Base pools the protocol-side share is zero, so the value equals LP fees, but that is a property of those pools and not a conversion DeepTrace performs.",
   },
   ranking: {
     tie_break: M0_RANKING_TIE_BREAK,

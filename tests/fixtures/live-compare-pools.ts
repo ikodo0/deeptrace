@@ -22,29 +22,29 @@ const livePair = [
   },
 ] as const satisfies CanonicalPair;
 
-const [uniswap, pancake] = M0_COMPARE_POOLS_SCOPE.graphSources;
+const [feeHigh, feeLow] = M0_COMPARE_POOLS_SCOPE.graphSources;
 const nuthatchId = M0_COMPARE_POOLS_SCOPE.nuthatchSourceId;
 
-const uniswapProvenance = {
-  source_id: uniswap.source_id,
-  source_type: "native_subgraph" as const,
-  protocol: uniswap.protocol,
+const feeHighProvenance = {
+  source_id: feeHigh.source_id,
+  source_type: "standardized_subgraph" as const,
+  protocol: feeHigh.protocol,
   chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-  deployment_or_view_id: uniswap.deployment_or_view_id,
-  schema_version: null,
-  methodology_version: null,
-  query_id: uniswap.query_id,
+  deployment_or_view_id: feeHigh.deployment_or_view_id,
+  schema_version: graphPoolA.provenance.schema_version,
+  methodology_version: graphPoolA.provenance.methodology_version,
+  query_id: feeHigh.query_id,
 };
 
-const pancakeProvenance = {
-  source_id: pancake.source_id,
-  source_type: "native_subgraph" as const,
-  protocol: pancake.protocol,
+const feeLowProvenance = {
+  source_id: feeLow.source_id,
+  source_type: "standardized_subgraph" as const,
+  protocol: feeLow.protocol,
   chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-  deployment_or_view_id: pancake.deployment_or_view_id,
-  schema_version: null,
-  methodology_version: null,
-  query_id: pancake.query_id,
+  deployment_or_view_id: feeLow.deployment_or_view_id,
+  schema_version: graphPoolB.provenance.schema_version,
+  methodology_version: graphPoolB.provenance.methodology_version,
+  query_id: feeLow.query_id,
 };
 
 const nuthatchProvenance = {
@@ -58,7 +58,7 @@ const nuthatchProvenance = {
   query_id: "nuthatch-pool-swap-freshness-v1",
 };
 
-const liveProvenance = [uniswapProvenance, pancakeProvenance, nuthatchProvenance] as const;
+const liveProvenance = [feeHighProvenance, feeLowProvenance, nuthatchProvenance] as const;
 
 function graphFreshness(
   result: typeof graphPoolA,
@@ -87,27 +87,27 @@ export const livePartialComparePoolsFixture = {
     pools: [
       {
         chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-        protocol: pancake.protocol,
-        pool_address: pancake.pool_address,
-        pair: livePair,
-        tvl_usd: graphPoolB.data.tvl_usd,
-        volume_usd: graphPoolB.data.volume_usd_24h,
-        fees_usd: graphPoolB.data.fees_usd_24h,
-        window: "24h",
-        rank: 1,
-        source_ids: [pancake.source_id],
-      },
-      {
-        chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-        protocol: uniswap.protocol,
-        pool_address: uniswap.pool_address,
+        protocol: feeHigh.protocol,
+        pool_address: feeHigh.pool_address,
         pair: livePair,
         tvl_usd: graphPoolA.data.tvl_usd,
         volume_usd: graphPoolA.data.volume_usd_24h,
         fees_usd: graphPoolA.data.fees_usd_24h,
         window: "24h",
+        rank: 1,
+        source_ids: [feeHigh.source_id],
+      },
+      {
+        chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
+        protocol: feeLow.protocol,
+        pool_address: feeLow.pool_address,
+        pair: livePair,
+        tvl_usd: graphPoolB.data.tvl_usd,
+        volume_usd: graphPoolB.data.volume_usd_24h,
+        fees_usd: graphPoolB.data.fees_usd_24h,
+        window: "24h",
         rank: 2,
-        source_ids: [uniswap.source_id],
+        source_ids: [feeLow.source_id],
       },
     ],
     nuthatch_freshness_fact: null,
@@ -138,15 +138,15 @@ export const livePartialOneGraphTimeoutFixture = {
     pools: [
       {
         chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-        protocol: uniswap.protocol,
-        pool_address: uniswap.pool_address,
+        protocol: feeHigh.protocol,
+        pool_address: feeHigh.pool_address,
         pair: livePair,
         tvl_usd: graphPoolA.data.tvl_usd,
         volume_usd: graphPoolA.data.volume_usd_24h,
         fees_usd: graphPoolA.data.fees_usd_24h,
         window: "24h",
         rank: 1,
-        source_ids: [uniswap.source_id],
+        source_ids: [feeHigh.source_id],
       },
     ],
     nuthatch_freshness_fact: null,
@@ -158,7 +158,7 @@ export const livePartialOneGraphTimeoutFixture = {
   },
   freshness: [
     graphFreshness(graphPoolA, 5),
-    { source_id: pancake.source_id, status: "unavailable" },
+    { source_id: feeLow.source_id, status: "unavailable" },
     { source_id: nuthatchId, status: "unavailable" },
   ],
   provenance: liveProvenance,
@@ -179,8 +179,8 @@ export const liveFailedComparePoolsFixture = {
     nuthatch_available: false,
   },
   freshness: [
-    { source_id: uniswap.source_id, status: "unavailable" },
-    { source_id: pancake.source_id, status: "unavailable" },
+    { source_id: feeHigh.source_id, status: "unavailable" },
+    { source_id: feeLow.source_id, status: "unavailable" },
     { source_id: nuthatchId, status: "unavailable" },
   ],
   provenance: liveProvenance,
@@ -199,15 +199,15 @@ export const liveStaleGraphComparePoolsFixture = {
     pools: [
       {
         chain_id: M0_COMPARE_POOLS_SCOPE.chainId,
-        protocol: uniswap.protocol,
-        pool_address: uniswap.pool_address,
+        protocol: feeHigh.protocol,
+        pool_address: feeHigh.pool_address,
         pair: livePair,
         tvl_usd: graphPoolA.data.tvl_usd,
         volume_usd: graphPoolA.data.volume_usd_24h,
         fees_usd: null,
         window: "24h",
         rank: 1,
-        source_ids: [uniswap.source_id],
+        source_ids: [feeHigh.source_id],
       },
     ],
     nuthatch_freshness_fact: null,
@@ -219,13 +219,13 @@ export const liveStaleGraphComparePoolsFixture = {
   },
   freshness: [
     graphFreshness(graphPoolA, 600, "stale"),
-    { source_id: pancake.source_id, status: "unavailable" },
+    { source_id: feeLow.source_id, status: "unavailable" },
     { source_id: nuthatchId, status: "unavailable" },
   ],
   provenance: liveProvenance,
   warnings: [
-    `${uniswap.source_id} exceeded the freshness threshold`,
-    `${pancake.source_id} was unavailable`,
+    `${feeHigh.source_id} exceeded the freshness threshold`,
+    `${feeLow.source_id} was unavailable`,
     "nuthatch-pool-swaps live freshness fact is not yet verified",
   ],
   pagination: null,

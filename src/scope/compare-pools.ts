@@ -1,10 +1,12 @@
 import { BASE_CHAIN_ID } from "../schemas/source-adapter.js";
 
 /**
- * Locked MVP-0 compare_pools allowlist for Graph-side binding.
+ * Locked compare_pools allowlist for Graph-side binding.
  *
- * Values mirror `src/registry/compare-pools.json` and `records.json`.
- * The Nuthatch source ID resolves the active registry-pinned freshness view.
+ * Both Graph sources read the same Messari `dex-amm` standardized deployment;
+ * they differ only in which WETH/USDC fee tier they bind. Values mirror
+ * `src/registry/compare-pools.json` and `records.json`. The Nuthatch source ID
+ * resolves the active registry-pinned freshness view.
  */
 export const M0_COMPARE_POOLS_SCOPE = {
   chainId: BASE_CHAIN_ID,
@@ -20,18 +22,18 @@ export const M0_COMPARE_POOLS_SCOPE = {
   },
   graphSources: [
     {
-      source_id: "uniswap-v3-base-native",
+      source_id: "messari-uniswap-v3-base-fee030",
       protocol: "uniswap-v3",
       pool_address: "0x6c561b446416e1a00e8e93e221854d6ea4171372",
-      query_id: "m2-tier-b-metrics-v1",
-      deployment_or_view_id: "QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR",
+      query_id: "tier-a-dex-pool-metrics-v1",
+      deployment_or_view_id: "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
     },
     {
-      source_id: "exchange-v3-base",
-      protocol: "pancakeswap-v3",
-      pool_address: "0x72ab388e2e2f6facef59e3c3fa2c4e29011c2d38",
-      query_id: "m2-tier-b-metrics-v1",
-      deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
+      source_id: "messari-uniswap-v3-base-fee005",
+      protocol: "uniswap-v3",
+      pool_address: "0xd0b53d9277642d899df5c87a3966a349a798f224",
+      query_id: "tier-a-dex-pool-metrics-v1",
+      deployment_or_view_id: "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
     },
   ],
   /** Active registry-pinned source for the Nuthatch freshness fact. */

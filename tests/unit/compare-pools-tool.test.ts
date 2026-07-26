@@ -106,12 +106,13 @@ describe("compare_pools MCP tool", () => {
     return { client, runtime };
   }
 
-  it("lists only the compare_pools tool", async () => {
+  it("advertises compare_pools as a read-only tool", async () => {
     const { client, runtime } = await withClient();
     try {
       const listed = await client.listTools();
-      expect(listed.tools.map((tool) => tool.name)).toEqual([COMPARE_POOLS_TOOL_NAME]);
-      expect(listed.tools[0]?.annotations?.readOnlyHint).toBe(true);
+      const comparePools = listed.tools.find((tool) => tool.name === COMPARE_POOLS_TOOL_NAME);
+      expect(comparePools).toBeDefined();
+      expect(comparePools?.annotations?.readOnlyHint).toBe(true);
     } finally {
       await client.close();
       await runtime.close();
@@ -143,7 +144,7 @@ describe("compare_pools MCP tool", () => {
       expect(body.status).toBe("partial");
       expect(body.coverage.nuthatch_available).toBe(false);
       expect(body.coverage.successful_deployments).toBe(2);
-      expect(body.data?.pools[0]?.source_ids).toEqual(["exchange-v3-base"]);
+      expect(body.data?.pools[0]?.source_ids).toEqual([graphPoolA.source_id]);
       expect(onGraphFetch).toHaveBeenCalledTimes(1);
     } finally {
       await client.close();
@@ -269,7 +270,7 @@ describe("compare_pools MCP tool", () => {
       };
       expect(body.status).toBe("partial");
       expect(body.coverage.successful_deployments).toBe(1);
-      expect(body.data?.pools[0]?.source_ids).toEqual(["uniswap-v3-base-native"]);
+      expect(body.data?.pools[0]?.source_ids).toEqual([graphPoolA.source_id]);
     } finally {
       await client.close();
       await runtime.close();

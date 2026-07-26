@@ -32,10 +32,10 @@ describe("live-derived compare_pools fixtures", () => {
     const pools = livePartialComparePoolsFixture.data.pools;
     expect(pools[0]?.rank).toBe(1);
     expect(pools[1]?.rank).toBe(2);
-    expect(pools[0]?.source_ids).toEqual(["exchange-v3-base"]);
-    expect(pools[1]?.source_ids).toEqual(["uniswap-v3-base-native"]);
-    expect(pools[0]?.volume_usd).toBe(graphPoolB.data.volume_usd_24h);
-    expect(pools[1]?.volume_usd).toBe(graphPoolA.data.volume_usd_24h);
+    expect(pools[0]?.source_ids).toEqual([graphPoolA.source_id]);
+    expect(pools[1]?.source_ids).toEqual([graphPoolB.source_id]);
+    expect(pools[0]?.volume_usd).toBe(graphPoolA.data.volume_usd_24h);
+    expect(pools[1]?.volume_usd).toBe(graphPoolB.data.volume_usd_24h);
   });
 
   it("does not invent a verified Nuthatch freshness fact", () => {
