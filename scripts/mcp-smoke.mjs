@@ -178,11 +178,17 @@ if (!initOk || sessionId === "") {
   process.exit(1);
 }
 
-const EXPECTED_TOOLS = ["compare_pools", "compare_lending_markets", "find_large_swaps"];
+const EXPECTED_TOOLS = [
+  "compare_pools",
+  "compare_lending_markets",
+  "find_large_swaps",
+  "research_wallet",
+];
 
 // Checks 6+: tools/call each public tool with its locked allowlisted args.
-// Pool/lending calls pass on complete or partial. Large-swap calls require a
+// Pool/lending/wallet calls pass on complete or partial. Large-swap calls require a
 // complete 1/1 coverage settlement (develop's stricter LSS smoke gate).
+// Wallet calls also require at least one successful source of the two requested.
 async function callTool({ id, name, args, requestedKey, successKey, requireComplete = false }) {
   const { status, text } = await postJson(
     MCP_URL,
@@ -228,7 +234,7 @@ try {
     return { ok: status === 202, detail: `status=${status} (expected 202)` };
   });
 
-  // Check 5: tools/list -> SSE payload advertises all three public tools
+  // Check 5: tools/list -> SSE payload advertises all public tools
   await runCheck("tools/list", async () => {
     const { status, text } = await postJson(
       MCP_URL,
@@ -292,6 +298,51 @@ try {
       requireComplete: true,
     }),
   );
+
+  await runCheck("tools/call research_wallet", async () => {
+    const { status, text } = await postJson(
+      MCP_URL,
+      {
+        jsonrpc: "2.0",
+        id: 7,
+        method: "tools/call",
+        params: {
+          name: "research_wallet",
+          arguments: {
+            chain_id: 8453,
+            address: "0x5cb3787a9c9c7547451ca3e6d8702453de35fe01",
+            window: "24h",
+            limit: 5,
+          },
+        },
+      },
+      { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
+    );
+    if (status !== 200) {
+      return { ok: false, detail: `status=${status} (expected 200)` };
+    }
+    const msg = parseJsonRpc(text);
+    const rawText = msg?.result?.content?.[0]?.text;
+    if (typeof rawText !== "string") {
+      return { ok: false, detail: `status=200 no content[0].text` };
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (err) {
+      return { ok: false, detail: `result not JSON: ${err.message}` };
+    }
+    const st = parsed?.status;
+    const coverage = parsed?.coverage ?? {};
+    const success = coverage.successful_sources;
+    const requested = coverage.requested_sources;
+    const covStr =
+      typeof success === "number" && typeof requested === "number"
+        ? `${success}/${requested}`
+        : "?/?";
+    const ok = (st === "complete" || st === "partial") && success >= 1 && requested === 2;
+    return { ok, detail: `status=${st} ${covStr}` };
+  });
 } finally {
   await closeSession();
 }

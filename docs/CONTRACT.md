@@ -33,6 +33,11 @@ semantics in its tool-specific `LargeSwapSourceResult`. Its successful payload
 is a bounded set of canonical `SwapEvent` candidates plus the searchable head;
 the public quality envelope is settled only after stable pagination.
 
+Wallet Research uses parallel tool-specific Graph-position and Nuthatch-activity
+results with the same quality semantics. Each source settles independently
+before section-aware composition; neither source exception may erase usable
+facts from the other.
+
 ## Numeric and identity rules
 
 All financial values are base-10 decimal strings or null. They must never pass
@@ -82,8 +87,8 @@ API keys, credential-bearing URLs, authorization headers, or admin tokens.
 
 ## Registry relationship
 
-Registry records use the shape in `src/registry/types.ts`. MVP-0 records are
-Base DEX sources with `chain_id: 8453`. A record declares its source type,
+Registry records use the shape in `src/registry/types.ts`. MVP records are
+Base DEX or lending sources with `chain_id: 8453`. A record declares its source type,
 protocol, deployment or view identity, supported entities, versions, and
 whether it is active. Locators are source-specific: Graph records carry the
 stable gateway subgraph ID while Nuthatch records identify the configured view.
@@ -97,6 +102,12 @@ view IDs even when they resolve to the same private runtime. LSS SQL comes only
 from hardcoded keyset query templates; validated block numbers, log indexes,
 transaction hashes, and internal limits are the only interpolated values.
 Public requests can never supply SQL, a table/view name, or a backend URL.
+
+Wallet Research likewise uses a dedicated `wallet_swap_activity` record and
+view. Its only interpolated string is a lowercase address that has passed the
+public request schema; snapshot coordinates and limits are validated integers.
+The Graph wallet adapter is separately bound to the registered Aave v3
+deployment and account-filtered position query.
 
 ## Fixtures and change control
 

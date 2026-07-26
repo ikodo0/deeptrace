@@ -33,3 +33,9 @@ export {
   type GraphTransportResult,
   type PostGraphGatewayOptions,
 } from "./transport.js";
+export {
+  WALLET_POSITIONS_QUERY,
+  fetchWalletGraphPositions,
+  walletGraphProvenance,
+  type FetchWalletGraphOptions,
+} from "./wallet-adapter.js";

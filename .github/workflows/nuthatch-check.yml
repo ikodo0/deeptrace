@@ -33,13 +33,13 @@ jobs:
 
       - name: validate view SQL exists
         run: |
-          for view in pool_swap_freshness pool_swap_search; do
+          for view in pool_swap_freshness pool_swap_search wallet_swap_activity; do
             test -f "nest/views/${view}.sql" || { echo "missing nest/views/${view}.sql"; exit 1; }
           done
 
       - name: validate check SQL files exist
         run: |
-          for check in view_shape latest_swap_identity recent_count_24h provenance_not_null decimal_columns hot_sealed_no_duplicates swap_search_parity; do
+          for check in view_shape latest_swap_identity recent_count_24h provenance_not_null decimal_columns hot_sealed_no_duplicates swap_search_parity wallet_activity_parity; do
             test -f "nest/checks/${check}.sql" || { echo "missing nest/checks/${check}.sql"; exit 1; }
             test -f "nest/checks/expected/${check}.json" || { echo "missing nest/checks/expected/${check}.json"; exit 1; }
           done

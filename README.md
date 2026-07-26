@@ -2,8 +2,9 @@
 
 DeepTrace is a read-only research MCP that compares Base liquidity pools and
 USDC lending markets with Graph subgraph metrics and independent Nuthatch swap
-freshness, and returns stable pages of token-thresholded swaps from the locked
-Base Uniswap V3 WETH/USDC pool.
+freshness, returns stable pages of token-thresholded swaps from the locked Base
+Uniswap V3 WETH/USDC pool, and composes source-bounded wallet activity with
+verified Aave v3 position facts.
 
 ## Connect
 
@@ -36,6 +37,9 @@ Released tools:
 - `find_large_swaps` — search the locked Uniswap V3 pool using an exact WETH or
   USDC human-unit threshold and opaque fixed-snapshot pagination. V1 performs
   no USD conversion.
+- `research_wallet` — inspect supported public Base wallet activity, observed
+  assets, counterparties, protocol usage, observable flows, and Aave v3
+  positions. Observed assets are not complete wallet balances.
 
 Install the optional skill from your project with:
 
@@ -92,4 +96,6 @@ Use an absolute path to the built entry point:
 For the public HTTP endpoint, see [docs/connect.md](docs/connect.md). Never put
 the bearer token in the URL. Deployment notes live in
 [docs/deployment.md](docs/deployment.md), and the operator test procedure lives
-in [docs/mcp-testing.md](docs/mcp-testing.md).
+in [docs/mcp-testing.md](docs/mcp-testing.md). The bounded wallet source
+contract is documented in
+[docs/wallet-source-scope.md](docs/wallet-source-scope.md).

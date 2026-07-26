@@ -1,11 +1,11 @@
 ---
 name: deeptrace-pool-research
-description: Research Base DeFi through the DeepTrace MCP server — compare locked WETH/USDC Uniswap V3 fee tiers with Graph metrics and Nuthatch freshness, compare Base USDC lending markets across Aave v3, Seamless, and Moonwell, or find large swaps with exact WETH/USDC thresholds and stable cursors. Use when an end user asks to compare pools, rank by TVL, volume, or fees, compare lending supply or borrow rates, find whale-sized swaps, paginate swap history, inspect 24h or 7d metrics, verify source freshness, explain partial results, or distinguish Graph and Nuthatch evidence.
+description: Research Base DeFi through the DeepTrace MCP server — compare locked WETH/USDC Uniswap V3 fee tiers with Graph metrics and Nuthatch freshness, compare Base USDC lending markets across Aave v3, Seamless, and Moonwell, find large swaps with exact WETH/USDC thresholds and stable cursors, or inspect source-bounded wallet activity and Aave positions. Use when an end user asks to compare pools, rank by TVL, volume, or fees, compare lending supply or borrow rates, find whale-sized swaps, paginate swap history, research a public wallet, inspect 24h or 7d metrics, verify source freshness, explain partial results, or distinguish Graph and Nuthatch evidence.
 ---
 
 # DeepTrace research
 
-DeepTrace exposes three read-only MCP tools. Read `structuredContent` when
+DeepTrace exposes four read-only MCP tools. Read `structuredContent` when
 available; otherwise parse the JSON object in the text result.
 
 | Ask                                                                                                        | Tool                      |
@@ -13,14 +13,16 @@ available; otherwise parse the JSON object in the text result.
 | Which WETH/USDC pool has more TVL, volume, or fees; which fee tier is busier; how fresh is pool data       | `compare_pools`           |
 | Where to lend or borrow USDC on Base; supply or borrow APY; which protocol holds the most USDC             | `compare_lending_markets` |
 | Swaps of at least N WETH or USDC in the locked Uniswap V3 pool; whale-sized trades; paginated swap history | `find_large_swaps`        |
+| Source-bounded activity and verified Aave v3 positions for a public Base wallet                            | `research_wallet`         |
 
 For `compare_pools` or `compare_lending_markets`, complete or partial records
 are in `data.pools` or `data.markets`, plus the optional Nuthatch fact from
 `data.nuthatch_freshness_fact` on `compare_pools`. For `find_large_swaps`, a
-complete page is in `data.swaps`. For any `failed` result, `data` is null.
+complete page is in `data.swaps`. For `research_wallet`, inspect each requested
+section and its section-level coverage. For any `failed` result, `data` is null.
 
-Anything else — other chains, other pairs, other assets, wallet positions, or
-pools outside the locked Uniswap V3 WETH/USDC scope — is out of scope. Say so
+Anything else — other chains, other pairs, other assets, unsupported protocols,
+or pools outside the locked Uniswap V3 WETH/USDC scope — is out of scope. Say so
 plainly instead of substituting a tool that answers a different question.
 
 ## Connect safely
@@ -96,6 +98,28 @@ a warning when the 64 KiB response budget requires a shorter page.
 Refuse unsupported chains, pairs, windows, tokens, or metrics by stating the
 exact supported scope. Never silently change the requested assets.
 
+## Build a wallet-research request
+
+- `chain_id`: `8453`
+- `address`: a lowercase public Ethereum address
+- `sections`: any of `activity`, `counterparties`, `protocol_usage`,
+  `observable_flows`, `observed_assets`, and `positions`; defaults to all
+- `window`: `24h` or `7d`; applies to indexed Nuthatch activity
+- `limit`: integer `1`–`50`; default `25`
+- `cursor`: omit on the first page, then copy `pagination.next_cursor` exactly
+
+Wallet Research is intentionally source-bounded. Nuthatch covers only the
+registered Uniswap V3 pool; The Graph position facts come only from the
+registered Aave v3 standardized subgraph. `observed_assets` are assets seen in
+those supported facts, not complete wallet balances. Never claim complete
+portfolio, transaction-history, P&L, ownership, or unsupported protocol
+coverage.
+
+Continue a wallet page only with the returned opaque cursor and the same wallet
+and window. A `complete` response requires load-bearing Graph and Nuthatch
+facts. For `partial`, preserve usable sections and explain unavailable section
+coverage.
+
 ## Interpret the sources
 
 - Treat Graph subgraphs as the source of pool TVL, volume, and fee metrics, and
@@ -128,6 +152,9 @@ exact supported scope. Never silently change the requested assets.
   token's absolute delta is greater than or equal to `min_amount`.
 - Preserve swap order, transaction hash, log index, block, timestamp, source
   ID, and cursor exactly. Do not deduplicate or reorder a returned page.
+- For `research_wallet`, keep Nuthatch activity separate from Graph positions.
+  Use each section's coverage and source IDs. Treat observable flows as
+  event-classified facts from the indexed pool, not as net wallet flows.
 - Join freshness and provenance to results by `source_id`. Name the source,
   returned `deployment_or_view_id`, query ID, and warnings when they affect
   confidence. Do not infer which kind the combined identifier represents.
@@ -168,6 +195,11 @@ transaction hash, block/log identity, and source ID. State when a complete page
 contains zero matches. Mention `has_more` and offer to continue when a cursor
 is available; do not expose the opaque cursor unless the client needs it for
 the next tool call.
+
+For wallet research, lead with the public address, requested window/sections,
+and status. Summarize supported activity and positions separately, surface
+section coverage and warnings, and describe assets as observed rather than
+owned or complete balances.
 
 ## Preserve evidence integrity
 

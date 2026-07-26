@@ -117,5 +117,39 @@
       "gateway_host": "gateway.thegraph.com",
       "subgraph_id": "33ex1ExmYQtwGVwri1AP3oMFPGSce6YbocBP7fWbsBrg"
     }
+  },
+  {
+    "source_id": "messari-aave-v3-base-wallet",
+    "category": "lending",
+    "protocol": "aave-v3",
+    "chain_id": 8453,
+    "source_type": "standardized_subgraph",
+    "deployment_or_view_id": "Qmb5j4tE5deSXCrubQeqeghfrGhyfQBiq9DuZNMfHBjbfL",
+    "schema_version": "3.1.0",
+    "methodology_version": "1.1.0",
+    "supported_entities": ["accounts", "positions", "positionSnapshots"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9"
+    }
+  },
+  {
+    "source_id": "nuthatch-wallet-activity",
+    "category": "dex",
+    "protocol": "uniswap-v3",
+    "chain_id": 8453,
+    "source_type": "nuthatch_view",
+    "deployment_or_view_id": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+    "schema_version": null,
+    "methodology_version": "bounded-wallet-swap-keyset-v1",
+    "supported_entities": ["wallet_swap_activity"],
+    "status": "active",
+    "locator": {
+      "kind": "nuthatch_view",
+      "base_url_env": "NUTHATCH_BASE_URL",
+      "view_id": "wallet_swap_activity"
+    }
   }
 ]

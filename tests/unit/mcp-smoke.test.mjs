@@ -128,6 +128,7 @@ describe("MCP smoke session lifecycle", () => {
                 { name: "compare_pools" },
                 { name: "compare_lending_markets" },
                 { name: "find_large_swaps" },
+                { name: "research_wallet" },
               ],
             },
           };
@@ -148,10 +149,15 @@ describe("MCP smoke session lifecycle", () => {
                   status,
                   coverage: { successful_sources: 3, requested_sources: 3 },
                 })
-              : JSON.stringify({
-                  status,
-                  coverage: { successful_deployments: 2, requested_deployments: 2 },
-                });
+              : toolName === "research_wallet"
+                ? JSON.stringify({
+                    status: "partial",
+                    coverage: { successful_sources: 1, requested_sources: 2 },
+                  })
+                : JSON.stringify({
+                    status,
+                    coverage: { successful_deployments: 2, requested_deployments: 2 },
+                  });
         const payload = {
           jsonrpc: "2.0",
           id: message.id,
@@ -180,9 +186,11 @@ describe("MCP smoke session lifecycle", () => {
       new RegExp(`tools/call compare_lending_markets\\s+PASS\\s+status=${status} 3/3`),
     );
     expect(result.stdout).toMatch(/tools\/call find_large_swaps\s+PASS\s+status=complete 1\/1/);
+    expect(result.stdout).toMatch(/tools\/call research_wallet\s+PASS\s+status=partial 1\/2/);
     expect(sessionRequests).toEqual([
       { method: "notifications/initialized", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/list", protocolVersion: PROTOCOL_VERSION },
+      { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/call", protocolVersion: PROTOCOL_VERSION },

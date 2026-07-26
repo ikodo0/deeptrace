@@ -197,7 +197,7 @@ typed tools · validation · rate limits · read-only policy
         ▼
 Request Validator + Deterministic Router
         │
-        ├── Wallet Research       later
+        ├── Wallet Research       implemented
         ├── DEX Metrics           later
         ├── Pool Comparison       implemented
         ├── Lending Markets       implemented

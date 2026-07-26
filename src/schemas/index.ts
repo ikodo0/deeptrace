@@ -58,3 +58,24 @@ export {
   type LssAsset,
   type SwapEvent,
 } from "./large-swaps.js";
+export {
+  researchWalletRequestSchema,
+  type ResearchWalletRequest,
+  type ResearchWalletRequestInput,
+} from "./wallet-research-request.js";
+export {
+  defiPositionSchema,
+  researchWalletResponseSchema,
+  walletActivitySchema,
+  walletAssetLegSchema,
+  walletResearchCoverageSchema,
+  walletResearchDataSchema,
+  walletResearchPaginationSchema,
+  type DeFiPosition,
+  type ResearchWalletResponse,
+  type WalletActivity,
+  type WalletAssetLeg,
+  type WalletResearchCoverage,
+  type WalletResearchData,
+  type WalletResearchPagination,
+} from "./wallet-research.js";
