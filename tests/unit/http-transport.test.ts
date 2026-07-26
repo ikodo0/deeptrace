@@ -7,9 +7,15 @@ import {
   HTTP_MAXIMUMS,
   MIN_TOKEN_LENGTH,
   loadHttpConfig,
+  type HttpConfig,
 } from "../../src/http/config.js";
 import { ConfigurationError } from "../../src/errors/index.js";
-import { createHttpServer, listen, type HttpRuntime } from "../../src/http/server.js";
+import {
+  createHttpServer,
+  listen,
+  type HttpRuntime,
+  type HttpServerOptions,
+} from "../../src/http/server.js";
 
 // Wrap createMcpServer so each spawned McpServer reports its close() through
 // closeSpy. This lets the lifecycle tests assert disposal without measuring
@@ -45,6 +51,8 @@ describe("loadHttpConfig", () => {
     expect(loadHttpConfig({ [HTTP_ENV_VARS.token]: VALID_TOKEN })).toEqual({
       host: HTTP_DEFAULTS.host,
       port: HTTP_DEFAULTS.port,
+      sessionIdleTimeoutMs: HTTP_DEFAULTS.sessionIdleTimeoutMs,
+      sessionSweepIntervalMs: HTTP_DEFAULTS.sessionSweepIntervalMs,
       token: VALID_TOKEN,
     });
   });
@@ -54,9 +62,17 @@ describe("loadHttpConfig", () => {
       loadHttpConfig({
         [HTTP_ENV_VARS.host]: "0.0.0.0",
         [HTTP_ENV_VARS.port]: "9000",
+        [HTTP_ENV_VARS.sessionIdleTimeoutMs]: "120000",
+        [HTTP_ENV_VARS.sessionSweepIntervalMs]: "30000",
         [HTTP_ENV_VARS.token]: VALID_TOKEN,
       }),
-    ).toEqual({ host: "0.0.0.0", port: 9_000, token: VALID_TOKEN });
+    ).toEqual({
+      host: "0.0.0.0",
+      port: 9_000,
+      sessionIdleTimeoutMs: 120_000,
+      sessionSweepIntervalMs: 30_000,
+      token: VALID_TOKEN,
+    });
   });
 
   it("accepts the highest bindable port", () => {
@@ -73,9 +89,17 @@ describe("loadHttpConfig", () => {
       loadHttpConfig({
         [HTTP_ENV_VARS.host]: "   ",
         [HTTP_ENV_VARS.port]: "  ",
+        [HTTP_ENV_VARS.sessionIdleTimeoutMs]: " ",
+        [HTTP_ENV_VARS.sessionSweepIntervalMs]: "",
         [HTTP_ENV_VARS.token]: VALID_TOKEN,
       }),
-    ).toEqual({ host: HTTP_DEFAULTS.host, port: HTTP_DEFAULTS.port, token: VALID_TOKEN });
+    ).toEqual({
+      host: HTTP_DEFAULTS.host,
+      port: HTTP_DEFAULTS.port,
+      sessionIdleTimeoutMs: HTTP_DEFAULTS.sessionIdleTimeoutMs,
+      sessionSweepIntervalMs: HTTP_DEFAULTS.sessionSweepIntervalMs,
+      token: VALID_TOKEN,
+    });
   });
 
   it("rejects a missing token", () => {
@@ -86,6 +110,23 @@ describe("loadHttpConfig", () => {
     expect(() =>
       loadHttpConfig({ [HTTP_ENV_VARS.token]: "a".repeat(MIN_TOKEN_LENGTH - 1) }),
     ).toThrow(ConfigurationError);
+  });
+
+  it("rejects invalid session cleanup timer overrides", () => {
+    try {
+      loadHttpConfig({
+        [HTTP_ENV_VARS.sessionIdleTimeoutMs]: "0",
+        [HTTP_ENV_VARS.sessionSweepIntervalMs]: String(HTTP_MAXIMUMS.sessionSweepIntervalMs + 1),
+        [HTTP_ENV_VARS.token]: VALID_TOKEN,
+      });
+      expect.unreachable("expected ConfigurationError");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConfigurationError);
+      expect((error as ConfigurationError).variableNames).toEqual([
+        HTTP_ENV_VARS.sessionIdleTimeoutMs,
+        HTTP_ENV_VARS.sessionSweepIntervalMs,
+      ]);
+    }
   });
 
   it("names every invalid variable", () => {
@@ -146,9 +187,20 @@ interface TestServer {
   readonly base: string;
 }
 
-async function startTestServer(): Promise<TestServer> {
-  const config = { host: "127.0.0.1", port: 0, token: VALID_TOKEN_32 };
-  const runtime = createHttpServer(config);
+interface TestServerOptions {
+  readonly config?: Partial<HttpConfig>;
+  readonly server?: HttpServerOptions;
+}
+
+async function startTestServer(options: TestServerOptions = {}): Promise<TestServer> {
+  const config: HttpConfig = {
+    ...HTTP_DEFAULTS,
+    host: "127.0.0.1",
+    port: 0,
+    token: VALID_TOKEN_32,
+    ...options.config,
+  };
+  const runtime = createHttpServer(config, options.server);
   await listen(runtime, config);
   const address = runtime.server.address();
   if (address === null || typeof address === "string") {
@@ -170,6 +222,64 @@ async function postInitialize(
     },
     body: JSON.stringify(INITIALIZE_BODY),
   });
+}
+
+async function postInitialized(base: string, sessionId: string): Promise<Response> {
+  return fetch(base, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${VALID_TOKEN_32}`,
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+      "mcp-session-id": sessionId,
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "notifications/initialized",
+    }),
+  });
+}
+
+function requireSessionId(response: Response): string {
+  const sessionId = response.headers.get("mcp-session-id");
+  if (sessionId === null) {
+    throw new Error("expected mcp-session-id response header");
+  }
+  return sessionId;
+}
+
+function createFakeSessionTimer(): {
+  readonly options: HttpServerOptions;
+  readonly cancel: ReturnType<typeof vi.fn>;
+  readonly schedule: ReturnType<typeof vi.fn>;
+  advance(ms: number): void;
+  sweep(): Promise<void>;
+} {
+  let nowMs = 0;
+  let sweepCallback: (() => Promise<void>) | undefined;
+  const cancel = vi.fn();
+  const schedule = vi.fn((callback: () => Promise<void>) => {
+    sweepCallback = callback;
+    return cancel;
+  });
+
+  return {
+    options: {
+      now: () => nowMs,
+      scheduleSessionSweep: schedule,
+    },
+    cancel,
+    schedule,
+    advance(ms: number) {
+      nowMs += ms;
+    },
+    async sweep() {
+      if (sweepCallback === undefined) {
+        throw new Error("session sweep was not scheduled");
+      }
+      await sweepCallback();
+    },
+  };
 }
 
 describe("HTTP session lifecycle", () => {
@@ -215,6 +325,182 @@ describe("HTTP session lifecycle", () => {
     } finally {
       await runtime.close();
     }
+  });
+
+  it("refreshes activity and disposes a session only after a full idle timeout", async () => {
+    const timer = createFakeSessionTimer();
+    const { runtime, base } = await startTestServer({
+      config: {
+        sessionIdleTimeoutMs: 1_000,
+        sessionSweepIntervalMs: 100,
+      },
+      server: timer.options,
+    });
+    closeSpy.mockClear();
+    try {
+      expect(timer.schedule).toHaveBeenCalledWith(expect.any(Function), 100);
+      const initialized = await postInitialize(base, {
+        accept: "application/json, text/event-stream",
+      });
+      expect(initialized.status).toBe(200);
+      const sessionId = requireSessionId(initialized);
+      await initialized.text();
+
+      timer.advance(999);
+      const activity = await postInitialized(base, sessionId);
+      expect(activity.status).toBe(202);
+      await activity.text();
+
+      timer.advance(999);
+      await timer.sweep();
+      expect(closeSpy).not.toHaveBeenCalled();
+
+      timer.advance(1);
+      await timer.sweep();
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      await runtime.close();
+    }
+    expect(timer.cancel).toHaveBeenCalledTimes(1);
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("expires an otherwise-idle session with an open SSE stream", async () => {
+    const timer = createFakeSessionTimer();
+    const { runtime, base } = await startTestServer({
+      config: {
+        sessionIdleTimeoutMs: 1_000,
+        sessionSweepIntervalMs: 100,
+      },
+      server: timer.options,
+    });
+    closeSpy.mockClear();
+    try {
+      const initialized = await postInitialize(base, {
+        accept: "application/json, text/event-stream",
+      });
+      const sessionId = requireSessionId(initialized);
+      await initialized.text();
+
+      const stream = await fetch(base, {
+        headers: {
+          authorization: `Bearer ${VALID_TOKEN_32}`,
+          accept: "text/event-stream",
+          "mcp-session-id": sessionId,
+        },
+      });
+      expect(stream.status).toBe(200);
+
+      timer.advance(1_000);
+      await timer.sweep();
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+      await stream.text();
+    } finally {
+      await runtime.close();
+    }
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("releases all session-limit slots after idle expiration", async () => {
+    const timer = createFakeSessionTimer();
+    const { runtime, base } = await startTestServer({
+      config: {
+        sessionIdleTimeoutMs: 1_000,
+        sessionSweepIntervalMs: 100,
+      },
+      server: timer.options,
+    });
+    closeSpy.mockClear();
+    try {
+      for (let i = 0; i < 64; i += 1) {
+        const response = await postInitialize(base, {
+          accept: "application/json, text/event-stream",
+        });
+        expect(response.status).toBe(200);
+        await response.text();
+      }
+
+      timer.advance(1_000);
+      await timer.sweep();
+      expect(closeSpy).toHaveBeenCalledTimes(64);
+
+      const replacement = await postInitialize(base, {
+        accept: "application/json, text/event-stream",
+      });
+      expect(replacement.status).toBe(200);
+      expect(replacement.headers.get("mcp-session-id")).not.toBeNull();
+      await replacement.text();
+    } finally {
+      await runtime.close();
+    }
+    expect(closeSpy).toHaveBeenCalledTimes(65);
+  });
+
+  it("does not close a session twice when DELETE and the sweep converge", async () => {
+    const timer = createFakeSessionTimer();
+    const { runtime, base } = await startTestServer({
+      config: {
+        sessionIdleTimeoutMs: 1_000,
+        sessionSweepIntervalMs: 100,
+      },
+      server: timer.options,
+    });
+    closeSpy.mockClear();
+    try {
+      const initialized = await postInitialize(base, {
+        accept: "application/json, text/event-stream",
+      });
+      const sessionId = requireSessionId(initialized);
+      await initialized.text();
+
+      const deleted = await fetch(base, {
+        method: "DELETE",
+        headers: {
+          authorization: `Bearer ${VALID_TOKEN_32}`,
+          "mcp-session-id": sessionId,
+        },
+      });
+      expect(deleted.status).toBe(200);
+      await deleted.text();
+      await vi.waitFor(() => {
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+      });
+
+      timer.advance(1_000);
+      await timer.sweep();
+      expect(closeSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      await runtime.close();
+    }
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the sweep and closes each session once during shutdown", async () => {
+    const timer = createFakeSessionTimer();
+    const { runtime, base } = await startTestServer({
+      config: {
+        sessionIdleTimeoutMs: 1_000,
+        sessionSweepIntervalMs: 100,
+      },
+      server: timer.options,
+    });
+    closeSpy.mockClear();
+
+    const initialized = await postInitialize(base, {
+      accept: "application/json, text/event-stream",
+    });
+    expect(initialized.status).toBe(200);
+    await initialized.text();
+
+    await runtime.close();
+    expect(timer.cancel).toHaveBeenCalledTimes(1);
+    expect(closeSpy).toHaveBeenCalledTimes(1);
+
+    timer.advance(1_000);
+    await timer.sweep();
+    await runtime.close();
+    expect(timer.cancel).toHaveBeenCalledTimes(1);
+    expect(closeSpy).toHaveBeenCalledTimes(1);
   });
 
   it("rejects with 503 once MAX_SESSIONS live sessions exist", async () => {

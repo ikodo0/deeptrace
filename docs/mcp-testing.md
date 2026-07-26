@@ -96,8 +96,16 @@ shell or systemd unit that starts the server.
 | `DEEPTRACE_HTTP_TOKEN` | Required for the HTTP transport. Minimum 32 characters. Startup fails otherwise. |
 | `DEEPTRACE_HTTP_PORT` | Default `8787`. |
 | `DEEPTRACE_HTTP_HOST` | Default `127.0.0.1`. |
+| `DEEPTRACE_HTTP_SESSION_IDLE_TIMEOUT_MS` | Idle session lifetime. Default `1800000` (30 minutes). |
+| `DEEPTRACE_HTTP_SESSION_SWEEP_INTERVAL_MS` | Idle-session cleanup cadence. Default `60000` (1 minute). |
 | `GRAPH_API_KEY` | Required, or every Graph source returns `unavailable`. |
 | `NUTHATCH_BASE_URL` | `https://<TAILNET_HOST>`, no trailing slash. |
+
+Authenticated session requests refresh activity, and in-flight tool calls are
+not reaped. A standalone SSE stream does not keep an otherwise-idle session
+alive forever. A session that remains inactive for the full idle timeout is
+closed on the next cleanup sweep, releasing its slot in the 64-session process
+limit.
 
 ## Build
 
