@@ -13,6 +13,7 @@ import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
 import { join } from "node:path";
 
+import { isOAuthRequest, PROTECTED_RESOURCE_PATH, respondOAuth } from "./oauth.js";
 import { isTokenIssueRequest, respondTokenIssue } from "./token-issue.js";
 import { TokenStore } from "./token-store.js";
 import {
@@ -282,6 +283,13 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
           return;
         }
 
+        // Discovery, consent, and code redemption. Unauthenticated for the same
+        // reason, and ahead of the MCP paths so the flow is reachable.
+        if (isOAuthRequest(url.pathname)) {
+          await respondOAuth(request, url, response, tokenStore, now);
+          return;
+        }
+
         if (!MCP_PATHS.has(url.pathname)) {
           respondJson(response, 404, "not_found", "Unknown endpoint");
           return;
@@ -301,7 +309,12 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
         }
 
         if (!isAuthorized(request.headers.authorization, config.token, tokenStore)) {
-          response.setHeader("www-authenticate", 'Bearer realm="deeptrace"');
+          // resource_metadata is how a client discovers the browser flow.
+          // Without it the 401 is a dead end and the user copies a token by hand.
+          response.setHeader(
+            "www-authenticate",
+            `Bearer realm="deeptrace", resource_metadata="https://mcp.ikodo.dev${PROTECTED_RESOURCE_PATH}"`,
+          );
           respondJson(response, 401, "unauthorized", "Missing or invalid bearer token");
           return;
         }
