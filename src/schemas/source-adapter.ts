@@ -173,3 +173,36 @@ export const nuthatchSourceResultSchema = createSourceResultSchema(
 
 export type PoolSourceResult = z.infer<typeof poolSourceResultSchema>;
 export type NuthatchSourceResult = z.infer<typeof nuthatchSourceResultSchema>;
+
+/**
+ * One lending market of a single input token on one protocol.
+ *
+ * Rates are percent APY exactly as the source reports them; a rate the source
+ * does not publish stays `null` rather than being defaulted to zero, because
+ * "no stable rate offered" and "a stable rate of 0%" are different facts.
+ */
+export const lendingMarketSourceDataSchema = z
+  .object({
+    market_id: ethereumAddressSchema,
+    market_name: nonEmptyStringSchema.nullable(),
+    input_token: tokenMetadataSchema,
+    is_active: z.boolean(),
+    can_borrow_from: z.boolean(),
+    can_use_as_collateral: z.boolean(),
+    tvl_usd: financialValueSchema,
+    total_deposit_balance_usd: financialValueSchema,
+    total_borrow_balance_usd: financialValueSchema,
+    lender_variable_rate_percent: financialValueSchema,
+    borrower_variable_rate_percent: financialValueSchema,
+    borrower_stable_rate_percent: financialValueSchema,
+  })
+  .strict();
+
+export const lendingMarketSourceResultSchema = createSourceResultSchema(
+  z.enum(["standardized_subgraph", "native_subgraph"]),
+  lendingMarketSourceDataSchema,
+  sourceFreshnessSchema,
+);
+
+export type LendingMarketSourceData = z.infer<typeof lendingMarketSourceDataSchema>;
+export type LendingMarketSourceResult = z.infer<typeof lendingMarketSourceResultSchema>;
