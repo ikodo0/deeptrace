@@ -11,6 +11,7 @@ import { createMcpServer } from "../mcp/server.js";
 import { createLiveComparePoolsSources } from "../tools/index.js";
 import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
+import { acceptsConnectionPage, respondConnectionPage } from "./connection-page.js";
 
 /** Root is canonical; /mcp remains an alias for existing client configs. */
 const MCP_PATHS = new Set(["/", "/mcp"]);
@@ -233,6 +234,11 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
         const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
         if (!MCP_PATHS.has(url.pathname)) {
           respondJson(response, 404, "not_found", "Unknown endpoint");
+          return;
+        }
+
+        if (url.pathname === "/" && acceptsConnectionPage(request)) {
+          respondConnectionPage(response);
           return;
         }
 

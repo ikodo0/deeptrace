@@ -289,7 +289,8 @@ function createFakeSessionTimer(): {
 async function getBrowserNavigation(base: string): Promise<{
   readonly status: number | undefined;
   readonly challenge: string | undefined;
-  readonly body: unknown;
+  readonly headers: Readonly<Record<string, string | string[] | undefined>>;
+  readonly body: string;
 }> {
   return new Promise((resolve, reject) => {
     const request = httpRequest(
@@ -310,7 +311,8 @@ async function getBrowserNavigation(base: string): Promise<{
           resolve({
             status: response.statusCode,
             challenge: response.headers["www-authenticate"],
-            body: JSON.parse(body) as unknown,
+            headers: response.headers,
+            body,
           });
         });
       },
@@ -356,17 +358,78 @@ describe("HTTP routing", () => {
       await runtime.close();
     }
   });
+
+  it("serves an unauthenticated connection page only at the canonical root", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await fetch(base, {
+        headers: { accept: "text/html" },
+      });
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
+      expect(response.headers.get("www-authenticate")).toBeNull();
+      expect(body).toContain("<h1>Connect pool research to your AI</h1>");
+      expect(body).toContain("Claude Code");
+      expect(body).toContain("OpenCode");
+      expect(body).toContain("Codex");
+      expect(body).toContain("No Tailscale required");
+      expect(body).toContain("Connecting MCP does not automatically install or load this file");
+      expect(body).not.toMatch(/<input|<script|<link|<img/u);
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("sets restrictive browser security headers on the connection page", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await fetch(base, {
+        headers: { accept: "text/html" },
+      });
+
+      expect(response.headers.get("cache-control")).toBe("no-store");
+      expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+      expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+      expect(response.headers.get("cross-origin-opener-policy")).toBe("same-origin");
+      expect(response.headers.get("cross-origin-resource-policy")).toBe("same-origin");
+      expect(response.headers.get("permissions-policy")).toContain("camera=()");
+      expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+      expect(response.headers.get("vary")).toBe("Accept");
+      expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(response.headers.get("x-frame-options")).toBe("DENY");
+      await response.text();
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("does not serve HTML when the client explicitly rejects it", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await fetch(base, {
+        headers: { accept: "text/html;q=0" },
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.headers.get("www-authenticate")).toBe('Bearer realm="deeptrace"');
+      await response.text();
+    } finally {
+      await runtime.close();
+    }
+  });
 });
 
 describe("HTTP authentication", () => {
-  it("returns a challenge-free 404 for top-level browser navigation", async () => {
-    const { runtime, base } = await startTestServer();
+  it("keeps /mcp browser navigation as a challenge-free JSON 404", async () => {
+    const { runtime, legacy } = await startTestServer();
     try {
-      const response = await getBrowserNavigation(base);
+      const response = await getBrowserNavigation(legacy);
 
       expect(response.status).toBe(404);
       expect(response.challenge).toBeUndefined();
-      expect(response.body).toEqual({
+      expect(JSON.parse(response.body)).toEqual({
         error: {
           code: "not_found",
           message: "This endpoint is available to MCP clients",
@@ -401,6 +464,32 @@ describe("HTTP authentication", () => {
       await runtime.close();
     }
   });
+
+  it.each(["GET", "DELETE"] as const)(
+    "does not treat an unauthorized %s event-stream request as a browser visit",
+    async (method) => {
+      const { runtime, base } = await startTestServer();
+      try {
+        const response = await fetch(base, {
+          method,
+          headers: {
+            accept: "text/html, text/event-stream",
+          },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.headers.get("www-authenticate")).toBe('Bearer realm="deeptrace"');
+        await expect(response.json()).resolves.toEqual({
+          error: {
+            code: "unauthorized",
+            message: "Missing or invalid bearer token",
+          },
+        });
+      } finally {
+        await runtime.close();
+      }
+    },
+  );
 });
 
 describe("HTTP session lifecycle", () => {
