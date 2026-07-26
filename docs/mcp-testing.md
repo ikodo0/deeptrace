@@ -369,6 +369,7 @@ Row fields: `pool_address`, `recent_swap_count_24h`, `last_swap_block`,
 | --- | --- |
 | Public URL times out or does not resolve | Confirm the URL is exactly `https://mcp.ikodo.dev` and test public DNS/TLS. A normal user does not need Tailscale. |
 | HTTP 401 | Wrong or missing bearer token. The network path is fine — 401 means the server was reached. |
+| HTTP 403 `invalid_origin` | A browser or proxy sent an untrusted `Origin`. Native MCP clients normally omit it; browser-based requests must use `https://mcp.ikodo.dev`. |
 | HTTP 404 on `/health` or `/ready` | These are private Nuthatch routes, not public MCP routes. Use the MCP root URL; operators run Nuthatch probes on CT 104 loopback. |
 | HTTP 400 `missing_session` | `tools/*` sent without the `mcp-session-id` header, or before the `initialized` notification. |
 | Server exits at startup | `DEEPTRACE_HTTP_TOKEN` missing or shorter than 32 characters. |
