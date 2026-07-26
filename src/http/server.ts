@@ -13,7 +13,15 @@ import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
 import { join } from "node:path";
 
-import { isOAuthRequest, PROTECTED_RESOURCE_PATH, respondOAuth } from "./oauth.js";
+import {
+  AUTHORIZATION_SERVER_PATH,
+  AUTHORIZE_PATH,
+  isOAuthRequest,
+  PROTECTED_RESOURCE_PATH,
+  REGISTER_PATH,
+  respondOAuth,
+  TOKEN_PATH,
+} from "./oauth.js";
 import { isTokenIssueRequest, respondTokenIssue } from "./token-issue.js";
 import { TokenStore } from "./token-store.js";
 import {
@@ -89,6 +97,34 @@ function respondJson(
 ): void {
   response.writeHead(status, { "content-type": "application/json" });
   response.end(JSON.stringify({ error: { code, message } }));
+}
+
+/**
+ * Client-to-server OAuth calls carry whatever origin their client sets — a
+ * CLI, an editor shell, a loopback callback — and none of those can be
+ * enumerated. Their defence is PKCE and single-use codes, not an allowlist,
+ * so applying one here rejects working clients and nothing else.
+ *
+ * The allowlist still covers the MCP endpoint and the consent form, where a
+ * cross-site POST is the actual threat.
+ */
+const ORIGIN_FREE_PATHS = new Set([
+  PROTECTED_RESOURCE_PATH,
+  AUTHORIZATION_SERVER_PATH,
+  REGISTER_PATH,
+  TOKEN_PATH,
+]);
+
+function requiresAllowedOrigin(request: IncomingMessage, pathname: string): boolean {
+  if (ORIGIN_FREE_PATHS.has(pathname)) {
+    return false;
+  }
+  // Opening the consent screen is a top-level navigation, which sends no
+  // origin; submitting it is the request worth guarding.
+  if (pathname === AUTHORIZE_PATH) {
+    return request.method === "POST";
+  }
+  return true;
 }
 
 function hasAllowedOrigin(request: IncomingMessage): boolean {
@@ -264,7 +300,7 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
     void (async () => {
       try {
         const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
-        if (!hasAllowedOrigin(request)) {
+        if (requiresAllowedOrigin(request, url.pathname) && !hasAllowedOrigin(request)) {
           respondJson(response, 403, "invalid_origin", "Origin is not allowed");
           return;
         }
