@@ -136,10 +136,6 @@ describe("self-serve token issuance", () => {
       const body = await (await fetch(`${origin}/auth`, { method: "POST" })).text();
       const token = extractToken(body);
 
-      // Only one of the two spans is ever laid out: the asterisks leave on
-      // reveal so they can never land in a copy, and the value stays out of the
-      // layout while covered so it cannot be read off a screen share. Both
-      // swaps have to stay script-free, or the page loses its own CSP.
       expect(token).not.toBe("");
       expect(body).toContain(
         `<span class="mask" aria-hidden="true">${"*".repeat(token.length)}</span>`,
@@ -149,6 +145,8 @@ describe("self-serve token issuance", () => {
       expect(body).toMatch(/\.token\.secret:hover \.mask[^{]*\{display:none\}/u);
       expect(body).toMatch(/\.token\.secret:hover \.real[^{]*\{display:inline\}/u);
       expect(body).toContain("user-select:all");
+      expect(body).not.toContain("filter:blur(");
+      expect(body).not.toContain("Shown once");
       expect(body).not.toMatch(/<script/u);
     } finally {
       await runtime.close();

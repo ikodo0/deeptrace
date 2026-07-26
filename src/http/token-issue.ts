@@ -45,13 +45,10 @@ button:hover{filter:brightness(1.08)}
 :focus-visible{outline:2px solid var(--warn);outline-offset:3px}
 .token{margin:26px 0;border:1px solid var(--rule-2);background:var(--sheet);padding:18px 20px;
 font-family:var(--mono);font-size:14px;color:var(--ink);word-break:break-all;user-select:all}
-/* The secret stays covered until asked for, so a screen share or a screenshot
-   of the rest of the page does not carry it away. Only one of the two spans is
-   ever in the layout: the stand-in is dropped on reveal so it can never land in
-   a copy, and the value is dropped while covered so it cannot be read. The
-   swap hangs off :hover and :focus because this page bans script and has no
-   other way to respond to a reader. */
-.token.secret{cursor:pointer}
+/* Asterisks sit on top until hover/focus. Only one span is ever in the layout,
+   so a copy never picks up the stars and a screen share never shows the value.
+   No script — this page runs under script-src none. */
+.token.secret{cursor:pointer;position:relative}
 .token.secret .real{display:none}
 .token.secret:hover .mask,.token.secret:focus .mask,.token.secret:active .mask{display:none}
 .token.secret:hover .real,.token.secret:focus .real,.token.secret:active .real{display:inline}
@@ -60,10 +57,6 @@ font-family:var(--mono);font-size:14px;color:var(--ink);word-break:break-all;use
 .hint{font-size:13px;margin:-18px 0 26px}
 .hint kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--rule-2);border-radius:2px;
 padding:1px 5px;color:var(--ink)}
-.once{border-left:2px solid var(--warn);background:color-mix(in srgb,var(--warn) 5%,var(--sheet));
-padding:16px 20px;margin-bottom:26px}
-.once b{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;
-letter-spacing:.18em;color:var(--warn);font-style:normal;margin-bottom:6px}
 a{color:var(--ink-2)}
 </style>`;
 
@@ -86,7 +79,7 @@ comparing Base pools. <b>No wallet, no account, no email.</b></p>
 <form method="post" action="${ISSUE_PATH}"><button type="submit">Create a token</button></form>`,
 );
 
-/** Matches the value's width so revealing it does not reflow the page. */
+/** Same length as the value so revealing it does not reflow the page. */
 function cover(value: string): string {
   return "*".repeat(value.length);
 }
@@ -96,10 +89,8 @@ function issuedPage(token: string): string {
   return page(
     "Your DeepTrace token",
     `<h1>Your token</h1>
-<div class="once"><b>Shown once</b>Copy it now. It is stored only as a hash, so it cannot be
-shown again. Losing it costs nothing &mdash; come back and take another.</div>
 <div class="token secret" tabindex="0"><span class="mask" aria-hidden="true">${stars}</span><span class="real">${token}</span></div>
-<p class="hint">Hidden until you point at it. One click selects the whole token, then
+<p class="hint">Covered by asterisks until you point at it. One click selects the whole token, then
 <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+<kbd>C</kbd> copies it.</p>
 <p>Export it, then follow the <a href="/">setup guide</a> for your client:</p>
 <div class="token secret" tabindex="0">export DEEPTRACE_TOKEN=&quot;<span class="mask" aria-hidden="true">${stars}</span><span class="real">${token}</span>&quot;</div>
