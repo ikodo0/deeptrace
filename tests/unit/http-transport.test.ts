@@ -375,7 +375,11 @@ describe("HTTP routing", () => {
       expect(body).toContain("OpenCode");
       expect(body).toContain("Codex");
       expect(body).toContain("No Tailscale required");
-      expect(body).toContain("Connecting MCP does not automatically install or load this file");
+      expect(body).toContain(
+        "npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research",
+      );
+      expect(body).toContain("Installing the skill does not configure MCP or store your token");
+      expect(body).toContain("Connecting MCP does not automatically install or load the skill");
       expect(body).not.toMatch(/<input|<script|<link|<img/u);
     } finally {
       await runtime.close();

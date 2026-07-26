@@ -155,12 +155,35 @@ freshness, warnings, and provenance before relying on the ranking.
 
 ## Optional agent skill
 
-Clients that support Agent Skills can install the
-[`deeptrace-pool-research`](../skills/deeptrace-pool-research/SKILL.md) folder.
-The skill makes the AI preserve exact decimal strings, separate Graph metrics
-from Nuthatch facts, surface partial coverage, and avoid invented fallbacks.
-It is not required for Claude Code, OpenCode, or Codex to use DeepTrace safely:
-the MCP server already supplies its essential instructions.
+The MCP connection is the only required setup. Claude Code, OpenCode, and Codex
+receive the tool schema, structured results, and essential safety instructions
+from the server.
+
+For a richer workflow, install the optional
+[`deeptrace-pool-research`](../skills/deeptrace-pool-research/SKILL.md) skill
+from the project where you use your AI:
+
+```sh
+npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research
+```
+
+The open-source `skills` CLI detects supported agents and asks which ones to
+target. Keep the confirmation prompt so you can review the source before
+installing it. The default project-scoped install is portable across Claude
+Code, OpenCode, and Codex and is easier to audit with the rest of the project.
+Start a new AI session after installation.
+
+On Windows, run the same command with `npx.cmd`. If Node.js is unavailable,
+download or clone the complete skill folder—not only `SKILL.md`—and place it at
+one of these project paths:
+
+- Claude Code: `.claude/skills/deeptrace-pool-research/`
+- OpenCode or Codex: `.agents/skills/deeptrace-pool-research/`
+
+The skill preserves exact decimal strings, separates Graph metrics from
+Nuthatch facts, surfaces partial coverage, and avoids invented fallbacks. It
+does not configure the MCP connection, receive the bearer token, or replace
+the required URL-and-token setup.
 
 ## Troubleshoot
 

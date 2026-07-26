@@ -23,6 +23,15 @@ instructions, described inputs, a declared output schema, and structured
 results so Claude Code, OpenCode, and Codex work without a separate skill
 installation.
 
+Install the optional skill from your project with:
+
+```sh
+npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research
+```
+
+The command prompts for the detected AI client. Review the skill before
+approving installation; it does not configure MCP or store the bearer token.
+
 ## Requirements
 
 - Node.js 22 or newer
