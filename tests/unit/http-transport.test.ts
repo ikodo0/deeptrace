@@ -187,6 +187,7 @@ const INITIALIZE_BODY = {
 interface TestServer {
   readonly runtime: HttpRuntime;
   readonly base: string;
+  readonly legacy: string;
 }
 
 interface TestServerOptions {
@@ -208,7 +209,8 @@ async function startTestServer(options: TestServerOptions = {}): Promise<TestSer
   if (address === null || typeof address === "string") {
     throw new Error("test server did not bind to a port");
   }
-  return { runtime, base: `http://127.0.0.1:${address.port}/mcp` };
+  const origin = `http://127.0.0.1:${address.port}`;
+  return { runtime, base: `${origin}/`, legacy: `${origin}/mcp` };
 }
 
 async function postInitialize(
@@ -317,6 +319,44 @@ async function getBrowserNavigation(base: string): Promise<{
     request.end();
   });
 }
+
+describe("HTTP routing", () => {
+  it("keeps /mcp as a compatibility alias", async () => {
+    const { runtime, legacy } = await startTestServer();
+    try {
+      const response = await postInitialize(legacy, {
+        accept: "application/json, text/event-stream",
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("mcp-session-id")).not.toBeNull();
+      await response.text();
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("rejects unknown paths", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await fetch(new URL("unknown", base), {
+        headers: {
+          authorization: `Bearer ${VALID_TOKEN_32}`,
+        },
+      });
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "not_found",
+          message: "Unknown endpoint",
+        },
+      });
+    } finally {
+      await runtime.close();
+    }
+  });
+});
 
 describe("HTTP authentication", () => {
   it("returns a challenge-free 404 for top-level browser navigation", async () => {

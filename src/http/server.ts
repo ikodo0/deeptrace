@@ -12,7 +12,8 @@ import { createLiveComparePoolsSources } from "../tools/index.js";
 import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
 
-const MCP_PATH = "/mcp";
+/** Root is canonical; /mcp remains an alias for existing client configs. */
+const MCP_PATHS = new Set(["/", "/mcp"]);
 const SESSION_HEADER = "mcp-session-id";
 /** Bounds memory held by abandoned sessions that never send DELETE. */
 const MAX_SESSIONS = 64;
@@ -230,7 +231,7 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
     void (async () => {
       try {
         const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
-        if (url.pathname !== MCP_PATH) {
+        if (!MCP_PATHS.has(url.pathname)) {
           respondJson(response, 404, "not_found", "Unknown endpoint");
           return;
         }
