@@ -156,10 +156,11 @@ export const compareLendingResponseSchema = z
       return;
     }
 
-    if (response.coverage.successful_sources !== response.data.markets.length) {
+    // Top-N may return fewer records than answered, never more.
+    if (response.coverage.successful_sources < response.data.markets.length) {
       context.addIssue({
         code: "custom",
-        message: "Successful source count must equal the number of market records",
+        message: "Market records cannot outnumber the successful sources",
         path: ["coverage", "successful_sources"],
       });
     }

@@ -185,9 +185,11 @@ export function settleCompareLendingResult(
   const freshness: ResultFreshness[] = ordered.map(resultFreshness);
   const provenance: ResultProvenance[] = ordered.map(resultProvenance);
 
+  // Counts sources that answered, not records returned: Top-N truncation is a
+  // caller's choice, so it must not read as missing source coverage.
   const coverage: LendingCoverage = {
     requested_sources: M0_CORE_POLICY.lending.coverage.expectedSources,
-    successful_sources: input.markets.length,
+    successful_sources: okCount,
   };
 
   const status = determineStatus({

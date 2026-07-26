@@ -322,8 +322,11 @@ describe("settleComparePoolsResult", () => {
       nuthatchResult: null,
     });
 
+    // Partial here is owed to the absent Nuthatch fact, not to the truncation:
+    // both deployments answered, so coverage still reports two.
     expect(response.status).toBe("partial");
     expect(response.data?.pools).toHaveLength(1);
+    expect(response.coverage.successful_deployments).toBe(2);
     expect(
       response.warnings.some((warning) => warning.includes("Top-N truncated ranked pools")),
     ).toBe(true);

@@ -148,15 +148,17 @@ describe("executeCompareLending", () => {
     expect(response.data?.markets[2]?.total_borrow_balance_usd).toBeNull();
   });
 
-  it("warns when top_n truncates ranked markets", async () => {
+  it("keeps coverage on answered sources when top_n truncates ranked markets", async () => {
     const response = await executeCompareLending(
       { ...lockedRequest, top_n: 1 },
       sourcesFor(completeLendingScenario),
     );
 
-    expect(compareLendingResponseSchema.parse(response).status).toBe("partial");
+    // Truncation is the caller's choice, so it is a warning rather than a
+    // coverage gap: every source still answered and was fresh.
+    expect(compareLendingResponseSchema.parse(response).status).toBe("complete");
     expect(response.data?.markets).toHaveLength(1);
-    expect(response.coverage.successful_sources).toBe(1);
+    expect(response.coverage.successful_sources).toBe(3);
     expect(response.warnings).toContain("Top-N truncated ranked markets from 3 to 1.");
   });
 
