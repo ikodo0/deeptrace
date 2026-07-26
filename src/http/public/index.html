@@ -306,14 +306,13 @@ is fresh, and every warning.</pre>
 
 <section class="section" aria-labelledby="h-skill">
   <div class="sect-head"><h2 id="h-skill">The optional skill</h2><span>Not required</span></div>
-  <p class="note"><b>DeepTrace works the moment MCP is connected.</b> The skill only teaches your AI to preserve exact decimal strings, keep Graph metrics distinct from Nuthatch freshness, and surface partial coverage.</p>
+  <p class="note"><b>DeepTrace works the moment MCP is connected.</b> The skill only teaches your AI to preserve exact decimal strings, keep Graph metrics distinct from Nuthatch freshness, and surface partial coverage. Connecting MCP does not automatically install or load the skill.</p>
   <div class="code">
     <div class="code-head"><span>Recommended</span><span>Click to select</span></div>
-<pre><span class="d">$</span> npx skills add \
-    https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research</pre>
+<pre><span class="d">$</span> npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research</pre>
   </div>
   <dl style="margin-top:20px">
-    <div class="lrow"><dt>Review first</dt><dd>Read the skill before approving installation.</dd></div>
+    <div class="lrow"><dt>Review first</dt><dd>The installer detects supported agents and asks where to install. Read the skill before approving it.</dd></div>
     <div class="lrow"><dt>Then restart</dt><dd>Start a new AI session after installing.</dd></div>
     <div class="lrow"><dt>No secrets</dt><dd>Installing the skill does not configure MCP or store your token.</dd></div>
     <div class="lrow"><dt>Fallback</dt><dd>If <span class="ic">npx skills</span> is unavailable, download the folder from GitHub into your client's skills directory.</dd></div>
@@ -329,6 +328,7 @@ is fresh, and every warning.</pre>
     <div class="lrow"><dt>Rank by</dt><dd>TVL, volume, or fees &mdash; up to <b>three</b> pools</dd></div>
     <div class="lrow"><dt>The Graph</dt><dd>Supplies every financial metric</dd></div>
     <div class="lrow"><dt>Nuthatch</dt><dd>Supplies swap-index freshness only. The two never mix &mdash; that separation is what makes freshness independent evidence.</dd></div>
+    <div class="lrow"><dt>Tools</dt><dd><b>compare_pools</b> and <b>find_large_swaps</b> are live. <span class="ic">get_dex_metrics</span> and <span class="ic">research_wallet</span> are queued.</dd></div>
     <div class="lrow no"><dt>Never writes</dt><dd>DeepTrace cannot trade, sign, or submit a transaction.</dd></div>
     <div class="lrow no"><dt>Never invents</dt><dd>No model runs inside DeepTrace. Missing data stays missing.</dd></div>
     <div class="lrow no"><dt>Never reprices</dt><dd>USD values come from the source that reported them.</dd></div>

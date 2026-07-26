@@ -370,18 +370,55 @@ describe("HTTP routing", () => {
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toBe("text/html; charset=utf-8");
       expect(response.headers.get("www-authenticate")).toBeNull();
-      expect(body).toContain("<h1>Connect pool research to your AI</h1>");
+      expect(body).toContain("Compare Base liquidity pools");
       expect(body).toContain("Claude Code");
       expect(body).toContain("OpenCode");
       expect(body).toContain("Codex");
-      expect(body).toContain("<code>compare_pools</code> and <code>find_large_swaps</code>");
-      expect(body).toContain("No Tailscale required");
+      expect(body).toContain("compare_pools");
+      expect(body).toContain("find_large_swaps");
+      expect(body).toContain("no Tailscale");
       expect(body).toContain(
         "npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research",
       );
       expect(body).toContain("Installing the skill does not configure MCP or store your token");
       expect(body).toContain("Connecting MCP does not automatically install or load the skill");
-      expect(body).not.toMatch(/<input|<script|<link|<img/u);
+      expect(body).not.toMatch(/<input|<script|<img/u);
+
+      // The page may reference its own typefaces and nothing else. Any other
+      // <link> would be an off-origin dependency on an authenticated origin.
+      for (const tag of body.match(/<link[^>]*>/gu) ?? []) {
+        expect(tag).toMatch(/rel="preload"[^>]*href="\/assets\/[a-z-]+\.woff2"/u);
+      }
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("serves the connection page typefaces without authentication", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const origin = base.endsWith("/") ? base.slice(0, -1) : base;
+      for (const name of ["text.woff2", "text-italic.woff2", "mono.woff2"]) {
+        const response = await fetch(`${origin}/assets/${name}`);
+        expect(response.status).toBe(200);
+        expect(response.headers.get("content-type")).toBe("font/woff2");
+        expect(response.headers.get("cache-control")).toContain("immutable");
+        expect((await response.arrayBuffer()).byteLength).toBeGreaterThan(0);
+      }
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("rejects asset paths that are not one of the known typefaces", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const origin = base.endsWith("/") ? base.slice(0, -1) : base;
+      for (const path of ["/assets/evil.woff2", "/assets/../index.html", "/assets/"]) {
+        const response = await fetch(`${origin}${path}`);
+        expect(response.status).toBe(404);
+        await response.text();
+      }
     } finally {
       await runtime.close();
     }
