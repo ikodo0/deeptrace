@@ -374,6 +374,7 @@ describe("HTTP routing", () => {
       expect(body).toContain("Claude Code");
       expect(body).toContain("OpenCode");
       expect(body).toContain("Codex");
+      expect(body).toContain("<code>compare_pools</code> and <code>find_large_swaps</code>");
       expect(body).toContain("No Tailscale required");
       expect(body).toContain(
         "npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research",
