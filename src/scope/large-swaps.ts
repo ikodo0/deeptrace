@@ -25,6 +25,10 @@ export const LSS_SCOPE = {
     default: 25,
     maximum: 100,
   },
+  cursor: {
+    version: 1,
+    maximumLength: 2_048,
+  },
 } as const;
 
 export type LssScope = typeof LSS_SCOPE;
