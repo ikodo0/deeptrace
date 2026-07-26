@@ -155,7 +155,9 @@ await runCheck("notifications/initialized", async () => {
   return { ok: status === 202, detail: `status=${status} (expected 202)` };
 });
 
-// Check 5: tools/list -> SSE payload contains compare_pools
+const EXPECTED_TOOLS = ["compare_pools", "compare_lending_markets"];
+
+// Check 5: tools/list -> SSE payload advertises both public tools
 await runCheck("tools/list", async () => {
   const { status, text } = await postJson(
     MCP_URL,
@@ -165,30 +167,21 @@ await runCheck("tools/list", async () => {
   const msg = parseSse(text);
   const tools = msg?.result?.tools ?? [];
   const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
-  const ok = status === 200 && names.includes("compare_pools");
-  const detail = status !== 200 ? `status=${status} (expected 200)` : `tools=[${names.join(",")}]`;
+  const missingTools = EXPECTED_TOOLS.filter((n) => !names.includes(n));
+  const ok = status === 200 && missingTools.length === 0;
+  let detail = `tools=[${names.join(",")}]`;
+  if (status !== 200) detail = `status=${status} (expected 200)`;
+  else if (missingTools.length > 0) detail += ` missing=[${missingTools.join(",")}]`;
   return { ok, detail };
 });
 
-// Check 6: tools/call compare_pools with locked args
-await runCheck("tools/call", async () => {
+// Checks 6-7: tools/call each public tool with its locked allowlisted args.
+// A tool call is a pass when it settles complete or partial; only a transport
+// failure or a `failed` envelope is a smoke failure.
+async function callTool({ id, name, args, requestedKey, successKey }) {
   const { status, text } = await postJson(
     MCP_URL,
-    {
-      jsonrpc: "2.0",
-      id: 4,
-      method: "tools/call",
-      params: {
-        name: "compare_pools",
-        arguments: {
-          chain_id: 8453,
-          token0: "0x4200000000000000000000000000000000000006",
-          token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-          window: "24h",
-          ranked_by: "tvl_usd",
-        },
-      },
-    },
+    { jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } },
     { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
   );
   if (status !== 200) {
@@ -207,15 +200,45 @@ await runCheck("tools/call", async () => {
   }
   const st = parsed?.status;
   const coverage = parsed?.coverage ?? {};
-  const success = coverage.successful_deployments;
-  const requested = coverage.requested_deployments;
+  const success = coverage[successKey];
+  const requested = coverage[requestedKey];
   const covStr =
     typeof success === "number" && typeof requested === "number"
       ? `${success}/${requested}`
       : "?/?";
   const ok = st === "complete" || st === "partial";
   return { ok, detail: `status=${st} ${covStr}` };
-});
+}
+
+await runCheck("tools/call pools", () =>
+  callTool({
+    id: 4,
+    name: "compare_pools",
+    args: {
+      chain_id: 8453,
+      token0: "0x4200000000000000000000000000000000000006",
+      token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      window: "24h",
+      ranked_by: "tvl_usd",
+    },
+    requestedKey: "requested_deployments",
+    successKey: "successful_deployments",
+  }),
+);
+
+await runCheck("tools/call lending", () =>
+  callTool({
+    id: 5,
+    name: "compare_lending_markets",
+    args: {
+      chain_id: 8453,
+      market_token: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      ranked_by: "tvl_usd",
+    },
+    requestedKey: "requested_sources",
+    successKey: "successful_sources",
+  }),
+);
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);
