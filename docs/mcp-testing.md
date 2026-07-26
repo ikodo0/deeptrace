@@ -1,61 +1,46 @@
 # MCP server testing guide
 
-This document explains how to run the DeepTrace MCP server and how to confirm it
-answers a real tool call. It covers the local stdio and HTTP transports, the
-shared tailnet gateway, the Nuthatch source that sits behind it, and the
-operations needed on container CT 104. It is written for someone who has never
-run this repo before.
+This document explains how to run the remote-only DeepTrace Streamable HTTP MCP
+server and confirm it answers a real tool call. It covers local HTTP testing, the
+public gateway, the private Nuthatch source behind it, and operations on
+container CT 104.
 
-The single most common support issue is confusing the two HTTP surfaces on the
-tailnet. Read "Two surfaces" before touching anything else.
+The most common support issue is confusing the public MCP endpoint with the
+private Nuthatch API. Read "Two surfaces" before troubleshooting.
 
 ## Two surfaces
 
-There are two HTTP services exposed over Tailscale Serve on the same tailnet
-host. They back onto different local ports and answer to different clients.
-Mixing them up is the #1 support cost.
+DeepTrace and Nuthatch are separate HTTP services with different trust
+boundaries. MCP clients call only DeepTrace. The DeepTrace process calls
+Nuthatch through its configured private URL.
 
 | Surface | URL | Backs onto | Who calls it |
 | --- | --- | --- | --- |
-| Nuthatch source API | https://<TAILNET_HOST> (:443) | 127.0.0.1:8288 | the DeepTrace Nuthatch adapter |
-| DeepTrace MCP gateway | https://<TAILNET_HOST>:8443/mcp | 127.0.0.1:8787 | MCP clients (Claude Code etc.) |
+| Nuthatch source API | configured `NUTHATCH_BASE_URL` | Nuthatch `:8288` | DeepTrace adapters only |
+| DeepTrace MCP gateway | https://mcp.ikodo.dev/mcp | DeepTrace `127.0.0.1:8787` | Remote MCP clients |
 
-Both are tailnet-only via Tailscale Serve. There is no Funnel.
-
-The MCP gateway serves only the path `/mcp`. Everything else returns 404.
-`/health`, `/ready`, `/nest`, `/schema`, `/sql` are Nuthatch routes on `:443`;
-they do not exist on `:8443`.
+The MCP gateway serves only `/mcp`; everything else returns 404. Nuthatch routes
+such as `/health`, `/ready`, `/nest`, `/schema`, and `/sql` are not public MCP
+routes.
 
 ## For an external collaborator
 
-This is the whole path for someone outside the tailnet who only needs to call
-the tool. You do not clone the repo, build anything, or hold any Graph
-credential.
+This is the whole path for someone who only needs to call the tool. They do not
+clone the repository, run a local process, join the operator tailnet, or hold a
+Graph credential.
 
 ### What you need from the maintainer
 
-1. A Tailscale node-share invitation for the machine `wallet-intel`. Accept it
-   from the invite link. It shares one machine only — the rest of the tailnet
-   stays invisible.
-2. The bearer token for the MCP gateway. Sent out of band, never in the repo.
-3. The gateway URL: https://<TAILNET_HOST>:8443/mcp
-4. Confirmation that the maintainer has applied the ACL grant for your
-   Tailscale identity on tcp:8443. Without it every request times out.
+1. The bearer token for the MCP gateway, sent out of band.
+2. The gateway URL: https://mcp.ikodo.dev/mcp
 
 ### Setup
-
-Join the tailnet:
-
-```
-tailscale up
-tailscale status        # expect a wallet-intel row
-```
 
 Register the MCP server with Claude Code:
 
 ```
 claude mcp add --transport http deeptrace \
-  https://<TAILNET_HOST>:8443/mcp \
+  https://mcp.ikodo.dev/mcp \
   --header "Authorization: Bearer <TOKEN>"
 ```
 
@@ -70,17 +55,21 @@ claude mcp list         # expect: deeptrace: ... (HTTP) - ✔ Connected
 Ask the agent to compare Base WETH/USDC pools, or call the `compare_pools`
 tool with `chain_id` `8453`, `token0`
 `0x4200000000000000000000000000000000000006` and `token1`
-`0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`. A result with status `partial`
-is a success: two Graph sources answered, Nuthatch is not wired in yet. See
-"Known gaps" for why.
+`0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`. For the second tool, ask where to
+lend USDC on Base, or call `compare_lending_markets` with `chain_id` `8453` and
+`market_token` `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`.
+
+A result with status `complete` or `partial` is a successful tool call. A
+partial response identifies the stale or unavailable source in coverage and
+warnings.
 
 ### If it does not work — report back which one
 
 | You see | What it means |
 | --- | --- |
-| Timeout | The ACL grant is missing or names the wrong identity. A maintainer fix, not yours. Send them your exact Tailscale identity. |
+| Timeout | The public route, origin, or service is unavailable. Report the timestamp to the maintainer. |
 | HTTP 401 | You reached the server; the token is wrong or stale. Ask for a reissue. |
-| HTTP 404 | Check the URL ends in `/mcp`. Only that path is served on `:8443`. |
+| HTTP 404 | Check the URL ends in `/mcp`. Only that path is served. |
 
 Nothing here needs repo access, a Graph API key, or a local build.
 
@@ -99,7 +88,7 @@ shell or systemd unit that starts the server.
 | `DEEPTRACE_HTTP_SESSION_IDLE_TIMEOUT_MS` | Idle session lifetime. Default `1800000` (30 minutes). |
 | `DEEPTRACE_HTTP_SESSION_SWEEP_INTERVAL_MS` | Idle-session cleanup cadence. Default `60000` (1 minute). |
 | `GRAPH_API_KEY` | Required, or every Graph source returns `unavailable`. |
-| `NUTHATCH_BASE_URL` | `https://<TAILNET_HOST>`, no trailing slash. |
+| `NUTHATCH_BASE_URL` | Private Nuthatch HTTP origin, no trailing slash. |
 
 Authenticated session requests refresh activity, and in-flight tool calls are
 not reaped. A standalone SSE stream does not keep an otherwise-idle session
@@ -122,32 +111,8 @@ resolves `records.json` relative to the compiled module, so without it every
 
 ## Run it locally
 
-### stdio
-
-This is the default for local Claude Code.
-
 ```
-node dist/index.js
-```
-
-Verified handshake, three JSON-RPC lines on stdin:
-
-```
-{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"c","version":"1"}}}
-{"jsonrpc":"2.0","method":"notifications/initialized"}
-{"jsonrpc":"2.0","id":2,"method":"tools/list"}
-```
-
-Verified reply to `initialize`:
-
-```
-{"result":{"protocolVersion":"2025-06-18","capabilities":{"tools":{"listChanged":true}},"serverInfo":{"name":"deeptrace","version":"0.1.0"}},"jsonrpc":"2.0","id":1}
-```
-
-### HTTP
-
-```
-DEEPTRACE_HTTP_TOKEN=<TOKEN> DEEPTRACE_HTTP_PORT=8799 node dist/http.js
+DEEPTRACE_HTTP_TOKEN=<TOKEN> DEEPTRACE_HTTP_PORT=8799 npm start
 ```
 
 Logs:
@@ -165,7 +130,7 @@ first; drop to the manual steps below only when something fails and you need to
 see the raw exchange.
 
 ```
-DEEPTRACE_MCP_URL=https://<TAILNET_HOST>:8443/mcp \
+DEEPTRACE_MCP_URL=https://mcp.ikodo.dev/mcp \
 DEEPTRACE_HTTP_TOKEN=<TOKEN> \
   npm run smoke:mcp
 ```
@@ -175,9 +140,10 @@ auth gate (no token)         PASS  status=401 (expected 401)
 unknown path                 PASS  status=404 (expected 404)
 initialize                   PASS  status=200 sid=60464046
 notifications/initialized    PASS  status=202 (expected 202)
-tools/list                   PASS  tools=[compare_pools]
-tools/call                   PASS  status=partial 2/2
-6 passed, 0 failed
+tools/list                   PASS  tools=[compare_pools,compare_lending_markets]
+tools/call pools             PASS  status=partial 2/2
+tools/call lending           PASS  status=complete 3/3
+7 passed, 0 failed
 ```
 
 Both variables are required; missing ones are reported by name only. The exit
@@ -185,8 +151,9 @@ code is 0 only when every check passes, so it works unchanged in CI or a
 post-deploy hook. Point `DEEPTRACE_MCP_URL` at `http://127.0.0.1:8787/mcp` to
 check a local instance instead.
 
-`status=partial` on the final check is a pass: the Graph sources answered and
-Nuthatch is not yet wired in. See "Known gaps".
+`status=partial` on a tool call is a pass when the Graph sources answered and
+the response explicitly reports a degraded source — for `compare_pools` that is
+usually Nuthatch being stale or unavailable. See "Known gaps".
 
 ### Manual path
 
@@ -227,7 +194,8 @@ curl -sS -X POST http://127.0.0.1:8799/mcp \
 
 ### Step 3 — tools/list
 
-Verified to return exactly one tool, `compare_pools`.
+Verified to return two read-only tools, `compare_pools` and
+`compare_lending_markets`.
 
 ```
 curl -sS -X POST http://127.0.0.1:8799/mcp \
@@ -257,17 +225,47 @@ Verified result today (values change; shape does not):
 ```
 status: partial
 coverage: {"requested_deployments":2,"successful_deployments":2,"nuthatch_available":false}
-pool 0x6c561b44... tvl 151138739.377709
-pool 0x72ab388e... tvl 6612457.78705088
+pool 0x6c561b44... (0.3% tier) tvl 114858626.99
+pool 0xd0b53d92... (0.05% tier) tvl 10638092.50
 ```
 
 `partial` is correct, not a failure. See Known gaps.
+
+### Step 5 — tools/call compare_lending_markets
+
+The lending arguments are locked the same way: `chain_id` must be `8453` and
+`market_token` the native USDC address. `ranked_by` is `"tvl_usd"`,
+`"total_deposit_balance_usd"`, `"total_borrow_balance_usd"`,
+`"lender_variable_rate_percent"` or `"borrower_variable_rate_percent"`. `top_n`
+1..3.
+
+```
+curl -sS --max-time 90 -X POST http://127.0.0.1:8799/mcp \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "mcp-session-id: $SID" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"compare_lending_markets","arguments":{"chain_id":8453,"market_token":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","ranked_by":"tvl_usd"}}}'
+```
+
+Verified result today (values change; shape does not):
+
+```
+status: complete
+coverage: {"requested_sources":3,"successful_sources":3}
+aave-v3           tvl 172445408.88  lend 3.517726%  borrow 4.420738%
+moonwell          tvl 15066735.98   lend 4.116566%  borrow 5.238681%
+seamless-protocol tvl 205400.29     lend 0.110624%  borrow 1.045268%  is_active false
+```
+
+This tool reaches no Nuthatch view, so `complete` is the normal outcome when all
+three subgraphs answer. Seamless reporting its USDC market inactive is a fact
+the response carries through in `is_active` and a warning, not a failure.
 
 ## Connect a client
 
 ```
 claude mcp add --transport http deeptrace \
-  https://<TAILNET_HOST>:8443/mcp \
+  https://mcp.ikodo.dev/mcp \
   --header "Authorization: Bearer <TOKEN>"
 claude mcp list
 ```
@@ -330,18 +328,14 @@ Row fields: `pool_address`, `recent_swap_count_24h`, `last_swap_block`,
 
 | Symptom | Cause |
 | --- | --- |
-| Timeout on :8443 | Tailscale ACL identity mismatch. The shared user is `kapustazh@github` — a GitHub identity, not an email. An ACL grant naming an email never matches, and the denial presents as a timeout, indistinguishable from a dead port. Read the identity from Machines -> wallet-intel -> Sharing. |
+| Timeout | Public proxy, origin, or service unavailable. Record the timestamp and inspect proxy/service logs. |
 | HTTP 401 | Wrong or missing bearer token. The network path is fine — 401 means the server was reached. |
-| HTTP 404 on :8443/health | Only `/mcp` is routed. `/health` and `/ready` are Nuthatch routes on `:443`. |
+| HTTP 404 on `/health` | DeepTrace serves only `/mcp`; Nuthatch readiness is private. |
 | HTTP 400 `missing_session` | `tools/*` sent without the `mcp-session-id` header, or before the `initialized` notification. |
 | Server exits at startup | `DEEPTRACE_HTTP_TOKEN` missing or shorter than 32 characters. |
 | `records.json could not be read` | Built with bare `tsc`. Re-run `npm run build`. |
 | All sources `unavailable` | `GRAPH_API_KEY` not set in the server's environment. |
 | Connected but zero tools | A stale build is deployed. Rebuild and restart. |
-
-ACL denials always look like timeouts. Before concluding a service is down, test
-the same URL from a tailnet member. If a member succeeds and the shared user
-times out, it is the ACL, every time.
 
 ## CT 104 operations
 
@@ -388,3 +382,8 @@ service, and reissue the token to every client.
    stale until the backfill catches up, so a `partial` result remains expected.
 2. There is no live integration test for the MCP server. The offline test suite is
    entirely offline.
+3. `compare_pools` over-fetches eight daily snapshots so a window is never short
+   a day. When the current partial UTC day has no snapshot yet, all eight
+   returned days are complete and the response carries a
+   "8 completed days provided; using the 7 most recent" warning. The aggregate is
+   still exactly the requested window.

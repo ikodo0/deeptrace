@@ -25,13 +25,18 @@ The first implementation is one complete vertical slice:
 
 ```text
 compare_pools
+compare_lending_markets
 ```
 
-MVP-0 compares one token pair across three DEX deployments on one chain.
+MVP-0 compares one WETH/USDC pair across two Uniswap V3 fee tiers on Base, and
+one USDC lending market across three Base lending protocols. Both tools read
+Messari standardized subgraphs, so one schema family covers a DEX AMM and three
+lending protocols.
 
 It must:
 
-* query the same compatible Standardized DEX pattern across all three deployments;
+* query the same compatible Standardized DEX pattern across both pool bindings;
+* query one shared Standardized Lending pattern across all three lending protocols;
 * query one Nuthatch source for fresh data from a selected pool;
 * normalize the results into one `PoolComparisonRecord`;
 * return TVL, volume and fees for a fixed time window;
@@ -47,23 +52,28 @@ It must:
 | :--- | :--- |
 | Chain | Base (`8453`) |
 | Token pair | WETH `0x4200000000000000000000000000000000000006` / native USDC `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` |
-| Standardized DEX deployments | Two Uniswap-V3-lineage native deployments (owner-amended from three): Uniswap V3 `QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR`, PancakeSwap V3 `QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g` — see `docs/source-scope.md` |
-| Nuthatch contracts/views | One of the two confirmed pools; final pick in M4.1 (prefer Uniswap V3 WETH/USDC 0.3%) |
+| Standardized DEX deployment | Messari Uniswap V3 Base `QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh` (schema `4.0.1`), bound twice: WETH/USDC 0.3% `0x6c561b44…` and 0.05% `0xd0b53d92…` — see `docs/source-scope.md` |
+| Standardized lending deployments | Messari Aave v3 `Qmb5j4tE5d…`, Seamless `QmPSmTkJPS…`, Moonwell `QmeE6TgfRm…`, all on the USDC market |
+| Nuthatch contracts/views | Uniswap V3 WETH/USDC 0.3% `0x6c561b44…` |
 | Time windows | `24h` and `7d` |
-| Initial metrics | TVL, volume and fees |
-| Ranking metric | `volume_usd` by default; TVL and fees are selectable |
+| Initial metrics | TVL, volume and fees for pools; TVL, deposits, borrows and variable rates for lending markets |
+| Ranking metric | `volume_usd` by default for pools, `tvl_usd` for lending markets; the other metrics are selectable |
 | Top-N | Default and maximum `3` |
 | USD price source | Source-reported USD values only; no repricing in MVP-0 |
-| Public tool implemented | `compare_pools` |
+| Public tools implemented | `compare_pools`, `compare_lending_markets` |
 
-Base does not yield three live Messari-standardized DEX deployments; MVP-0 standardizes on the Uniswap-V3 native schema family instead (`source_type: "native_subgraph"`), with an owner-approved reduction to two Graph sources. See `docs/source-scope.md`.
+Base has exactly one healthy Messari `dex-amm` deployment, so DEX breadth comes from
+comparing two fee tiers of that one standardized source rather than two protocols.
+Cross-protocol reuse of the standardized schema is demonstrated by
+`compare_lending_markets`, where one query template serves three unrelated lending
+protocols. See `docs/source-scope.md`.
 Core policy values are executable constants in `src/policy/m0.ts`.
 
 ### MVP-0 Definition of Done
 
 MVP-0 is complete when:
 
-* one live request returns comparable records for three pools;
+* one live request returns comparable records for both locked pools, and one returns comparable records for all three lending markets;
 * at least one returned fact depends on Nuthatch;
 * repeated requests over the same source blocks are deterministic;
 * one unavailable source produces a partial result rather than total failure;
@@ -86,7 +96,7 @@ DeepTrace is designed for The Graph developer-tooling, AI-use-case and composabl
 The submission should demonstrate:
 
 * live blockchain data rather than fixtures;
-* one reusable query pattern across exactly three DEX deployments in the same standardized category;
+* one reusable query pattern across three lending deployments in the same standardized category, plus a second pattern reused across two pool bindings;
 * Nuthatch as a load-bearing source of a fresh pool fact;
 * a reusable MCP interface and one agent skill;
 * transparent composition of multiple sources;
@@ -111,10 +121,11 @@ The planned DeepTrace interface contains one `SKILL.md` and four high-level MCP 
 research_wallet
 get_dex_metrics
 compare_pools
+compare_lending_markets
 find_large_swaps
 ```
 
-MVP-0 registers only `compare_pools`. The remaining tools are added in the order defined under **Next Milestones**.
+MVP-0 registers `compare_pools` and `compare_lending_markets`. The remaining tools are added in the order defined under **Next Milestones**.
 
 The user's AI chooses the appropriate available tool. DeepTrace retrieves and verifies the data and returns structured facts only. The user's AI + `SKILL.md` turn that payload into prose.
 
@@ -122,14 +133,15 @@ The user's AI chooses the appropriate available tool. DeepTrace retrieves and ve
 
 | Tool | Stage | Core request | Core result |
 | :--- | :--- | :--- | :--- |
-| `compare_pools` | MVP-0 | Configured token pair and chain, time window, ranking metric and Top-N | Canonical pool records and deterministic cross-DEX ranking |
+| `compare_pools` | MVP-0 | Configured token pair and chain, time window, ranking metric and Top-N | Canonical pool records and deterministic cross-pool ranking |
+| `compare_lending_markets` | MVP-0 | Configured market asset and chain, ranking metric and Top-N | Canonical lending market records and deterministic cross-protocol ranking |
 | `find_large_swaps` | Next | Protocols or pools, chains, time window, USD threshold, limit and cursor | Recent swaps whose normalized USD notional passes the threshold |
 | `get_dex_metrics` | Next | Protocols, chains, time window and requested metrics | Comparable protocol TVL, volume, fees, revenue and usage |
 | `research_wallet` | Later | Address, chains, protocols, requested sections, time window, limit and cursor | Supported positions, swaps, assets, protocol usage, counterparties and observable inflows |
 
 Every tool receives an explicit scope and returns the scope that was actually searched.
 
-For MVP-0, the chain, pair and three deployments are configuration-backed allowlisted values. Inputs outside that locked scope return a clear unsupported-scope error rather than starting open-ended source discovery.
+For MVP-0, the chain, pair, market asset and every bound deployment are configuration-backed allowlisted values. Inputs outside that locked scope return a clear unsupported-scope error rather than starting open-ended source discovery.
 
 ### One Skill Contract
 
@@ -143,7 +155,7 @@ The single `SKILL.md` teaches the user's AI:
 * how to report coverage, freshness and provenance;
 * how to present structured results without inventing metrics or replacing facts.
 
-During MVP-0 the skill documents `compare_pools` only. Future tool instructions are added when those tools are implemented.
+During MVP-0 the skill documents `compare_pools` and `compare_lending_markets`. Future tool instructions are added when those tools are implemented.
 
 ## Global Reference Architecture
 
