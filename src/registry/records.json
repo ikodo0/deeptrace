@@ -8,11 +8,7 @@
     "deployment_or_view_id": "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
     "schema_version": "4.0.1",
     "methodology_version": "1.0.0",
-    "supported_entities": [
-      "dexAmmProtocols",
-      "liquidityPool",
-      "liquidityPoolDailySnapshots"
-    ],
+    "supported_entities": ["dexAmmProtocols", "liquidityPool", "liquidityPoolDailySnapshots"],
     "status": "active",
     "locator": {
       "kind": "graph_subgraph",
@@ -29,11 +25,7 @@
     "deployment_or_view_id": "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
     "schema_version": "4.0.1",
     "methodology_version": "1.0.0",
-    "supported_entities": [
-      "dexAmmProtocols",
-      "liquidityPool",
-      "liquidityPoolDailySnapshots"
-    ],
+    "supported_entities": ["dexAmmProtocols", "liquidityPool", "liquidityPoolDailySnapshots"],
     "status": "active",
     "locator": {
       "kind": "graph_subgraph",
@@ -50,9 +42,7 @@
     "deployment_or_view_id": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
     "schema_version": null,
     "methodology_version": null,
-    "supported_entities": [
-      "pool_swap_freshness"
-    ],
+    "supported_entities": ["pool_swap_freshness"],
     "status": "active",
     "locator": {
       "kind": "nuthatch_view",
@@ -69,9 +59,7 @@
     "deployment_or_view_id": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
     "schema_version": null,
     "methodology_version": "exact-pool-delta-keyset-v1",
-    "supported_entities": [
-      "pool_swap_search"
-    ],
+    "supported_entities": ["pool_swap_search"],
     "status": "active",
     "locator": {
       "kind": "nuthatch_view",
@@ -88,11 +76,7 @@
     "deployment_or_view_id": "Qmb5j4tE5deSXCrubQeqeghfrGhyfQBiq9DuZNMfHBjbfL",
     "schema_version": "3.1.0",
     "methodology_version": "1.1.0",
-    "supported_entities": [
-      "lendingProtocols",
-      "markets",
-      "rates"
-    ],
+    "supported_entities": ["lendingProtocols", "markets", "rates"],
     "status": "active",
     "locator": {
       "kind": "graph_subgraph",
@@ -109,11 +93,7 @@
     "deployment_or_view_id": "QmPSmTkJPSKLFn46YdgwMKV5K2c9a3pkWnzDCC4ccCLAXE",
     "schema_version": "3.1.0",
     "methodology_version": "1.0.0",
-    "supported_entities": [
-      "lendingProtocols",
-      "markets",
-      "rates"
-    ],
+    "supported_entities": ["lendingProtocols", "markets", "rates"],
     "status": "active",
     "locator": {
       "kind": "graph_subgraph",
@@ -130,11 +110,7 @@
     "deployment_or_view_id": "QmeE6TgfRmK2iLAgCLBeXuxJQ2VXLFAeHVMTvmnECiFw7y",
     "schema_version": "2.0.1",
     "methodology_version": "1.0.0",
-    "supported_entities": [
-      "lendingProtocols",
-      "markets",
-      "rates"
-    ],
+    "supported_entities": ["lendingProtocols", "markets", "rates"],
     "status": "active",
     "locator": {
       "kind": "graph_subgraph",
@@ -151,11 +127,7 @@
     "deployment_or_view_id": "Qmb5j4tE5deSXCrubQeqeghfrGhyfQBiq9DuZNMfHBjbfL",
     "schema_version": "3.1.0",
     "methodology_version": "1.1.0",
-    "supported_entities": [
-      "accounts",
-      "positions",
-      "positionSnapshots"
-    ],
+    "supported_entities": ["accounts", "positions", "positionSnapshots"],
     "status": "active",
     "locator": {
       "kind": "graph_subgraph",
@@ -172,9 +144,7 @@
     "deployment_or_view_id": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
     "schema_version": null,
     "methodology_version": "bounded-wallet-swap-keyset-v1",
-    "supported_entities": [
-      "wallet_swap_activity"
-    ],
+    "supported_entities": ["wallet_swap_activity"],
     "status": "active",
     "locator": {
       "kind": "nuthatch_view",

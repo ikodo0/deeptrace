@@ -90,6 +90,11 @@ For swap history, call `find_large_swaps` with chain `8453`, pool
 `complete`; continue only by copying its opaque `next_cursor` into the same
 request scope. This tool does not calculate USD notional.
 
+For source-bounded wallet facts, call `research_wallet` with chain `8453` and a
+lowercase public address. A complete result requires a supported Aave position
+and activity in the one indexed Nuthatch pool. Partial results preserve usable
+sections. Observed assets are not complete wallet balances.
+
 ### If it does not work — report back which one
 
 | You see                           | What it means                                                                                                             |
@@ -189,17 +194,19 @@ DEEPTRACE_MCP_URL=https://mcp.ikodo.dev npm run smoke:mcp
 
 Example transcript shape (statuses and coverage ratios vary by live source
 health; the smoke script must exercise `tools/list` plus one `tools/call` for
-each of the three released tools):
+each of the four released tools):
 
 ```
 auth gate (no token)         PASS  status=401 (expected 401)
 unknown path                 PASS  status=404 (expected 404)
 initialize                   PASS  status=200 session=established
 notifications/initialized    PASS  status=202 (expected 202)
-tools/list                   PASS  tools=[compare_pools,compare_lending_markets,find_large_swaps]
+tools/list                   PASS  tools=[compare_pools,compare_lending_markets,find_large_swaps,research_wallet]
 tools/call compare_pools     PASS  status=complete 2/2
 tools/call compare_lending_markets  PASS  status=complete 3/3
 tools/call find_large_swaps  PASS  status=complete 1/1
+tools/call research_wallet   PASS  status=partial 1/2
+9 passed, 0 failed
 ```
 
 Both variables are required; missing ones are reported by name only. The exit
@@ -219,7 +226,9 @@ For `compare_pools` and `compare_lending_markets`, both `complete` and
 `compare_pools` call normally returns `complete`; its `partial` status means at
 least one upstream source was stale or unavailable and must be explained from
 the returned warnings. `find_large_swaps` has no partial status: an unavailable
-sole source is `failed`.
+sole source is `failed`. The wallet smoke accepts `complete` or `partial` with
+at least one usable source; live two-source completion remains a separate
+deployment gate.
 
 ### Manual path
 
@@ -262,8 +271,8 @@ curl -sS -X POST http://127.0.0.1:8799 \
 
 ### Step 3 — tools/list
 
-Verified to return three read-only tools: `compare_pools`,
-`compare_lending_markets`, and `find_large_swaps`.
+Verified to return four read-only tools: `compare_pools`,
+`compare_lending_markets`, `find_large_swaps`, and `research_wallet`.
 
 ```
 curl -sS -X POST http://127.0.0.1:8799 \
@@ -352,6 +361,20 @@ curl -sS --max-time 90 -X POST http://127.0.0.1:8799 \
 source could not prove a stable fresh page; inspect warnings and do not invent
 a fallback. The requested limit is a cap: the server may return a shorter page
 with `has_more` and a warning to remain within the 64 KiB response budget.
+
+Call Wallet Research with the retained public Graph test address:
+
+```
+curl -sS --max-time 90 -X POST http://127.0.0.1:8799 \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "mcp-session-id: $SID" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
+  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"research_wallet","arguments":{"chain_id":8453,"address":"0x5cb3787a9c9c7547451ca3e6d8702453de35fe01","window":"24h","limit":5}}}'
+```
+
+Surface section coverage and every warning. A partial response may contain
+valid Graph positions while the dedicated Nuthatch wallet view is unavailable.
 
 ### Cleanup — close the session
 
