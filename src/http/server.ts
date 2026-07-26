@@ -11,6 +11,10 @@ import { createMcpServer } from "../mcp/server.js";
 import { createLiveComparePoolsSources, createLiveLargeSwapSource } from "../tools/index.js";
 import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
+import { join } from "node:path";
+
+import { isTokenIssueRequest, respondTokenIssue } from "./token-issue.js";
+import { TokenStore } from "./token-store.js";
 import {
   acceptsConnectionPage,
   isFontAssetRequest,
@@ -45,6 +49,8 @@ interface OpenedSession {
 export interface HttpServerOptions {
   readonly now?: () => number;
   readonly scheduleSessionSweep?: (sweep: () => Promise<void>, intervalMs: number) => () => void;
+  /** Defaults to the path in DEEPTRACE_TOKEN_STORE. Injected by tests. */
+  readonly tokenStore?: TokenStore;
 }
 
 export interface HttpRuntime {
@@ -132,6 +138,12 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
   // configured ceiling would be multiplied by the number of live sessions
   // instead of protecting the upstream gateway. Loading the gateway config here
   // also fails fast at startup rather than per request.
+  const tokenStore =
+    options.tokenStore ??
+    new TokenStore(
+      process.env.DEEPTRACE_TOKEN_STORE ?? join(process.cwd(), ".deeptrace-tokens.json"),
+    );
+
   const gatewayConfig = loadGatewayConfig();
   const rateLimiter = new FixedWindowRateLimiter({
     maxRequests: gatewayConfig.rateLimitMaxRequests,
@@ -263,6 +275,13 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
           return;
         }
 
+        // Unauthenticated by design: a caller cannot present a token before
+        // this endpoint has given them one.
+        if (isTokenIssueRequest(request, url.pathname)) {
+          respondTokenIssue(request, response, tokenStore, now);
+          return;
+        }
+
         if (!MCP_PATHS.has(url.pathname)) {
           respondJson(response, 404, "not_found", "Unknown endpoint");
           return;
@@ -281,7 +300,7 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
           return;
         }
 
-        if (!isAuthorized(request.headers.authorization, config.token)) {
+        if (!isAuthorized(request.headers.authorization, config.token, tokenStore)) {
           response.setHeader("www-authenticate", 'Bearer realm="deeptrace"');
           respondJson(response, 401, "unauthorized", "Missing or invalid bearer token");
           return;

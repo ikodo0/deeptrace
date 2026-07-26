@@ -9,6 +9,7 @@ const BEARER_PREFIX = /^Bearer (.+)$/;
 export function isAuthorized(
   authorizationHeader: string | undefined,
   expectedToken: string,
+  issuedTokens?: { verify(token: string): boolean },
 ): boolean {
   if (authorizationHeader === undefined) {
     return false;
@@ -17,6 +18,12 @@ export function isAuthorized(
   const credential = BEARER_PREFIX.exec(authorizationHeader.trim())?.[1];
   if (credential === undefined) {
     return false;
+  }
+
+  // Per-client tokens and the shared deployment token are accepted together so
+  // existing clients keep working while the shared one is being retired.
+  if (issuedTokens?.verify(credential) === true) {
+    return true;
   }
 
   const presented = Buffer.from(credential, "utf8");
