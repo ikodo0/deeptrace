@@ -473,9 +473,30 @@ down. Never ask an external MCP user to join the tailnet as a workaround.
 Service: `deeptrace-http.service`, `User=deploy`,
 `WorkingDirectory=/opt/deeptrace`, `ExecStart=/usr/bin/node dist/http.js`,
 `EnvironmentFile=/etc/deeptrace/http.env` (root:root, 0600, holds
-`DEEPTRACE_HTTP_TOKEN`, `GRAPH_API_KEY`, `NUTHATCH_BASE_URL`).
+`DEEPTRACE_HTTP_TOKEN`, `GRAPH_API_KEY`, `NUTHATCH_BASE_URL`,
+`DEEPTRACE_TOKEN_STORE`).
 Production sets `NUTHATCH_BASE_URL=http://127.0.0.1:8288`; the public proxy
 routes only to the DeepTrace HTTP service.
+
+### Issued token store
+
+Self-serve tokens live in `DEEPTRACE_TOKEN_STORE`, set to
+`/var/lib/deeptrace/tokens.json` in production. Two things make that path
+load-bearing, and both are easy to undo by accident:
+
+- The unit sets `ProtectSystem=strict`, so the whole filesystem is read-only
+  to the service. The store therefore needs a directory systemd has explicitly
+  made writable. A drop-in at
+  `/etc/systemd/system/deeptrace-http.service.d/10-token-store.conf` supplies
+  `StateDirectory=deeptrace` and `StateDirectoryMode=0700`, which creates
+  `/var/lib/deeptrace` owned by `deploy` and writable. Without it, minting a
+  token fails with `EROFS`.
+- The store must sit outside `/opt/deeptrace`, because the deploy rsyncs that
+  tree with `--delete`. Leaving the store at its in-repo default would discard
+  every issued token on the next deploy.
+
+The file holds SHA-256 digests, never tokens, so it is enough to revoke a
+credential but not to use one. Revoking is removing its entry and restarting.
 
 Access is via the Proxmox host; there is no direct SSH into the container:
 
