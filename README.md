@@ -1,6 +1,6 @@
 ![DeepTrace](logo.png)
 
-**Verifiable Base DeFi data for builders and AI agents. Every number sourced, every gap declared.**
+**Verifiable Base DeFi data for builders and AI agents.
 
 ---
 
