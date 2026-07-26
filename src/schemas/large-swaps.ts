@@ -22,6 +22,7 @@ const signedIntegerStringSchema = z
 const opaqueCursorSchema = z
   .string()
   .min(1)
+  .max(LSS_SCOPE.cursor.maximumLength)
   .refine((value) => value.trim() === value, "Cursor must not contain surrounding whitespace");
 
 const wethAssetSchema = z

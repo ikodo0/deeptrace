@@ -69,6 +69,7 @@ describe("find_large_swaps request schema", () => {
       { ...lockedLargeSwapsRequest, limit: 1.5 },
       { ...lockedLargeSwapsRequest, cursor: "" },
       { ...lockedLargeSwapsRequest, cursor: " cursor " },
+      { ...lockedLargeSwapsRequest, cursor: "x".repeat(LSS_SCOPE.cursor.maximumLength + 1) },
       { ...lockedLargeSwapsRequest, sql: "select *" },
     ]) {
       expect(findLargeSwapsRequestSchema.safeParse(request).success).toBe(false);
