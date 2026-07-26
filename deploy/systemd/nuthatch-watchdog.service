@@ -19,4 +19,3 @@ ProtectSystem=strict
 CapabilityBoundingSet=
 RestrictAddressFamilies=AF_INET AF_INET6
 UMask=0077
-

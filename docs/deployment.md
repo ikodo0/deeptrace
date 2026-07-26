@@ -21,15 +21,16 @@ The systemd unit uses:
 ```text
 WorkingDirectory=/var/lib/nuthatch
 EnvironmentFile=/etc/default/nuthatch
-ExecStart=/usr/local/bin/nuthatch dev --dir ${NUTHATCH_DIR} --listen ${NUTHATCH_LISTEN} $NUTHATCH_EXTRA_ARGS
+ExecStart=/usr/local/bin/nuthatch dev --dir ${NUTHATCH_DIR} --listen ${NUTHATCH_LISTEN} --rpc ${BASE_RPC_URL_PRIMARY} --rpc ${BASE_RPC_URL_SECONDARY} --rpc ${BASE_RPC_URL_TERTIARY} $NUTHATCH_EXTRA_ARGS
 ```
 
-`nest/nuthatch.toml` reads three ordered RPC URLs from
+Nuthatch 0.6.1 reads `rpc_urls` in `nest/nuthatch.toml` literally, so the
+committed nest retains credential-free HTTPS fallbacks. Define
 `BASE_RPC_URL_PRIMARY`, `BASE_RPC_URL_SECONDARY`, and
-`BASE_RPC_URL_TERTIARY`. Define all three in `/etc/default/nuthatch`, using
-independent providers. Keyed URLs are allowed in that root-owned environment
-file but must never be committed, printed by a probe, or copied into evidence.
-The staging `nuthatch check` process must load the same environment file.
+`BASE_RPC_URL_TERTIARY` in the root-owned `/etc/default/nuthatch`, using
+independent providers. The unit passes them as ordered, repeatable `--rpc`
+arguments, which Nuthatch tries before the committed fallbacks. Keyed URLs must
+never be committed, printed by a probe, or copied into evidence.
 
 ## Deploy
 

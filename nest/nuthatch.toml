@@ -3,9 +3,9 @@ name = "deeptrace-pool-freshness"
 chain = "base"
 chain_id = 8453
 rpc_urls = [
-    "${BASE_RPC_URL_PRIMARY}",
-    "${BASE_RPC_URL_SECONDARY}",
-    "${BASE_RPC_URL_TERTIARY}",
+    "https://base-rpc.publicnode.com",
+    "https://base.drpc.org",
+    "https://base-pokt.nodies.app",
 ]
 schema_version = 1
 
