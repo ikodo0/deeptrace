@@ -128,11 +128,11 @@ describe("wallet Nuthatch adapter", () => {
         await schemaGate;
         return base.schema();
       }),
-      sql: vi.fn(async (...args) => {
+      sql: vi.fn(async (query: string, maxRows: number) => {
         sqlStarted = true;
         sqlSawPeers = nestStarted && schemaStarted;
         await sqlGate;
-        return base.sql(...args);
+        return base.sql(query, maxRows);
       }),
     };
 
