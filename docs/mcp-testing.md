@@ -173,7 +173,7 @@ DEEPTRACE_HTTP_TOKEN=<TOKEN> \
 ```
 auth gate (no token)         PASS  status=401 (expected 401)
 unknown path                 PASS  status=404 (expected 404)
-initialize                   PASS  status=200 sid=60464046
+initialize                   PASS  status=200 session=established
 notifications/initialized    PASS  status=202 (expected 202)
 tools/list                   PASS  tools=[compare_pools]
 tools/call                   PASS  status=partial 2/2
@@ -183,7 +183,10 @@ tools/call                   PASS  status=partial 2/2
 Both variables are required; missing ones are reported by name only. The exit
 code is 0 only when every check passes, so it works unchanged in CI or a
 post-deploy hook. Point `DEEPTRACE_MCP_URL` at `http://127.0.0.1:8787/mcp` to
-check a local instance instead.
+check a local instance instead. After a successful initialize, the script
+always makes a best-effort authenticated `DELETE` to close the Streamable HTTP
+session, including when a later check fails. Tokens and session IDs are never
+printed.
 
 `status=partial` on the final check is a pass: the Graph sources answered and
 Nuthatch is not yet wired in. See "Known gaps".

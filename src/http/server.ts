@@ -76,6 +76,18 @@ function respondJson(
   response.end(JSON.stringify({ error: { code, message } }));
 }
 
+function isBrowserNavigation(request: IncomingMessage): boolean {
+  if (request.method !== "GET" || request.headers["sec-fetch-mode"] !== "navigate") {
+    return false;
+  }
+
+  return (
+    request.headers.accept
+      ?.split(",")
+      .some((value) => value.trim().split(";", 1)[0]?.toLowerCase() === "text/html") ?? false
+  );
+}
+
 async function readBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   for await (const chunk of request) {
@@ -223,12 +235,16 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
           return;
         }
 
+        // A top-level browser visit cannot supply an MCP bearer token and
+        // should not trigger the browser's native credential dialog. Keep this
+        // branch narrow so programmatic MCP requests retain the auth challenge.
+        if (isBrowserNavigation(request)) {
+          respondJson(response, 404, "not_found", "This endpoint is available to MCP clients");
+          return;
+        }
+
         if (!isAuthorized(request.headers.authorization, config.token)) {
-          // No WWW-Authenticate challenge. The endpoint is public, and a realm
-          // challenge makes browsers open a username/password dialog that
-          // cannot supply a bearer token — confusing for anyone who opens the
-          // URL, and useless to MCP clients, which read the token from their
-          // own configuration rather than negotiating.
+          response.setHeader("www-authenticate", 'Bearer realm="deeptrace"');
           respondJson(response, 401, "unauthorized", "Missing or invalid bearer token");
           return;
         }
