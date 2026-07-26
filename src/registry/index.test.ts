@@ -577,7 +577,7 @@ describe("shipped registry and profile", () => {
 
     expect(queryIds.size).toBe(1);
     expect(schemaContractIds.size).toBe(1);
-    expect([...queryIds][0]).toBe("m2-tier-b-metrics-v1");
+    expect([...queryIds][0]).toBe("m3-tier-b-metrics-v2");
     expect([...schemaContractIds][0]).toBe("m2-tier-b-metrics-v1");
   });
 });

@@ -1,8 +1,8 @@
 /**
  * Locked Tier-B metrics query for MVP-0 compare_pools Graph sources.
- * Identity must stay aligned with M2 evidence and the compare-pools profile.
+ * Identity must stay aligned with the production compare-pools profile.
  */
-export const TIER_B_METRICS_QUERY_ID = "m2-tier-b-metrics-v1" as const;
+export const TIER_B_METRICS_QUERY_ID = "m3-tier-b-metrics-v2" as const;
 
 export const TIER_B_METRICS_QUERY = `query M2TierBMetrics($pool: ID!) {
   _meta {

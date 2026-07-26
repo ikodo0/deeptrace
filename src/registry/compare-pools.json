@@ -8,14 +8,14 @@
     {
       "source_id": "uniswap-v3-base-native",
       "pool_address": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
-      "query_id": "m2-tier-b-metrics-v1",
+      "query_id": "m3-tier-b-metrics-v2",
       "schema_contract_id": "m2-tier-b-metrics-v1",
       "priority": 1
     },
     {
       "source_id": "exchange-v3-base",
       "pool_address": "0x72ab388e2e2f6facef59e3c3fa2c4e29011c2d38",
-      "query_id": "m2-tier-b-metrics-v1",
+      "query_id": "m3-tier-b-metrics-v2",
       "schema_contract_id": "m2-tier-b-metrics-v1",
       "priority": 2
     }
