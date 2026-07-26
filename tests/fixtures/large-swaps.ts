@@ -5,6 +5,7 @@ import type {
   SwapEvent,
 } from "../../src/schemas/index.js";
 import { LSS_SCOPE } from "../../src/scope/index.js";
+import { fixtureLargeSwapCursor } from "./large-swaps-request.js";
 
 const sourceId = "fixture-nuthatch-swaps";
 
@@ -138,7 +139,7 @@ export const paginatedLargeSwapsFixture = {
     limit: 1,
     returned: 1,
     has_more: true,
-    next_cursor: "lss:v1:fixture-page-2",
+    next_cursor: fixtureLargeSwapCursor,
   },
 } satisfies FindLargeSwapsResponse;
 
