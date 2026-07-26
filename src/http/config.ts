@@ -22,7 +22,7 @@ export const HTTP_ENV_VARS = {
   port: "DEEPTRACE_HTTP_PORT",
   sessionIdleTimeoutMs: "DEEPTRACE_HTTP_SESSION_IDLE_TIMEOUT_MS",
   sessionSweepIntervalMs: "DEEPTRACE_HTTP_SESSION_SWEEP_INTERVAL_MS",
-  token: "DEEPTRACE_HTTP_TOKEN",
+  sharedToken: "DEEPTRACE_HTTP_TOKEN",
 } as const;
 
 /** Shortest bearer token accepted, so a stray value cannot be brute forced. */
@@ -33,7 +33,13 @@ export interface HttpConfig {
   readonly port: number;
   readonly sessionIdleTimeoutMs: number;
   readonly sessionSweepIntervalMs: number;
-  readonly token: string;
+  /**
+   * The single credential every client shared before per-client tokens
+   * existed. Undefined once it is retired, which leaves issued tokens as the
+   * only way in. One leak of this value compromises every client at once and
+   * cannot be revoked selectively, so it is kept only for migration.
+   */
+  readonly sharedToken: string | undefined;
 }
 
 type EnvSource = Record<string, string | undefined>;
@@ -63,8 +69,12 @@ function readOptionalBoundedPositiveInteger(
 
 /**
  * Loads HTTP transport settings from the environment.
- * The bearer token is mandatory: this transport is reachable off-host, so an
- * unauthenticated listener is never a valid configuration.
+ *
+ * Omitting the shared token retires it rather than failing: clients hold their
+ * own issued tokens, so the listener stays authenticated without it. Retiring
+ * it is therefore an operational step — remove the variable — and needs no
+ * code change. A value that is present but too short is still a
+ * misconfiguration, since a weak shared secret is worse than none.
  * Invalid overrides throw ConfigurationError naming the variables only.
  */
 export function loadHttpConfig(env: EnvSource = process.env): HttpConfig {
@@ -95,14 +105,15 @@ export function loadHttpConfig(env: EnvSource = process.env): HttpConfig {
     invalidNames,
   );
 
-  const token = env[HTTP_ENV_VARS.token]?.trim() ?? "";
-  if (token.length < MIN_TOKEN_LENGTH) {
-    invalidNames.push(HTTP_ENV_VARS.token);
+  const rawSharedToken = env[HTTP_ENV_VARS.sharedToken]?.trim() ?? "";
+  const sharedToken = rawSharedToken === "" ? undefined : rawSharedToken;
+  if (sharedToken !== undefined && sharedToken.length < MIN_TOKEN_LENGTH) {
+    invalidNames.push(HTTP_ENV_VARS.sharedToken);
   }
 
   if (invalidNames.length > 0) {
     throw new ConfigurationError(invalidNames);
   }
 
-  return { host, port, sessionIdleTimeoutMs, sessionSweepIntervalMs, token };
+  return { host, port, sessionIdleTimeoutMs, sessionSweepIntervalMs, sharedToken };
 }

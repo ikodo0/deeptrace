@@ -14,7 +14,7 @@ const SHARED_TOKEN = "a".repeat(MIN_TOKEN_LENGTH);
 const CALLBACK = "http://127.0.0.1:53211/callback";
 
 async function startServer(): Promise<{ runtime: HttpRuntime; origin: string }> {
-  const config = { ...HTTP_DEFAULTS, host: "127.0.0.1", port: 0, token: SHARED_TOKEN };
+  const config = { ...HTTP_DEFAULTS, host: "127.0.0.1", port: 0, sharedToken: SHARED_TOKEN };
   const path = join(mkdtempSync(join(tmpdir(), "deeptrace-oauth-")), "tokens.json");
   const runtime = createHttpServer(config, { tokenStore: new TokenStore(path) });
   await listen(runtime, config);

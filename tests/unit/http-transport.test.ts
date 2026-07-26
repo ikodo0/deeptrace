@@ -49,13 +49,13 @@ vi.mock("../../src/mcp/server.js", async (importOriginal) => {
 const VALID_TOKEN = "a".repeat(MIN_TOKEN_LENGTH);
 
 describe("loadHttpConfig", () => {
-  it("returns documented defaults when only the token is supplied", () => {
-    expect(loadHttpConfig({ [HTTP_ENV_VARS.token]: VALID_TOKEN })).toEqual({
+  it("returns documented defaults when only the shared token is supplied", () => {
+    expect(loadHttpConfig({ [HTTP_ENV_VARS.sharedToken]: VALID_TOKEN })).toEqual({
       host: HTTP_DEFAULTS.host,
       port: HTTP_DEFAULTS.port,
       sessionIdleTimeoutMs: HTTP_DEFAULTS.sessionIdleTimeoutMs,
       sessionSweepIntervalMs: HTTP_DEFAULTS.sessionSweepIntervalMs,
-      token: VALID_TOKEN,
+      sharedToken: VALID_TOKEN,
     });
   });
 
@@ -66,14 +66,14 @@ describe("loadHttpConfig", () => {
         [HTTP_ENV_VARS.port]: "9000",
         [HTTP_ENV_VARS.sessionIdleTimeoutMs]: "120000",
         [HTTP_ENV_VARS.sessionSweepIntervalMs]: "30000",
-        [HTTP_ENV_VARS.token]: VALID_TOKEN,
+        [HTTP_ENV_VARS.sharedToken]: VALID_TOKEN,
       }),
     ).toEqual({
       host: "0.0.0.0",
       port: 9_000,
       sessionIdleTimeoutMs: 120_000,
       sessionSweepIntervalMs: 30_000,
-      token: VALID_TOKEN,
+      sharedToken: VALID_TOKEN,
     });
   });
 
@@ -81,7 +81,7 @@ describe("loadHttpConfig", () => {
     expect(
       loadHttpConfig({
         [HTTP_ENV_VARS.port]: String(HTTP_MAXIMUMS.port),
-        [HTTP_ENV_VARS.token]: VALID_TOKEN,
+        [HTTP_ENV_VARS.sharedToken]: VALID_TOKEN,
       }).port,
     ).toBe(HTTP_MAXIMUMS.port);
   });
@@ -93,24 +93,30 @@ describe("loadHttpConfig", () => {
         [HTTP_ENV_VARS.port]: "  ",
         [HTTP_ENV_VARS.sessionIdleTimeoutMs]: " ",
         [HTTP_ENV_VARS.sessionSweepIntervalMs]: "",
-        [HTTP_ENV_VARS.token]: VALID_TOKEN,
+        [HTTP_ENV_VARS.sharedToken]: VALID_TOKEN,
       }),
     ).toEqual({
       host: HTTP_DEFAULTS.host,
       port: HTTP_DEFAULTS.port,
       sessionIdleTimeoutMs: HTTP_DEFAULTS.sessionIdleTimeoutMs,
       sessionSweepIntervalMs: HTTP_DEFAULTS.sessionSweepIntervalMs,
-      token: VALID_TOKEN,
+      sharedToken: VALID_TOKEN,
     });
   });
 
-  it("rejects a missing token", () => {
-    expect(() => loadHttpConfig({})).toThrow(ConfigurationError);
+  // Retiring the shared token is an operational step, not a code change: the
+  // operator removes the variable and issued tokens carry every client.
+  it("starts with the shared token retired", () => {
+    expect(loadHttpConfig({}).sharedToken).toBeUndefined();
   });
 
-  it("rejects a token shorter than the minimum length", () => {
+  it("treats a blank shared token as retired", () => {
+    expect(loadHttpConfig({ [HTTP_ENV_VARS.sharedToken]: "   " }).sharedToken).toBeUndefined();
+  });
+
+  it("rejects a shared token shorter than the minimum length", () => {
     expect(() =>
-      loadHttpConfig({ [HTTP_ENV_VARS.token]: "a".repeat(MIN_TOKEN_LENGTH - 1) }),
+      loadHttpConfig({ [HTTP_ENV_VARS.sharedToken]: "a".repeat(MIN_TOKEN_LENGTH - 1) }),
     ).toThrow(ConfigurationError);
   });
 
@@ -119,7 +125,7 @@ describe("loadHttpConfig", () => {
       loadHttpConfig({
         [HTTP_ENV_VARS.sessionIdleTimeoutMs]: "0",
         [HTTP_ENV_VARS.sessionSweepIntervalMs]: String(HTTP_MAXIMUMS.sessionSweepIntervalMs + 1),
-        [HTTP_ENV_VARS.token]: VALID_TOKEN,
+        [HTTP_ENV_VARS.sharedToken]: VALID_TOKEN,
       });
       expect.unreachable("expected ConfigurationError");
     } catch (error) {
@@ -133,13 +139,16 @@ describe("loadHttpConfig", () => {
 
   it("names every invalid variable", () => {
     try {
-      loadHttpConfig({ [HTTP_ENV_VARS.port]: "0" });
+      loadHttpConfig({
+        [HTTP_ENV_VARS.port]: "0",
+        [HTTP_ENV_VARS.sharedToken]: "short",
+      });
       expect.unreachable("expected ConfigurationError");
     } catch (error) {
       expect(error).toBeInstanceOf(ConfigurationError);
       expect((error as ConfigurationError).variableNames).toEqual([
         HTTP_ENV_VARS.port,
-        HTTP_ENV_VARS.token,
+        HTTP_ENV_VARS.sharedToken,
       ]);
     }
   });
@@ -168,6 +177,17 @@ describe("isAuthorized", () => {
 
   it("rejects a bare token with no scheme", () => {
     expect(isAuthorized(VALID_TOKEN, VALID_TOKEN)).toBe(false);
+  });
+
+  it("refuses the retired shared token once it is removed", () => {
+    expect(isAuthorized(`Bearer ${VALID_TOKEN}`, undefined)).toBe(false);
+  });
+
+  it("still admits an issued token with the shared one retired", () => {
+    const issued = { verify: (token: string) => token === "dt_issued" };
+
+    expect(isAuthorized("Bearer dt_issued", undefined, issued)).toBe(true);
+    expect(isAuthorized("Bearer dt_other", undefined, issued)).toBe(false);
   });
 });
 
@@ -200,7 +220,7 @@ async function startTestServer(options: TestServerOptions = {}): Promise<TestSer
     ...HTTP_DEFAULTS,
     host: "127.0.0.1",
     port: 0,
-    token: VALID_TOKEN_32,
+    sharedToken: VALID_TOKEN_32,
     ...options.config,
   };
   const runtime = createHttpServer(config, options.server);
