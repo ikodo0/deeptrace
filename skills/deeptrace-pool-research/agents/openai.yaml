@@ -1,0 +1,12 @@
+interface:
+  display_name: "DeepTrace Pool Research"
+  short_description: "Compare Base pools with Graph and Nuthatch"
+  default_prompt: "Use $deeptrace-pool-research to compare Base WETH/USDC pools with verified source freshness and provenance."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "deeptrace"
+      description: "Read-only Base pool metrics and Nuthatch freshness"
+      transport: "streamable_http"
+      url: "https://mcp.ikodo.dev"
