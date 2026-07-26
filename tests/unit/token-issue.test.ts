@@ -2,11 +2,10 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { HTTP_DEFAULTS, MIN_TOKEN_LENGTH } from "../../src/http/config.js";
 import { createHttpServer, listen, type HttpRuntime } from "../../src/http/server.js";
-import { resetIssueLimits } from "../../src/http/token-issue.js";
 import { TokenStore } from "../../src/http/token-store.js";
 
 const SHARED_TOKEN = "a".repeat(MIN_TOKEN_LENGTH);
@@ -30,10 +29,6 @@ async function startServer(
 function extractToken(body: string): string {
   return /dt_[A-Za-z0-9_-]+/u.exec(body)?.[0] ?? "";
 }
-
-afterEach(() => {
-  resetIssueLimits();
-});
 
 describe("self-serve token issuance", () => {
   it("offers a form without authentication", async () => {
@@ -135,6 +130,25 @@ describe("self-serve token issuance", () => {
     }
   });
 
+  it("keeps the issued token blurred until the reader asks for it", async () => {
+    const { runtime, origin } = await startServer();
+    try {
+      const body = await (await fetch(`${origin}/auth`, { method: "POST" })).text();
+
+      // Blur is presentation only. The value must stay selectable underneath,
+      // or the click-then-copy path this page documents stops working, and it
+      // must stay script-free so the page keeps its own CSP.
+      expect(body).toContain('class="token secret"');
+      expect(body).toContain("filter:blur(");
+      expect(body).toContain("user-select:all");
+      expect(body).toMatch(/\.token\.secret:hover[^{]*\{filter:none\}/u);
+      expect(body).not.toMatch(/<script/u);
+      expect(extractToken(body)).not.toBe("");
+    } finally {
+      await runtime.close();
+    }
+  });
+
   it("does not set a referrer policy that nulls its own form's origin", async () => {
     const { runtime, origin } = await startServer();
     try {
@@ -187,43 +201,24 @@ describe("self-serve token issuance", () => {
     }
   });
 
-  it("stops one address minting without bound", async () => {
+  it("keeps minting for one address without capping it", async () => {
     const { runtime, origin } = await startServer();
     try {
       const statuses: number[] = [];
-      for (let attempt = 0; attempt < 4; attempt += 1) {
+      const tokens = new Set<string>();
+      for (let attempt = 0; attempt < 6; attempt += 1) {
         const response = await fetch(`${origin}/auth`, {
           method: "POST",
           headers: { "cf-connecting-ip": "203.0.113.7" },
         });
         statuses.push(response.status);
-        await response.text();
+        tokens.add(extractToken(await response.text()));
       }
 
-      expect(statuses).toEqual([201, 201, 201, 429]);
-    } finally {
-      await runtime.close();
-    }
-  });
-
-  it("counts each caller address separately", async () => {
-    const { runtime, origin } = await startServer();
-    try {
-      for (let attempt = 0; attempt < 3; attempt += 1) {
-        await (
-          await fetch(`${origin}/auth`, {
-            method: "POST",
-            headers: { "cf-connecting-ip": "203.0.113.7" },
-          })
-        ).text();
-      }
-      const other = await fetch(`${origin}/auth`, {
-        method: "POST",
-        headers: { "cf-connecting-ip": "203.0.113.9" },
-      });
-
-      expect(other.status).toBe(201);
-      await other.text();
+      // A cap here only ever blocked someone reconnecting: a token grants
+      // nothing they could not obtain by asking again from another address.
+      expect(statuses).toEqual([201, 201, 201, 201, 201, 201]);
+      expect(tokens.size).toBe(6);
     } finally {
       await runtime.close();
     }

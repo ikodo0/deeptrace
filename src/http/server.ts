@@ -315,7 +315,7 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
         // Unauthenticated by design: a caller cannot present a token before
         // this endpoint has given them one.
         if (isTokenIssueRequest(request, url.pathname)) {
-          respondTokenIssue(request, response, tokenStore, now);
+          respondTokenIssue(request, response, tokenStore);
           return;
         }
 
