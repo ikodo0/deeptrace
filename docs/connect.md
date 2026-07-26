@@ -153,6 +153,18 @@ parity.
 A `partial` result can still contain useful evidence. Read its coverage,
 freshness, warnings, and provenance before relying on the ranking.
 
+For large swaps, ask:
+
+> Find swaps of at least 5 WETH in the supported Base pool. Show exact token
+> amounts, transaction and block identities, source freshness, and whether
+> another page is available.
+
+`find_large_swaps` supports only the registered Uniswap V3 pool
+`0x6c561b446416e1a00e8e93e221854d6ea4171372`, with an exact positive WETH or
+native-USDC human-unit threshold and page size from 1 to 100. It does not
+calculate USD notional. Continue with the returned opaque cursor without
+changing the request scope.
+
 ## Optional agent skill
 
 The MCP connection is the only required setup. Claude Code, OpenCode, and Codex
@@ -181,9 +193,10 @@ one of these project paths:
 - OpenCode or Codex: `.agents/skills/deeptrace-pool-research/`
 
 The skill preserves exact decimal strings, separates Graph metrics from
-Nuthatch facts, surfaces partial coverage, and avoids invented fallbacks. It
-does not configure the MCP connection, receive the bearer token, or replace
-the required URL-and-token setup.
+Nuthatch facts, follows stable large-swap cursors, surfaces partial or failed
+coverage, and avoids invented fallbacks. It does not configure the MCP
+connection, receive the bearer token, or replace the required URL-and-token
+setup.
 
 ## Troubleshoot
 

@@ -49,6 +49,18 @@ const cursorPayloadSchema = z
 
 type LargeSwapCursorPayload = z.infer<typeof cursorPayloadSchema>;
 
+export interface LargeSwapEventPosition {
+  readonly block_number: number;
+  readonly log_index: number;
+  readonly transaction_hash: string;
+}
+
+export interface LargeSwapQueryContext {
+  readonly request: FindLargeSwapsRequest;
+  readonly snapshotHead: number | null;
+  readonly lastEvent: LargeSwapEventPosition | null;
+}
+
 export interface LargeSwapQueryPage {
   readonly snapshot_head: number;
   readonly swaps: SwapEvent[];
@@ -151,6 +163,25 @@ function assertCursorScope(cursor: LargeSwapCursorPayload, request: FindLargeSwa
   }
 }
 
+/**
+ * Validates the public request and, when present, opens its opaque continuation
+ * into the bounded source-query coordinates needed by the live adapter.
+ */
+export function inspectLargeSwapQuery(
+  rawRequest: FindLargeSwapsRequestInput,
+): LargeSwapQueryContext {
+  const request = parseRequest(rawRequest);
+  const decodedCursor = request.cursor === null ? null : decodeCursor(request.cursor);
+  if (decodedCursor !== null) {
+    assertCursorScope(decodedCursor, request);
+  }
+  return {
+    request,
+    snapshotHead: decodedCursor?.snapshot_head ?? null,
+    lastEvent: decodedCursor?.last_event ?? null,
+  };
+}
+
 function compareStrings(left: string, right: string): number {
   if (left === right) {
     return 0;
@@ -210,17 +241,16 @@ function nextCursor(
  * head or cursor anchor.
  */
 export function queryLargeSwapPage(input: LargeSwapQueryInput): LargeSwapQueryPage {
-  const request = parseRequest(input.request);
+  const context = inspectLargeSwapQuery(input.request);
+  const { request } = context;
   assertIndexedHead(input.indexedHead);
 
-  const decodedCursor = request.cursor === null ? null : decodeCursor(request.cursor);
-  if (decodedCursor !== null) {
-    assertCursorScope(decodedCursor, request);
-    if (input.indexedHead < decodedCursor.snapshot_head) {
+  if (context.snapshotHead !== null) {
+    if (input.indexedHead < context.snapshotHead) {
       throw new LargeSwapCursorError("Large-swap source head is behind the cursor snapshot.");
     }
   }
-  const snapshotHead = decodedCursor?.snapshot_head ?? input.indexedHead;
+  const snapshotHead = context.snapshotHead ?? input.indexedHead;
 
   const snapshotEvents = deduplicateSwapEvents(input.events).filter(
     (event) => event.block_number <= snapshotHead,
@@ -232,10 +262,9 @@ export function queryLargeSwapPage(input: LargeSwapQueryInput): LargeSwapQueryPa
   ).sort(compareSwapPageOrder);
 
   let remaining = ordered;
-  if (decodedCursor !== null) {
-    const anchorIndex = ordered.findIndex((event) =>
-      cursorMatchesEvent(decodedCursor.last_event, event),
-    );
+  if (context.lastEvent !== null) {
+    const lastEvent = context.lastEvent;
+    const anchorIndex = ordered.findIndex((event) => cursorMatchesEvent(lastEvent, event));
     if (anchorIndex < 0) {
       throw new LargeSwapCursorError(
         "Large-swap cursor anchor is unavailable in the frozen snapshot.",

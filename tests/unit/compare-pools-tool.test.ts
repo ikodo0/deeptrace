@@ -3,7 +3,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it, vi } from "vitest";
 
 import { FixedWindowRateLimiter } from "../../src/gateway/index.js";
-import { COMPARE_POOLS_TOOL_NAME } from "../../src/mcp/server.js";
+import { COMPARE_POOLS_TOOL_NAME, FIND_LARGE_SWAPS_TOOL_NAME } from "../../src/mcp/server.js";
 import { startMcpServer } from "../../src/mcp/lifecycle.js";
 import { M0_COMPARE_POOLS_SCOPE } from "../../src/scope/index.js";
 import {
@@ -106,11 +106,14 @@ describe("compare_pools MCP tool", () => {
     return { client, runtime };
   }
 
-  it("lists only the compare_pools tool", async () => {
+  it("lists compare_pools alongside the released large-swap tool", async () => {
     const { client, runtime } = await withClient();
     try {
       const listed = await client.listTools();
-      expect(listed.tools.map((tool) => tool.name)).toEqual([COMPARE_POOLS_TOOL_NAME]);
+      expect(listed.tools.map((tool) => tool.name)).toEqual([
+        COMPARE_POOLS_TOOL_NAME,
+        FIND_LARGE_SWAPS_TOOL_NAME,
+      ]);
       const tool = listed.tools[0];
       expect(tool?.title).toBe("Compare Base WETH/USDC pools");
       expect(tool?.description).toContain("Graph-reported TVL, volume, or fees");

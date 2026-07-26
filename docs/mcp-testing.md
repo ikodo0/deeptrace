@@ -78,6 +78,12 @@ status `complete`, successful Graph coverage, and
 source is temporarily stale or unavailable; inspect its warnings and
 provenance rather than inventing missing values.
 
+For swap history, call `find_large_swaps` with chain `8453`, pool
+`0x6c561b446416e1a00e8e93e221854d6ea4171372`, WETH or native USDC as
+`threshold_token`, and a positive human-unit `min_amount`. A healthy result is
+`complete`; continue only by copying its opaque `next_cursor` into the same
+request scope. This tool does not calculate USD notional.
+
 ### If it does not work — report back which one
 
 | You see | What it means |
@@ -180,9 +186,10 @@ auth gate (no token)         PASS  status=401 (expected 401)
 unknown path                 PASS  status=404 (expected 404)
 initialize                   PASS  status=200 session=established
 notifications/initialized    PASS  status=202 (expected 202)
-tools/list                   PASS  tools=[compare_pools]
-tools/call                   PASS  status=complete 2/2
-6 passed, 0 failed
+tools/list                   PASS  tools=[compare_pools,find_large_swaps]
+tools/call compare_pools     PASS  status=complete 2/2
+tools/call find_large_swaps  PASS  status=complete 1/1
+7 passed, 0 failed
 ```
 
 Both variables are required; missing ones are reported by name only. The exit
@@ -196,9 +203,13 @@ configurations. After a successful initialize, the script always makes a
 best-effort authenticated `DELETE` to close the Streamable HTTP session,
 including when a later check fails. Tokens and session IDs are never printed.
 
-Both `complete` and `partial` prove that the MCP tool call completed. Production
-normally returns `complete`; `partial` means at least one upstream source was
-stale or unavailable and must be explained from the returned warnings.
+For `compare_pools`, both `complete` and `partial` prove that the call
+completed. The LSS smoke check requires `find_large_swaps` to be `complete`
+with 1/1 source coverage. A production `compare_pools` call normally returns
+`complete`; its `partial` status means at least one upstream source was stale or
+unavailable and must be explained from the returned warnings.
+`find_large_swaps` has no partial status: an unavailable sole source is
+`failed`.
 
 ### Manual path
 
@@ -241,7 +252,8 @@ curl -sS -X POST http://127.0.0.1:8799 \
 
 ### Step 3 — tools/list
 
-Verified to return exactly one tool, `compare_pools`.
+Verified to return exactly two tools, `compare_pools` and
+`find_large_swaps`.
 
 ```
 curl -sS -X POST http://127.0.0.1:8799 \
@@ -280,6 +292,22 @@ pool 0x72ab388e... tvl 6612457.78705088
 The specific values, freshness block, and status may change. If the result is
 `partial`, use its warnings and per-source provenance to identify the degraded
 source.
+
+Call the released large-swap tool in the same session:
+
+```
+curl -sS --max-time 90 -X POST http://127.0.0.1:8799 \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "mcp-session-id: $SID" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"find_large_swaps","arguments":{"chain_id":8453,"pool_address":"0x6c561b446416e1a00e8e93e221854d6ea4171372","threshold_token":"0x4200000000000000000000000000000000000006","min_amount":"1","limit":1}}}'
+```
+
+`complete` may contain zero matches. `failed` means the sole Nuthatch swap
+source could not prove a stable fresh page; inspect warnings and do not invent
+a fallback. The requested limit is a cap: the server may return a shorter page
+with `has_more` and a warning to remain within the 64 KiB response budget.
 
 ### Cleanup — close the session
 
@@ -363,6 +391,19 @@ Row fields: `pool_address`, `recent_swap_count_24h`, `last_swap_block`,
 `last_swap_block_timestamp`, `last_swap_log_index`, `last_swap_block_hash`,
 `last_swap_tx_hash`.
 
+The LSS deployment additionally requires `pool_swap_search`:
+
+```
+curl -sS -G --data-urlencode \
+  "q=SELECT * FROM pool_swap_search ORDER BY block_number DESC, log_index DESC LIMIT 1" \
+  --data-urlencode "max_rows=1" $NUTHATCH_BASE_URL/sql
+```
+
+Its receipt must contain the locked pool address, block number/hash/timestamp,
+transaction hash, log index, and exact signed `amount0_raw`/`amount1_raw`.
+Run the committed `swap_search_parity` nest check before accepting a new nest
+bundle.
+
 ## Troubleshooting
 
 | Symptom | Cause |
@@ -436,6 +477,7 @@ service, and reissue the token to every client.
    progress and emits a structured alert; see `docs/deployment.md` for the
    report-only recovery procedure. `compare_pools` invokes the live freshness
    adapter and truthfully reports that source as stale or unavailable until it
-   catches up, producing a `partial` result rather than hiding the gap.
+   catches up, producing a `partial` `compare_pools` result and a `failed`
+   `find_large_swaps` result rather than hiding the gap.
 2. The automated test suite remains offline. Operators run `npm run smoke:mcp`
    against the public URL as the post-deploy live integration check.

@@ -3,12 +3,18 @@ import { BASE_CHAIN_ID } from "../schemas/source-adapter.js";
 /**
  * Locked Large Swap Search v1 allowlist.
  *
- * Live Nuthatch view and registry bindings are intentionally deferred to LSS-04.
+ * Live Nuthatch bindings resolve through the registry record named below.
  */
 export const LSS_SCOPE = {
   chainId: BASE_CHAIN_ID,
   protocol: "uniswap-v3",
   poolAddress: "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+  source: {
+    sourceId: "nuthatch-large-swaps",
+    viewId: "pool_swap_search",
+    queryId: "nuthatch-pool-swap-search-v1",
+    methodologyVersion: "exact-pool-delta-keyset-v1",
+  },
   tokens: {
     weth: {
       address: "0x4200000000000000000000000000000000000006",
@@ -28,6 +34,10 @@ export const LSS_SCOPE = {
   cursor: {
     version: 1,
     maximumLength: 2_048,
+  },
+  scan: {
+    batchSize: 256,
+    maximumRows: 50_000,
   },
 } as const;
 

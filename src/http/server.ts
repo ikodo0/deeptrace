@@ -8,7 +8,7 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { loadGatewayConfig } from "../config/env.js";
 import { FixedWindowRateLimiter } from "../gateway/index.js";
 import { createMcpServer } from "../mcp/server.js";
-import { createLiveComparePoolsSources } from "../tools/index.js";
+import { createLiveComparePoolsSources, createLiveLargeSwapSource } from "../tools/index.js";
 import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
 import { acceptsConnectionPage, respondConnectionPage } from "./connection-page.js";
@@ -135,6 +135,9 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
   const sources = createLiveComparePoolsSources({
     timeoutMs: gatewayConfig.sourceTimeoutMs,
   });
+  const largeSwapSource = createLiveLargeSwapSource({
+    timeoutMs: gatewayConfig.sourceTimeoutMs,
+  });
 
   const closeSession = (sessionId: string, expectedSession?: Session): Promise<void> => {
     const session = sessions.get(sessionId);
@@ -156,7 +159,12 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
   };
 
   const openSession = async (): Promise<OpenedSession> => {
-    const mcpServer = createMcpServer({ gatewayConfig, rateLimiter, sources });
+    const mcpServer = createMcpServer({
+      gatewayConfig,
+      rateLimiter,
+      sources,
+      largeSwapSource,
+    });
     let registeredSession: Session | undefined;
     let closePromise: Promise<void> | undefined;
     const transport = new StreamableHTTPServerTransport({

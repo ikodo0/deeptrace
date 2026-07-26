@@ -1,12 +1,13 @@
-# DeepTrace — Product Direction and MVP-0 Plan
+# DeepTrace — Product Direction and Three-Tool MVP Plan
 
 DeepTrace is a read-only Graph Research MCP for builders and AI agents. It combines comparable protocol data from Messari Standardized Subgraphs with focused custom indexes from Nuthatch and returns compact, verifiable results.
 
 This file is the shared product and implementation reference:
 
 * **Global Product Goals** describe the intended DeepTrace product.
-* **MVP-0** is the only current implementation commitment.
-* **Next Milestones** become active only after MVP-0 meets its definition of done.
+* The **three-tool MVP** is the current implementation commitment.
+* Its tools ship sequentially as M0, LSS and WR.
+* Protocol DEX Metrics, broader lending and expansion remain post-MVP.
 
 ## Global Product Goals
 
@@ -15,11 +16,24 @@ DeepTrace supports four research workflows:
 1. **Wallet Research** — supported DeFi positions, swaps, protocol usage, assets and counterparties.
 2. **DEX Metrics** — TVL, volume, fees, revenue and usage across three or four standardized DEX deployments.
 3. **Pool Comparison** — the same token pair compared across selected protocols and chains.
-4. **Large Swap Search** — recent swaps above a user-provided USD threshold.
+4. **Large Swap Search** — recent swaps above a user-provided token-denominated
+   human-unit threshold, without required USD pricing.
 
 The first users are builders integrating on-chain research into applications and AI agents that need a small, typed tool surface.
 
-## Current Build Target — MVP-0
+## Current Build Target — Three-Tool MVP
+
+The MVP public surface is implemented and accepted in this order:
+
+```text
+compare_pools
+find_large_swaps
+research_wallet
+```
+
+`get_dex_metrics` is post-MVP. The server registers only implemented tools.
+
+### Tool 1 — Pool Comparison (M0)
 
 The first implementation is one complete vertical slice:
 
@@ -27,11 +41,11 @@ The first implementation is one complete vertical slice:
 compare_pools
 ```
 
-MVP-0 compares one token pair across three DEX deployments on one chain.
+M0 compares one token pair across two same-tier DEX deployments on one chain.
 
 It must:
 
-* query the same compatible Standardized DEX pattern across all three deployments;
+* query the same compatible DEX pattern across both deployments;
 * query one Nuthatch source for fresh data from a selected pool;
 * normalize the results into one `PoolComparisonRecord`;
 * return TVL, volume and fees for a fixed time window;
@@ -54,7 +68,7 @@ It must:
 | Ranking metric | `volume_usd` by default; TVL and fees are selectable |
 | Top-N | Default and maximum `3` |
 | USD price source | Source-reported USD values only; no repricing in MVP-0 |
-| Public tool implemented | `compare_pools` |
+| Public tools implemented through LSS | `compare_pools`, `find_large_swaps` |
 
 Base does not yield three live Messari-standardized DEX deployments; MVP-0 standardizes on the Uniswap-V3 native schema family instead (`source_type: "native_subgraph"`), with an owner-approved reduction to two Graph sources. See `docs/source-scope.md`.
 Core policy values are executable constants in `src/policy/m0.ts`.
@@ -63,7 +77,7 @@ Core policy values are executable constants in `src/policy/m0.ts`.
 
 MVP-0 is complete when:
 
-* one live request returns comparable records for three pools;
+* one live request returns comparable records for the two locked Graph pools;
 * at least one returned fact depends on Nuthatch;
 * repeated requests over the same source blocks are deterministic;
 * one unavailable source produces a partial result rather than total failure;
@@ -71,13 +85,24 @@ MVP-0 is complete when:
 * the client skill presents only returned facts and provenance IDs (no invented metrics);
 * the complete flow can be demonstrated in under two minutes.
 
-## Next Milestones
+### Tool 2 — Large Swap Search (LSS)
 
-1. **Large Swap Search** — reuse the Nuthatch swap path and add explicit USD-threshold filtering.
-2. **DEX Metrics** — expose protocol-level aggregates using the existing standardized adapters.
-3. **Wallet Research** — add supported positions, swaps, assets, protocol usage and counterparties.
-4. **Lending and DeFi Positions** — add selected standardized lending deployments and `DeFiPosition`.
-5. **Expansion** — additional chains, deployments, contract discovery and vault/ERC-4626 positions.
+`find_large_swaps` reuses the indexed Uniswap V3 pool events through a
+dedicated Nuthatch swap adapter. It applies an exact WETH- or USDC-denominated
+human-unit threshold and returns deterministic fixed-snapshot cursor pages. It
+does not query The Graph or invent USD notionals in v1.
+
+### Tool 3 — Wallet Research (WR)
+
+`research_wallet` composes verified Graph wallet/account facts with Nuthatch
+activity from explicitly indexed contracts. It remains Base-only,
+source-bounded and section-aware; observed assets are not complete balances.
+
+### Post-MVP Milestones
+
+1. **Protocol DEX Metrics** — protocol-level aggregates.
+2. **Lending and DeFi Positions** — broader lending within wallet research.
+3. **Expansion** — additional chains, deployments, discovery and vaults.
 
 ## Project Context
 
@@ -86,7 +111,7 @@ DeepTrace is designed for The Graph developer-tooling, AI-use-case and composabl
 The submission should demonstrate:
 
 * live blockchain data rather than fixtures;
-* one reusable query pattern across exactly three DEX deployments in the same standardized category;
+* one reusable query pattern across the two verified DEX deployments in the same schema family;
 * Nuthatch as a load-bearing source of a fresh pool fact;
 * a reusable MCP interface and one agent skill;
 * transparent composition of multiple sources;
@@ -96,7 +121,7 @@ Wallet-specific research remains part of the global product direction, but it is
 
 DeepTrace is a semantic research layer rather than another raw GraphQL gateway. Existing tools already provide generic Subgraph access and broad lending queries. DeepTrace adds:
 
-* four stable research operations instead of many low-level source tools;
+* three MVP research operations instead of many low-level source tools;
 * one canonical response contract across Graph and Nuthatch data;
 * wallet- and pool-centric Nuthatch views;
 * deterministic cross-source normalization and calculations;
@@ -105,16 +130,16 @@ DeepTrace is a semantic research layer rather than another raw GraphQL gateway. 
 
 ## Public Interface
 
-The planned DeepTrace interface contains one `SKILL.md` and four high-level MCP tools:
+The MVP interface contains one `SKILL.md` and three high-level MCP tools:
 
 ```text
-research_wallet
-get_dex_metrics
 compare_pools
 find_large_swaps
+research_wallet
 ```
 
-MVP-0 registers only `compare_pools`. The remaining tools are added in the order defined under **Next Milestones**.
+The server registers only implemented tools. `compare_pools` ships first,
+`find_large_swaps` second and `research_wallet` third.
 
 The user's AI chooses the appropriate available tool. DeepTrace retrieves and verifies the data and returns structured facts only. The user's AI + `SKILL.md` turn that payload into prose.
 
@@ -122,14 +147,16 @@ The user's AI chooses the appropriate available tool. DeepTrace retrieves and ve
 
 | Tool | Stage | Core request | Core result |
 | :--- | :--- | :--- | :--- |
-| `compare_pools` | MVP-0 | Configured token pair and chain, time window, ranking metric and Top-N | Canonical pool records and deterministic cross-DEX ranking |
-| `find_large_swaps` | Next | Protocols or pools, chains, time window, USD threshold, limit and cursor | Recent swaps whose normalized USD notional passes the threshold |
-| `get_dex_metrics` | Next | Protocols, chains, time window and requested metrics | Comparable protocol TVL, volume, fees, revenue and usage |
-| `research_wallet` | Later | Address, chains, protocols, requested sections, time window, limit and cursor | Supported positions, swaps, assets, protocol usage, counterparties and observable inflows |
+| `compare_pools` | MVP tool 1 (M0) | Locked pair and chain, time window, ranking metric and Top-N | Canonical pool records plus Nuthatch freshness and deterministic cross-DEX ranking |
+| `find_large_swaps` | MVP tool 2 (LSS) | Locked pool and chain, threshold token, human-unit minimum amount, limit and cursor | Stable pages of normalized Nuthatch swaps passing the non-USD threshold |
+| `research_wallet` | MVP tool 3 (WR) | Public address, Base, requested supported sections, window, limit and cursor | Supported Graph positions plus Nuthatch activity, counterparties, protocol usage and observable flows |
+| `get_dex_metrics` | Post-MVP | Protocols, chains, time window and requested metrics | Comparable protocol TVL, volume, fees, revenue and usage |
 
 Every tool receives an explicit scope and returns the scope that was actually searched.
 
-For MVP-0, the chain, pair and three deployments are configuration-backed allowlisted values. Inputs outside that locked scope return a clear unsupported-scope error rather than starting open-ended source discovery.
+For M0 and LSS, the chain, pair, two Graph deployments, locked Uniswap pool and
+Nuthatch capabilities are configuration-backed allowlisted values. Inputs
+outside that scope return a clear unsupported-scope error.
 
 ### One Skill Contract
 
@@ -143,11 +170,13 @@ The single `SKILL.md` teaches the user's AI:
 * how to report coverage, freshness and provenance;
 * how to present structured results without inventing metrics or replacing facts.
 
-During MVP-0 the skill documents `compare_pools` only. Future tool instructions are added when those tools are implemented.
+The skill documents only tools present in `tools/list`; it now covers
+`compare_pools` and `find_large_swaps`.
 
 ## Global Reference Architecture
 
-The diagram shows the intended full system. MVP-0 implements only the `Pool Comparison` path and the shared layers below it.
+The diagram shows the intended full system. Pool Comparison and Large Swap
+Search are implemented before Wallet Research.
 
 ```text
 User / User's AI
@@ -285,7 +314,7 @@ rank
 source_ids[]
 ```
 
-The three DEX adapters must produce this same record before ranking. Source-specific fields may be retained in provenance, but they must not change the public comparison shape.
+The two DEX adapters must produce this same record before ranking. Source-specific fields may be retained in provenance, but they must not change the public comparison shape.
 
 ### `DeFiPosition` — Wallet Research milestone
 
@@ -363,7 +392,8 @@ chain_id + protocol + position_id
 * **Provenance:** evidence path for a fact or metric: chain, protocol, source type, deployment or nest/view, schema/methodology version and block/time range.
 * **Protocol usage:** observable interactions with supported protocol contracts and entities, aggregated by activity type, count and available volume.
 * **Observable inflows:** incoming transfers, swap outputs, lending borrows, LP withdrawals and reward claims classified by on-chain event type.
-* **Large swap:** a normalized swap whose USD notional passes the threshold supplied in the request.
+* **Large swap:** a normalized swap whose selected WETH or USDC absolute pool
+  delta meets the positive human-unit threshold supplied in the request.
 
 ## Data Pipeline
 
@@ -424,7 +454,8 @@ lock a separate price source and timestamp methodology.
   ascending, in that order.
 * Top-N is applied after filtering and normalization.
 * MVP-0 defaults to Top-3 and rejects values above three.
-* Large-swap selection applies the request threshold to normalized USD notional.
+* Large-swap selection applies the request threshold after normalization using
+  exact selected-token base-unit arithmetic; no USD conversion occurs.
 
 ## Reliability and Operations
 
@@ -555,7 +586,9 @@ tests/
   parity/
 ```
 
-Internal modules may contain many functions, but only implemented high-level handlers are registered as public MCP tools. MVP-0 registers `compare_pools` only.
+Internal modules may contain many functions, but only implemented high-level
+handlers are registered as public MCP tools. Through LSS the registered surface
+is `compare_pools` plus `find_large_swaps`.
 
 ## MVP Build Order
 
@@ -563,7 +596,7 @@ Internal modules may contain many functions, but only implemented high-level han
 
 * select the implementation language and MCP SDK;
 * resolve every `TBD` in **Scope to Lock Before Coding**;
-* verify that exactly three live DEX deployments expose comparable pool metrics;
+* verify that the two locked live DEX deployments expose comparable pool metrics;
 * select the Nuthatch pool and the fresh fact it uniquely contributes;
 * define the USD price source and timestamp policy;
 * finalize `PoolComparisonRecord`, the `compare_pools` request/response schema, limits and timeouts;
@@ -579,7 +612,7 @@ Internal modules may contain many functions, but only implemented high-level han
 ### 3. Build the Standardized Graph Path
 
 * implement the source registry;
-* implement one version-aware pool query pattern across exactly three DEX deployments;
+* implement one version-aware pool query pattern across the two locked DEX deployments;
 * implement timeouts and independent source failures.
 
 ### 4. Build the DeepTrace Data Layer
@@ -622,7 +655,7 @@ Internal modules may contain many functions, but only implemented high-level han
 ### Live Integration
 
 * Nuthatch view queries;
-* exactly three Standardized DEX deployments;
+* the two locked DEX deployments;
 * a request with one intentionally unavailable source;
 * block and timestamp freshness metadata.
 
@@ -638,7 +671,9 @@ For selected events visible in both Graph and Nuthatch, compare transaction hash
 ## Demo Flow
 
 1. Submit one `compare_pools` request for the locked pair and chain.
-2. Show three normalized pool records ranked by the locked metric.
+2. Show the two normalized pool records ranked by the locked metric.
 3. Show the fresh fact contributed by Nuthatch.
 4. Repeat with one unavailable source and show the partial result.
-5. Show coverage, freshness, and provenance; let the client chat pane narrate from structured data.
+5. Run `find_large_swaps`, follow one returned cursor, and show exact amounts,
+   stable ordering, freshness and provenance.
+6. Let the client chat pane narrate only from the structured data.

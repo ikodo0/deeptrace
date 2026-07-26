@@ -1,7 +1,9 @@
 # DeepTrace
 
 DeepTrace is a read-only research MCP that compares Base liquidity pools with
-Graph subgraph metrics and independent Nuthatch swap freshness.
+Graph subgraph metrics and independent Nuthatch swap freshness, and returns
+stable pages of token-thresholded swaps from the locked Base Uniswap V3
+WETH/USDC pool.
 
 ## Connect
 
@@ -22,6 +24,14 @@ adds a richer workflow. The MCP server itself supplies essential usage
 instructions, described inputs, a declared output schema, and structured
 results so Claude Code, OpenCode, and Codex work without a separate skill
 installation.
+
+Released tools:
+
+- `compare_pools` — rank the locked Base WETH/USDC pools by Graph-reported TVL,
+  volume, or fees, with independent Nuthatch freshness.
+- `find_large_swaps` — search the locked Uniswap V3 pool using an exact WETH or
+  USDC human-unit threshold and opaque fixed-snapshot pagination. V1 performs
+  no USD conversion.
 
 Install the optional skill from your project with:
 
