@@ -34,8 +34,9 @@ plainly instead of substituting a tool that answers a different question.
   client's secret or environment-variable support.
 - Never ask the user to paste a token into chat. Never put a token in a URL,
   prompt, answer, repository, or log.
-- Do not connect to Nuthatch from the user's device. DeepTrace queries the
-  private Nuthatch service on the server.
+- Nuthatch is only accessible via the DeepTrace MCP server. Do not connect to
+  Nuthatch from the user's device; DeepTrace queries the private Nuthatch
+  service on the server.
 - If the tool is unavailable, explain that the client must support remote
   Streamable HTTP MCP with a Bearer header. Do not substitute direct Graph,
   Nuthatch, or price-API calls.
@@ -157,7 +158,13 @@ coverage.
   event-classified facts from the indexed pool, not as net wallet flows.
 - Join freshness and provenance to results by `source_id`. Name the source,
   returned `deployment_or_view_id`, query ID, and warnings when they affect
-  confidence. Do not infer which kind the combined identifier represents.
+  confidence. Do not infer which kind the combined identifier represents —
+  never call a `0x…` nest `deployment_or_view_id` a “view” (it is the nest
+  registry hash). For Nuthatch wallet activity, the allowlisted relation name
+  is `wallet_swap_activity` (registry `locator.view_id`); when that source is
+  unavailable, say so from coverage/warnings and still cite `source_id`,
+  `deployment_or_view_id`, and `query_id` without inventing that activity was
+  empty.
 
 `coverage` names differ per tool: `requested_deployments` /
 `successful_deployments` plus `nuthatch_available` for `compare_pools`, and
@@ -199,7 +206,11 @@ the next tool call.
 For wallet research, lead with the public address, requested window/sections,
 and status. Summarize supported activity and positions separately, surface
 section coverage and warnings, and describe assets as observed rather than
-owned or complete balances.
+owned or complete balances. When Nuthatch wallet activity is unavailable, do
+not report `deployment_or_view_id` as a “view”; cite it as
+`deployment_or_view_id` (nest registry hash) plus `query_id`
+`nuthatch-wallet-swap-activity-v1`, and keep counterparties/activity as
+unavailable rather than empty.
 
 ## Preserve evidence integrity
 

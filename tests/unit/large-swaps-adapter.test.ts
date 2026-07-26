@@ -92,9 +92,7 @@ function clientFor(rows: readonly NuthatchLargeSwapRow[]) {
       const snapshotMatch = /WHERE block_number <= (\d+)/.exec(query);
       const snapshotHead = snapshotMatch === null ? -1 : Number(snapshotMatch[1]);
       const candidates = rows.filter(({ block_number }) => block_number <= snapshotHead);
-      const anchorMatch = /CAST\(transaction_hash AS VARCHAR\) (>=|>) '(0x[0-9a-f]{64})'/.exec(
-        query,
-      );
+      const anchorMatch = /tx_hash (>=|>) '(0x[0-9a-f]{64})'/.exec(query);
       if (anchorMatch === null) {
         return Promise.resolve(ok(receipt(candidates.slice(0, maxRows))));
       }
@@ -123,10 +121,11 @@ describe("Nuthatch large-swap query boundary", () => {
       limit: 25,
     });
 
-    expect(query).toContain("FROM pool_swap_search");
+    expect(query).toContain("FROM pool__swap");
     expect(query).toContain("block_number <= 100");
     expect(query).toContain("block_number < 99");
-    expect(query).toContain(`CAST(transaction_hash AS VARCHAR) > '0x${"a".repeat(64)}'`);
+    expect(query).toContain(`tx_hash > '0x${"a".repeat(64)}'`);
+    expect(query).not.toContain("CAST(");
     expect(query).toContain("LIMIT 25");
     expect(query).not.toContain(lockedLargeSwapsRequest.min_amount);
     expect(query).not.toContain(LSS_SCOPE.tokens.weth.address);
@@ -285,12 +284,8 @@ describe("Nuthatch large-swap adapter", () => {
       [...matchIndexes].map((index) => rows[index]!.transaction_hash),
     );
     expect(sqlQueries).toHaveLength(4);
-    expect(sqlQueries[2]).toContain(
-      `CAST(transaction_hash AS VARCHAR) > '${rows[255]!.transaction_hash}'`,
-    );
-    expect(sqlQueries[3]).toContain(
-      `CAST(transaction_hash AS VARCHAR) > '${rows[511]!.transaction_hash}'`,
-    );
+    expect(sqlQueries[2]).toContain(`tx_hash > '${rows[255]!.transaction_hash}'`);
+    expect(sqlQueries[3]).toContain(`tx_hash > '${rows[511]!.transaction_hash}'`);
   });
 
   it("preserves every event exactly once across live-adapter cursor pages", async () => {
@@ -346,9 +341,7 @@ describe("Nuthatch large-swap adapter", () => {
     expect(continuationAnchors.length).toBeGreaterThan(1);
     expect(
       continuationAnchors.every((anchor) =>
-        sqlQueries.some((query) =>
-          query.includes(`CAST(transaction_hash AS VARCHAR) >= '${anchor}'`),
-        ),
+        sqlQueries.some((query) => query.includes(`tx_hash >= '${anchor}'`)),
       ),
     ).toBe(true);
   });

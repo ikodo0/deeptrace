@@ -3,18 +3,26 @@ import type { WalletResearchQueryContext } from "../../tools/wallet-query.js";
 
 const ADDRESS_PATTERN = /^0x[0-9a-f]{40}$/;
 
+/**
+ * Project the indexed pool Swap table into the wallet-activity receipt shape.
+ * Query `pool__swap` directly (same projection as `wallet_swap_activity`) so
+ * the adapter stays live when authored views are missing or fail to load —
+ * freshness already proves `pool__swap` is queryable. Compare address and hash
+ * columns with string literals; do not CAST them to VARCHAR (DuckDB rejects
+ * that cast for address/bytes32 and Nuthatch returns HTTP 400).
+ */
 const SELECT_COLUMNS = `SELECT
-  pool_address,
+  address AS pool_address,
   block_number,
   block_hash,
   block_timestamp,
-  transaction_hash,
+  tx_hash AS transaction_hash,
   log_index,
   sender,
   recipient,
-  amount0_raw,
-  amount1_raw
-FROM ${WALLET_RESEARCH_SCOPE.nuthatch.viewId}`;
+  amount0 AS amount0_raw,
+  amount1 AS amount1_raw
+FROM pool__swap`;
 
 function safeInteger(value: number, field: string): string {
   if (!Number.isSafeInteger(value) || value < 0) {
@@ -29,7 +37,7 @@ export function buildWalletActivityHeadQuery(snapshotHead: number | null): strin
       ? ""
       : `\nWHERE block_number <= ${safeInteger(snapshotHead, "snapshotHead")}`;
   return `${SELECT_COLUMNS}${bound}
-ORDER BY block_number DESC, log_index DESC, CAST(transaction_hash AS VARCHAR) ASC
+ORDER BY block_number DESC, log_index DESC, transaction_hash ASC
 LIMIT 1`;
 }
 
@@ -48,8 +56,8 @@ export function buildWalletActivityQuery(
   return `${SELECT_COLUMNS}
 WHERE block_number <= ${head}
   AND block_timestamp >= ${start}
-  AND (CAST(sender AS VARCHAR) = '${wallet}' OR CAST(recipient AS VARCHAR) = '${wallet}')
-ORDER BY block_number DESC, log_index DESC, CAST(transaction_hash AS VARCHAR) ASC
+  AND (sender = '${wallet}' OR recipient = '${wallet}')
+ORDER BY block_number DESC, log_index DESC, transaction_hash ASC
 LIMIT ${String(limit)}`;
 }
 

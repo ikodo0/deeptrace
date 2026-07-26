@@ -27,24 +27,25 @@ price or revalue a position.
 
 ## Nuthatch coverage
 
-The dedicated `wallet_swap_activity` view exposes sender/recipient-aware Swap
-events from the one allowlisted Uniswap v3 WETH/USDC pool:
+The dedicated `wallet_swap_activity` view documents the sender/recipient-aware
+Swap projection from the one allowlisted Uniswap v3 WETH/USDC pool:
 
 `0x6c561b446416e1a00e8e93e221854d6ea4171372`
 
-The adapter filters only a validated lowercase public address, applies a
-24-hour or 7-day window anchored to the frozen indexed snapshot, and uses
-deterministic block/log/hash cursor pagination. Window aggregates are calculated
-from the same complete bounded snapshot rather than from one activity page. A
-window above the 5,000-row safety ceiling fails the Nuthatch section explicitly
-instead of returning incomplete aggregates. Returned assets and observable
-flows describe only those indexed swap events.
+The live adapter queries the equivalent `pool__swap` projection directly (same
+columns as the view) and filters only a validated lowercase public address,
+applies a 24-hour or 7-day window anchored to the frozen indexed snapshot, and
+uses deterministic block/log/hash cursor pagination. Address and hash filters
+use string literals — never `CAST(... AS VARCHAR)`, which Nuthatch/DuckDB
+rejects with HTTP 400. Window aggregates are calculated from the same complete
+bounded snapshot rather than from one activity page. A window above the 5,000-row
+safety ceiling fails the Nuthatch section explicitly instead of returning
+incomplete aggregates. Returned assets and observable flows describe only those
+indexed swap events.
 
-The local environment did not provide `NUTHATCH_BASE_URL` during WR
-implementation. Unit and contract tests therefore verify the adapter boundary,
-but a deployed-view receipt and transaction-receipt parity packet remain a
-release gate. Until that gate passes, live responses preserve Graph positions
-as `partial` and report Nuthatch coverage as unavailable.
+Authored nest views and parity checks remain the deploy gate for nest bundles.
+Until a live receipt is verified in the target environment, treat unexpected
+`/sql` HTTP failures as source-local unavailability rather than “no activity.”
 
 ## Section matrix
 
