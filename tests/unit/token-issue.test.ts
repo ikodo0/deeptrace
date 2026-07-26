@@ -87,6 +87,43 @@ describe("self-serve token issuance", () => {
     }
   });
 
+  it("accepts the form post a browser actually sends", async () => {
+    const { runtime, origin } = await startServer();
+    try {
+      // A real submission carries Origin and a form content type; the plain
+      // fetch the other tests use sends neither.
+      const response = await fetch(`${origin}/auth`, {
+        method: "POST",
+        headers: {
+          origin: "https://mcp.ikodo.dev",
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: "",
+      });
+
+      expect(response.status).toBe(201);
+      expect(extractToken(await response.text())).not.toBe("");
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("refuses a mint posted from another site", async () => {
+    const { runtime, origin } = await startServer();
+    try {
+      const response = await fetch(`${origin}/auth`, {
+        method: "POST",
+        headers: { origin: "https://evil.example" },
+        body: "",
+      });
+
+      expect(response.status).toBe(403);
+      expect(await response.text()).not.toMatch(/dt_/u);
+    } finally {
+      await runtime.close();
+    }
+  });
+
   it("mints a different token for each caller", async () => {
     const { runtime, origin } = await startServer();
     try {
