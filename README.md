@@ -5,7 +5,7 @@
 ---
 
 DeepTrace is a read-only [MCP](https://modelcontextprotocol.io) server. You connect it to
-Claude Code, Codex, OpenCode, or any MCP client, and your assistant gains four research
+Cursor, Codex, Claude Code, or any other MCP client, and your assistant gains four research
 tools for Base (chain `8453`).
 
 The point is not "more data." The point is data an agent cannot fudge. Every answer says
@@ -64,64 +64,39 @@ else uses a bearer token — open `https://mcp.ikodo.dev` in a browser and the p
 through getting one. Both flows, and their current client-compatibility limits, are covered
 in [Authentication](docs/auth.md).
 
-### Get the token into your shell
+### Two examples
 
-Read it without leaving a copy in shell history, then launch your client from that shell so
-it inherits the variable:
+Every client wants the same URL and the same header; only the file format differs. Two are
+shown here — see [Connect an AI client](docs/connect.md) for Claude Code, OpenCode, and the
+`mcp-remote` bridge for clients that cannot send a header at all.
+
+Keep the token in an environment variable and reference it, so the config file itself stays
+safe to commit:
 
 ```sh
 read -rsp "DeepTrace token: " DEEPTRACE_TOKEN
 export DEEPTRACE_TOKEN
 ```
 
-Never put the token in a URL, a chat message, a support log, or a committed file. The
-configs below reference the variable, so the files themselves stay safe to commit.
-
-### Claude Code
-
-Project-level `.mcp.json` in your repository root:
+**Cursor** — `.cursor/mcp.json` in the project, or `~/.cursor/mcp.json` for every project:
 
 ```json
 {
   "mcpServers": {
     "deeptrace": {
-      "type": "http",
       "url": "https://mcp.ikodo.dev",
-      "headers": { "Authorization": "Bearer ${DEEPTRACE_TOKEN}" },
-      "alwaysLoad": true
+      "headers": { "Authorization": "Bearer ${env:DEEPTRACE_TOKEN}" }
     }
   }
 }
 ```
 
-`alwaysLoad` keeps the tools immediately available instead of lazily discovered.
+You can also drop the `headers` block entirely. Cursor prefers OAuth when a server advertises
+it, so the URL alone is enough: it registers itself, opens a consent page, and stores its own
+credential.
 
-### OpenCode
-
-User-level `~/.config/opencode/opencode.json`, or `opencode.json` in a project:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "deeptrace": {
-      "type": "remote",
-      "url": "https://mcp.ikodo.dev",
-      "enabled": true,
-      "oauth": false,
-      "headers": { "Authorization": "Bearer {env:DEEPTRACE_TOKEN}" }
-    }
-  }
-}
-```
-
-Set `oauth` to `false` when you are using a bearer token, so OpenCode does not start OAuth
-discovery instead of sending the header.
-
-### Codex
-
-User-level `~/.codex/config.toml`, or `.codex/config.toml` in a trusted project. The Codex
-CLI, IDE extension, and ChatGPT desktop experience all share this file:
+**Codex** — `~/.codex/config.toml`, or `.codex/config.toml` in a trusted project. The CLI, the
+IDE extension, and the ChatGPT desktop experience all share this file:
 
 ```toml
 [mcp_servers.deeptrace]
@@ -129,43 +104,18 @@ url = "https://mcp.ikodo.dev"
 bearer_token_env_var = "DEEPTRACE_TOKEN"
 ```
 
-### Any other client
-
-Clients that only launch a local command, or that cannot attach a custom header, reach
-DeepTrace through the `mcp-remote` bridge. This works anywhere `mcpServers` is understood:
-
-```json
-{
-  "mcpServers": {
-    "deeptrace": {
-      "command": "npx",
-      "args": ["mcp-remote", "--header", "Authorization:${AUTH_HEADER}", "https://mcp.ikodo.dev"],
-      "env": {
-        "AUTH_HEADER": "Bearer <TOKEN>"
-      }
-    }
-  }
-}
-```
-
-The missing space after `Authorization:` is deliberate — `mcp-remote` splits each `--header`
-argument on the first colon, and a value containing a space can be mangled by the spawning
-shell, so the scheme and token travel together in `AUTH_HEADER`. Prefer a native config from
-above when your client has one; it is one less process and one less dependency.
+Note that Codex takes the *name* of the variable, not the token. Launch it from the shell
+where you exported it.
 
 ### Verify it connected
 
-```sh
-claude mcp list
-opencode mcp list
-codex mcp list
-```
+Run your client's MCP listing — `cursor` shows connected servers under Settings, and Codex
+has `codex mcp list`. Then ask something concrete, such as comparing Base WETH/USDC pools
+over the last 24 hours by volume and reporting which sources answered.
 
-Then ask your assistant something concrete, such as comparing Base WETH/USDC pools over the
-last 24 hours by volume and reporting which sources answered. A `401` means the token is
-missing, invalid, or expired; a `404` usually means a typo in the hostname. Fuller
-per-client notes and a troubleshooting table are in
-[Connect an AI client](docs/connect.md).
+A `401` means the credential is missing, invalid, or retired. A `404` usually means a typo in
+the hostname. A client reporting that it needs authentication has reached the server
+successfully — that is the browser flow waiting for you.
 
 ### Optional skill
 
