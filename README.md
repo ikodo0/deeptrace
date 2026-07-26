@@ -47,8 +47,12 @@ The hosted server is:
 https://mcp.ikodo.dev
 ```
 
-You do not need a Graph API key, Nuthatch access, Tailscale, or a local checkout. Whatever
-client you use, these are the only four settings:
+You do not need a Graph API key, Nuthatch access, Tailscale, or a local checkout. Nuthatch is
+reachable only from inside the DeepTrace server: it is a private, unauthenticated service on the
+server's loopback interface with no public route, so there is nothing for a client to connect to.
+`mcp.ikodo.dev` serves the MCP endpoint and the connection page only.
+
+Whatever client you use, these are the only four settings:
 
 | Setting | Value |
 | --- | --- |
