@@ -58,6 +58,10 @@ a{color:inherit}
 .note{margin-bottom:18px;max-width:58ch}
 .note:last-child{margin-bottom:0}
 .note b{color:var(--ink);font-weight:400;font-style:italic}
+.note a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.cta{display:inline-block;font-family:var(--mono);font-size:13px;color:var(--stock)!important;
+  background:var(--ink);border-radius:2px;padding:11px 20px;text-decoration:none!important}
+.cta:hover{filter:brightness(1.08)}
 .ic{font-family:var(--mono);font-size:.84em;color:var(--ink)}
 /* this page ships no script, so one click selects a whole block */
 .code{margin-top:18px;border:1px solid var(--rule-2);background:var(--sheet)}
@@ -162,7 +166,8 @@ details.client .body{padding-bottom:24px}
 
 <section class="section" aria-labelledby="h-token">
   <div class="sect-head"><h2 id="h-token">Get an access token</h2><span>Step one</span></div>
-  <p class="note">Request a token through a secure channel, then export it as <span class="ic">DEEPTRACE_TOKEN</span> in the shell that launches your AI client.</p>
+  <p class="note"><a class="cta" href="/auth">Take a token</a></p>
+  <p class="note">No wallet, no account, no email. The token is yours alone &mdash; if it leaks, only yours is revoked. Export it as <span class="ic">DEEPTRACE_TOKEN</span> in the shell that launches your AI client.</p>
   <div class="code">
     <div class="code-head"><span>Shell</span><span>Click to select</span></div>
 <pre><span class="d">$</span> export DEEPTRACE_TOKEN=<span class="d">"&lt;your-token&gt;"</span></pre>
@@ -171,7 +176,7 @@ details.client .body{padding-bottom:24px}
     <b>Never</b>
     <p>Never paste a token into a chat, put it in a URL, or commit it. This page has no token field and writes nothing to your browser &mdash; any site asking you to type a DeepTrace token is not this one.</p>
   </div>
-  <p class="note" style="margin-top:18px">Wallet sign-in over OAuth will replace this step, and manual tokens will remain only for automation.</p>
+  <p class="note" style="margin-top:18px">Lost it? Take another. Tokens are stored only as hashes, so a lost one cannot be recovered &mdash; but replacing it costs nothing.</p>
 </section>
 
 <section class="section" id="connect" aria-labelledby="h-connect">
