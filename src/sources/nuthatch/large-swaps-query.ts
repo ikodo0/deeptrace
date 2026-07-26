@@ -3,16 +3,23 @@ import type { LargeSwapEventPosition } from "../../tools/large-swaps-query.js";
 
 const TRANSACTION_HASH_PATTERN = /^0x[0-9a-f]{64}$/;
 
+/**
+ * Project the indexed pool Swap table into the large-swap receipt shape.
+ * Query `pool__swap` directly (same projection as `pool_swap_search`) so scans
+ * stay live when authored views are missing. Order and keyset-compare `tx_hash`
+ * with string literals — do not CAST bytes32 to VARCHAR (Nuthatch/DuckDB
+ * returns HTTP 400 for that cast).
+ */
 const SELECT_COLUMNS = `SELECT
-  pool_address,
+  address AS pool_address,
   block_number,
   block_hash,
   block_timestamp,
-  transaction_hash,
+  tx_hash AS transaction_hash,
   log_index,
-  amount0_raw,
-  amount1_raw
-FROM ${LSS_SCOPE.source.viewId}`;
+  amount0 AS amount0_raw,
+  amount1 AS amount1_raw
+FROM pool__swap`;
 
 function safeInteger(value: number, name: string): string {
   if (!Number.isSafeInteger(value) || value < 0) {
@@ -33,7 +40,7 @@ export function buildLargeSwapHeadQuery(indexedHead: number): string {
   const head = safeInteger(indexedHead, "indexedHead");
   return `${SELECT_COLUMNS}
 WHERE block_number <= ${head}
-ORDER BY block_number DESC, log_index DESC, CAST(transaction_hash AS VARCHAR) ASC
+ORDER BY block_number DESC, log_index DESC, transaction_hash ASC
 LIMIT 1`;
 }
 
@@ -71,14 +78,14 @@ export function buildLargeSwapScanQuery(options: LargeSwapScanQueryOptions): str
     OR (
       block_number = ${block}
       AND log_index = ${log}
-      AND CAST(transaction_hash AS VARCHAR) ${hashOperator} '${options.after.transaction_hash}'
+      AND tx_hash ${hashOperator} '${options.after.transaction_hash}'
     )
   )`;
   }
 
   return `${SELECT_COLUMNS}
 WHERE block_number <= ${snapshotHead}${keyset}
-ORDER BY block_number DESC, log_index DESC, CAST(transaction_hash AS VARCHAR) ASC
+ORDER BY block_number DESC, log_index DESC, transaction_hash ASC
 LIMIT ${String(options.limit)}`;
 }
 

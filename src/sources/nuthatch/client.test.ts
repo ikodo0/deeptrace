@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createNuthatchClient,
+  httpErrorDetail,
   NUTHATCH_DEFAULT_TIMEOUT_MS,
   NUTHATCH_MAX_ROWS_CEILING,
   NUTHATCH_MAX_ROWS_FLOOR,
@@ -161,8 +162,22 @@ describe("nuthatch client result mapping", () => {
       expect(result.error.kind).toBe("http");
       expect(result.status).toBe(500);
       expect(result.error.message).toContain("/ready");
+      expect(result.error.message).toContain("boom");
       expect(result.error.message).not.toContain("https://example.test");
     }
+  });
+
+  it("includes a truncated Catalog Error detail from /sql HTTP 400 bodies", async () => {
+    const detail =
+      'Catalog Error: Table with name wallet_swap_activity does not exist! Did you mean "pool__swap"?';
+    const { fetchImpl } = makeRecordingFetch([jsonResponse(400, { error: detail })]);
+    const client = createNuthatchClient({ baseUrl: "https://example.test", fetchImpl });
+    const result = await client.sql("SELECT 1", 1);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toBe(`/sql returned HTTP 400: ${detail}`);
+    }
+    expect(httpErrorDetail({ error: `${"x".repeat(300)}` })?.endsWith("…")).toBe(true);
   });
 
   it("maps invalid JSON to invalid_json", async () => {

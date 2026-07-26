@@ -88,7 +88,7 @@ describe("live find_large_swaps source", () => {
       .filter(({ pathname }) => pathname === "/sql")
       .map(({ searchParams }) => searchParams.get("q") ?? "");
     expect(sqlQueries).toHaveLength(2);
-    expect(sqlQueries.every((query) => query.includes("pool_swap_search"))).toBe(true);
+    expect(sqlQueries.every((query) => query.includes("pool__swap"))).toBe(true);
     expect(sqlQueries.every((query) => !query.includes(LSS_SCOPE.tokens.weth.address))).toBe(true);
   });
 

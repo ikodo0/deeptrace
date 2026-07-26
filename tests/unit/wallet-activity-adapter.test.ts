@@ -90,6 +90,71 @@ function client(activityRecipient = WALLET): NuthatchClient {
 }
 
 describe("wallet Nuthatch adapter", () => {
+  it("starts nest, schema, and head /sql without waiting for either metadata call", async () => {
+    let nestStarted = false;
+    let schemaStarted = false;
+    let sqlStarted = false;
+    let nestSawPeers = false;
+    let schemaSawPeers = false;
+    let sqlSawPeers = false;
+
+    const release = {
+      nest: () => {},
+      schema: () => {},
+      sql: () => {},
+    };
+    const nestGate = new Promise<void>((resolve) => {
+      release.nest = resolve;
+    });
+    const schemaGate = new Promise<void>((resolve) => {
+      release.schema = resolve;
+    });
+    const sqlGate = new Promise<void>((resolve) => {
+      release.sql = resolve;
+    });
+
+    const base = client();
+    const gated: NuthatchClient = {
+      ...base,
+      nest: vi.fn(async () => {
+        nestStarted = true;
+        nestSawPeers = schemaStarted && sqlStarted;
+        await nestGate;
+        return base.nest();
+      }),
+      schema: vi.fn(async () => {
+        schemaStarted = true;
+        schemaSawPeers = nestStarted && sqlStarted;
+        await schemaGate;
+        return base.schema();
+      }),
+      sql: vi.fn(async (...args) => {
+        sqlStarted = true;
+        sqlSawPeers = nestStarted && schemaStarted;
+        await sqlGate;
+        return base.sql(...args);
+      }),
+    };
+
+    const pending = fetchNuthatchWalletActivity(
+      { client: gated, clock: () => 1_000, record: record() },
+      inspectWalletResearchQuery({
+        chain_id: 8453,
+        address: WALLET,
+        limit: 5,
+      }),
+    );
+
+    await vi.waitFor(() => {
+      expect(nestStarted && schemaStarted && sqlStarted).toBe(true);
+    });
+    expect(nestSawPeers || schemaSawPeers || sqlSawPeers).toBe(true);
+    release.nest();
+    release.schema();
+    release.sql();
+    await expect(pending).resolves.toMatchObject({ status: "ok" });
+  });
+
   it("normalizes sender/recipient activity with exact token amounts", async () => {
     const result = await fetchNuthatchWalletActivity(
       { client: client(), clock: () => 1_000, record: record() },

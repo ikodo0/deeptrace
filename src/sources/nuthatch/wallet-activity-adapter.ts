@@ -218,7 +218,14 @@ export async function fetchNuthatchWalletActivity(
       return failed(record, "stale", "Nuthatch wallet activity readiness is invalid.");
     }
 
-    const [nestResult, schemaResult] = await Promise.all([client.nest(), client.schema()]);
+    // Same wait shape as compare_pools freshness: nest, schema, and head /sql
+    // start together after /ready (freshness uses one SQL; wallet still needs a
+    // second scan query once the head snapshot is known).
+    const [nestResult, schemaResult, headResult] = await Promise.all([
+      client.nest(),
+      client.schema(),
+      client.sql(buildWalletActivityHeadQuery(context.snapshotHead), 1),
+    ]);
     if (!nestResult.ok) {
       return failed(record, httpStatus(nestResult), nestResult.error.message);
     }
@@ -235,7 +242,6 @@ export async function fetchNuthatchWalletActivity(
       );
     }
 
-    const headResult = await client.sql(buildWalletActivityHeadQuery(context.snapshotHead), 1);
     if (!headResult.ok) {
       return failed(record, httpStatus(headResult), headResult.error.message);
     }

@@ -224,6 +224,32 @@ function safeErrorMessage(error: unknown, endpoint: string, timedOut: boolean): 
   return `${endpoint} request failed; details were redacted.`;
 }
 
+const HTTP_ERROR_DETAIL_MAX = 240;
+
+/**
+ * Pull a short, credential-free detail from a Nuthatch error body so adapters
+ * can distinguish Catalog Error (missing view) from other HTTP failures.
+ */
+export function httpErrorDetail(body: unknown): string | null {
+  let raw: string | null = null;
+  if (typeof body === "string" && body.trim() !== "") {
+    raw = body.trim();
+  } else if (body !== null && typeof body === "object" && !Array.isArray(body)) {
+    const error = (body as { readonly error?: unknown }).error;
+    if (typeof error === "string" && error.trim() !== "") {
+      raw = error.trim();
+    }
+  }
+  if (raw === null) {
+    return null;
+  }
+  const compact = raw.replace(/\s+/g, " ");
+  if (compact.length <= HTTP_ERROR_DETAIL_MAX) {
+    return compact;
+  }
+  return `${compact.slice(0, HTTP_ERROR_DETAIL_MAX)}…`;
+}
+
 export interface NuthatchClient {
   readonly health: () => Promise<NuthatchHttpResult>;
   readonly ready: () => Promise<NuthatchHttpResult>;
@@ -307,10 +333,17 @@ export function createNuthatchClient(options: NuthatchClientOptions): NuthatchCl
       }
 
       if (response.status < 200 || response.status >= 300) {
+        const detail = httpErrorDetail(body);
         return {
           ok: false,
           status: response.status,
-          error: { kind: "http", message: `${endpoint} returned HTTP ${String(response.status)}.` },
+          error: {
+            kind: "http",
+            message:
+              detail === null
+                ? `${endpoint} returned HTTP ${String(response.status)}.`
+                : `${endpoint} returned HTTP ${String(response.status)}: ${detail}`,
+          },
           latencyMs: Math.round(performance.now() - startedAt),
         };
       }

@@ -21,9 +21,10 @@ describe("wallet activity SQL", () => {
     });
     const query = buildWalletActivityQuery(context, 100, 50);
 
-    expect(query).toContain("FROM wallet_swap_activity");
-    expect(query).toContain(`CAST(sender AS VARCHAR) = '${WALLET}'`);
-    expect(query).toContain(`CAST(recipient AS VARCHAR) = '${WALLET}'`);
+    expect(query).toContain("FROM pool__swap");
+    expect(query).toContain(`sender = '${WALLET}'`);
+    expect(query).toContain(`recipient = '${WALLET}'`);
+    expect(query).not.toContain("CAST(");
     expect(query).toContain("block_number <= 100");
     expect(query).toContain("block_timestamp >= 50");
     expect(query).toContain("LIMIT 5001");

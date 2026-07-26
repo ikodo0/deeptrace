@@ -459,18 +459,21 @@ Row fields: `pool_address`, `recent_swap_count_24h`, `last_swap_block`,
 `last_swap_block_timestamp`, `last_swap_log_index`, `last_swap_block_hash`,
 `last_swap_tx_hash`.
 
-The LSS deployment additionally requires `pool_swap_search`:
+The LSS and wallet adapters require readable Swap rows. DeepTrace queries
+`pool__swap` with the same projection as `pool_swap_search` /
+`wallet_swap_activity` (address/hash compared via string literals, never
+`CAST(... AS VARCHAR)`). Authored views remain for nest checks and discovery:
 
 ```
 curl -sS -G --data-urlencode \
-  "q=SELECT * FROM pool_swap_search ORDER BY block_number DESC, log_index DESC LIMIT 1" \
+  "q=SELECT address AS pool_address, block_number, block_hash, block_timestamp, tx_hash AS transaction_hash, log_index, amount0 AS amount0_raw, amount1 AS amount1_raw FROM pool__swap ORDER BY block_number DESC, log_index DESC, transaction_hash ASC LIMIT 1" \
   --data-urlencode "max_rows=1" $NUTHATCH_BASE_URL/sql
 ```
 
 Its receipt must contain the locked pool address, block number/hash/timestamp,
 transaction hash, log index, and exact signed `amount0_raw`/`amount1_raw`.
-Run the committed `swap_search_parity` nest check before accepting a new nest
-bundle.
+Run the committed `swap_search_parity` and `wallet_activity_parity` nest checks
+before accepting a new nest bundle.
 
 ## Troubleshooting
 
