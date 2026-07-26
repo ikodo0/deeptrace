@@ -312,10 +312,13 @@ Tell me which sources answered, whether Nuthatch is fresh, and show any warnings
 
     <section class="card" aria-labelledby="skill-heading">
       <h2 id="skill-heading">Optional Agent Skill</h2>
-      <p>The MCP server works without a skill: all three clients discover the <code>compare_pools</code> tool and its safety guidance automatically.</p>
+      <p><strong>You do not need the skill to use DeepTrace.</strong> All three clients discover the <code>compare_pools</code> tool and its essential safety guidance from the MCP server.</p>
+      <p>For a richer pool-research workflow, run this from the project where you use your AI:</p>
+      <pre tabindex="0"><code>npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research</code></pre>
+      <p>The installer detects supported agents and asks where to install. Review the source before approving it, then start a new AI session. Installing the skill does not configure MCP or store your token.</p>
       <details>
-        <summary>What does SKILL.md add?</summary>
-        <p>Install <code>skills/deeptrace-pool-research/SKILL.md</code> separately in clients that support Agent Skills. It teaches the AI to preserve exact decimal strings, distinguish Graph metrics from Nuthatch freshness facts, and surface partial coverage. Connecting MCP does not automatically install or load this file.</p>
+        <summary>What does the skill add?</summary>
+        <p>It teaches the AI to preserve exact decimal strings, distinguish Graph metrics from Nuthatch freshness facts, and surface partial coverage. Connecting MCP does not automatically install or load the skill.</p>
         <p><a href="https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research">View the DeepTrace Pool Research skill</a>.</p>
       </details>
     </section>
