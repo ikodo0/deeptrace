@@ -6,8 +6,18 @@ DeepTrace is available as a remote MCP server at:
 https://mcp.ikodo.dev
 ```
 
-It uses the MCP Streamable HTTP transport and a bearer access token. Ask the
-DeepTrace maintainer for a token through a secure channel.
+It uses the MCP Streamable HTTP transport and a bearer access token, the same
+shape as other hosted research MCPs: you hold your own key and send it as an
+`Authorization` header.
+
+## Get a key
+
+Tokens are self-serve: open <https://mcp.ikodo.dev/auth> in a browser and press the
+button, or add the server with no header at all and let an OAuth-capable client
+discover the flow and store its own credential.
+
+[Authentication](auth.md) covers both paths in full, along with token handling,
+the OAuth endpoints, and current client-compatibility limits.
 
 ## What a user needs
 
@@ -115,6 +125,36 @@ when and how to use the tool. OpenCode receives the same safety guidance in the
 tool description and all three clients receive a declared output schema plus
 structured results.
 
+## Any client, through mcp-remote
+
+Clients that only launch a local command — or that cannot attach a custom
+header — reach DeepTrace through the `mcp-remote` bridge. This is the widely
+used shape for hosted MCP servers and works anywhere `mcpServers` is understood:
+
+```json
+{
+  "mcpServers": {
+    "deeptrace": {
+      "command": "npx",
+      "args": ["mcp-remote", "--header", "Authorization:${AUTH_HEADER}", "https://mcp.ikodo.dev"],
+      "env": {
+        "AUTH_HEADER": "Bearer <TOKEN>"
+      }
+    }
+  }
+}
+```
+
+Note the missing space after `Authorization:`. `mcp-remote` splits each
+`--header` argument on the first colon, and a value containing a space can be
+mangled by the shell that spawns it, so the scheme and the token both live in
+`AUTH_HEADER` instead. Keep the real token in your environment or secret store
+and leave the `${AUTH_HEADER}` reference in the file.
+
+Prefer a native configuration from the sections above when your client has one:
+it is one less process and one less dependency. Use `mcp-remote` only when the
+client cannot send a header itself.
+
 ## Other clients
 
 Use the four settings in the table when a client supports remote Streamable
@@ -122,9 +162,10 @@ HTTP MCP servers and custom headers. Client configuration formats differ, so
 prefer the client's own secret storage over copying a token into plain JSON.
 
 Some hosted chat connectors accept only OAuth or unauthenticated MCP servers
-and cannot attach a fixed bearer header. The current DeepTrace endpoint does
-not advertise OAuth. In those clients, do not paste the token into chat or add
-it to the URL; use a client that supports a custom authorization header.
+and cannot attach a fixed bearer header. DeepTrace advertises OAuth 2.1
+authorization code with PKCE, so those clients can connect with no header at
+all — add the URL alone and approve the consent page. In any client, do not
+paste a token into chat or add it to the URL.
 
 For general remote-server connection guidance, see the
 [official MCP guide](https://modelcontextprotocol.io/docs/develop/connect-remote-servers).
@@ -202,8 +243,10 @@ setup.
 
 | Symptom | Meaning |
 | --- | --- |
-| `401 Unauthorized` | The server is reachable, but the bearer token is missing, invalid, or expired. |
+| `401 Unauthorized` | The server is reachable, but the bearer token is missing, invalid, or revoked. Take a fresh one at `/auth`, or remove the header and let the client run OAuth. |
 | `404 Not Found` | Check that the hostname is exactly `mcp.ikodo.dev`; do not use `mcp.icodo.dev`. |
 | Timeout or DNS failure | Check the exact hostname and the local network. Tailscale is not required. |
 | Connected, but result is `partial` | Read `warnings` and `coverage`; one source may be unavailable or stale. |
-| Client offers OAuth only | That client cannot use the current fixed-bearer endpoint directly. |
+| Client offers OAuth only | Supported. Add the URL with no header and approve the consent page. |
+| `Needs authentication` from `claude mcp list` | Expected before the first OAuth approval. Run `/mcp` in Claude Code to finish it. |
+| `invalid_redirect_uri` during OAuth | The client asked to be called back at an address the server will not send a code to. Report the client and its callback shape. |
