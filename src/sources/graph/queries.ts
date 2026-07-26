@@ -47,7 +47,7 @@ export const TIER_A_METRICS_QUERY = `query TierADexPoolMetrics($pool: ID!) {
  * binds it today; it stays implemented so a native deployment can be compared
  * again without reopening the adapter.
  */
-export const TIER_B_METRICS_QUERY_ID = "m2-tier-b-metrics-v1" as const;
+export const TIER_B_METRICS_QUERY_ID = "m3-tier-b-metrics-v2" as const;
 
 export const TIER_B_METRICS_QUERY = `query M2TierBMetrics($pool: ID!) {
   ${META}

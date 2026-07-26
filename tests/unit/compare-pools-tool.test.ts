@@ -3,7 +3,11 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it, vi } from "vitest";
 
 import { FixedWindowRateLimiter } from "../../src/gateway/index.js";
-import { COMPARE_POOLS_TOOL_NAME } from "../../src/mcp/server.js";
+import {
+  COMPARE_LENDING_MARKETS_TOOL_NAME,
+  COMPARE_POOLS_TOOL_NAME,
+  FIND_LARGE_SWAPS_TOOL_NAME,
+} from "../../src/mcp/server.js";
 import { startMcpServer } from "../../src/mcp/lifecycle.js";
 import { M0_COMPARE_POOLS_SCOPE } from "../../src/scope/index.js";
 import {
@@ -106,13 +110,31 @@ describe("compare_pools MCP tool", () => {
     return { client, runtime };
   }
 
-  it("advertises compare_pools as a read-only tool", async () => {
+  it("lists compare_pools alongside lending and large-swap tools", async () => {
     const { client, runtime } = await withClient();
     try {
       const listed = await client.listTools();
-      const comparePools = listed.tools.find((tool) => tool.name === COMPARE_POOLS_TOOL_NAME);
-      expect(comparePools).toBeDefined();
-      expect(comparePools?.annotations?.readOnlyHint).toBe(true);
+      expect(listed.tools.map((tool) => tool.name)).toEqual([
+        COMPARE_POOLS_TOOL_NAME,
+        COMPARE_LENDING_MARKETS_TOOL_NAME,
+        FIND_LARGE_SWAPS_TOOL_NAME,
+      ]);
+      const tool = listed.tools[0];
+      expect(tool?.title).toBe("Compare Base WETH/USDC pools");
+      expect(tool?.description).toContain("Graph-reported TVL, volume, or fees");
+      expect(tool?.description).toContain("Nuthatch adds independent freshness facts only");
+      expect(tool?.annotations?.readOnlyHint).toBe(true);
+      expect(tool?.outputSchema).toMatchObject({
+        type: "object",
+      });
+      const inputProperties = tool?.inputSchema.properties as
+        Record<string, { description?: string }> | undefined;
+      expect(inputProperties?.chain_id?.description).toContain("must be 8453");
+      expect(inputProperties?.token0?.description).toContain("WETH address");
+      expect(inputProperties?.token1?.description).toContain("USDC address");
+      expect(inputProperties?.window?.description).toContain("Defaults to 24h");
+      expect(inputProperties?.ranked_by?.description).toContain("Graph-reported");
+      expect(inputProperties?.top_n?.description).toContain("Defaults to 3");
     } finally {
       await client.close();
       await runtime.close();
@@ -145,6 +167,7 @@ describe("compare_pools MCP tool", () => {
       expect(body.coverage.nuthatch_available).toBe(false);
       expect(body.coverage.successful_deployments).toBe(2);
       expect(body.data?.pools[0]?.source_ids).toEqual([graphPoolA.source_id]);
+      expect(result.structuredContent).toEqual(body);
       expect(onGraphFetch).toHaveBeenCalledTimes(1);
     } finally {
       await client.close();

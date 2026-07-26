@@ -8,11 +8,19 @@ import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { loadGatewayConfig } from "../config/env.js";
 import { FixedWindowRateLimiter } from "../gateway/index.js";
 import { createMcpServer } from "../mcp/server.js";
-import { createLiveComparePoolsSources } from "../tools/index.js";
+import { createLiveComparePoolsSources, createLiveLargeSwapSource } from "../tools/index.js";
 import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
+import {
+  acceptsConnectionPage,
+  isFontAssetRequest,
+  respondConnectionPage,
+  respondFontAsset,
+} from "./connection-page.js";
 
-const MCP_PATH = "/mcp";
+/** Root is canonical; /mcp remains an alias for existing client configs. */
+const MCP_PATHS = new Set(["/", "/mcp"]);
+const ALLOWED_ORIGINS = new Set(["https://mcp.ikodo.dev"]);
 const SESSION_HEADER = "mcp-session-id";
 /** Bounds memory held by abandoned sessions that never send DELETE. */
 const MAX_SESSIONS = 64;
@@ -76,6 +84,23 @@ function respondJson(
   response.end(JSON.stringify({ error: { code, message } }));
 }
 
+function hasAllowedOrigin(request: IncomingMessage): boolean {
+  const origin = request.headers.origin;
+  return origin === undefined || ALLOWED_ORIGINS.has(origin);
+}
+
+function isBrowserNavigation(request: IncomingMessage): boolean {
+  if (request.method !== "GET" || request.headers["sec-fetch-mode"] !== "navigate") {
+    return false;
+  }
+
+  return (
+    request.headers.accept
+      ?.split(",")
+      .some((value) => value.trim().split(";", 1)[0]?.toLowerCase() === "text/html") ?? false
+  );
+}
+
 async function readBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
   for await (const chunk of request) {
@@ -115,6 +140,9 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
   const sources = createLiveComparePoolsSources({
     timeoutMs: gatewayConfig.sourceTimeoutMs,
   });
+  const largeSwapSource = createLiveLargeSwapSource({
+    timeoutMs: gatewayConfig.sourceTimeoutMs,
+  });
 
   const closeSession = (sessionId: string, expectedSession?: Session): Promise<void> => {
     const session = sessions.get(sessionId);
@@ -136,7 +164,12 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
   };
 
   const openSession = async (): Promise<OpenedSession> => {
-    const mcpServer = createMcpServer({ gatewayConfig, rateLimiter, sources });
+    const mcpServer = createMcpServer({
+      gatewayConfig,
+      rateLimiter,
+      sources,
+      largeSwapSource,
+    });
     let registeredSession: Session | undefined;
     let closePromise: Promise<void> | undefined;
     const transport = new StreamableHTTPServerTransport({
@@ -218,17 +251,38 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
     void (async () => {
       try {
         const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
-        if (url.pathname !== MCP_PATH) {
+        if (!hasAllowedOrigin(request)) {
+          respondJson(response, 403, "invalid_origin", "Origin is not allowed");
+          return;
+        }
+
+        // The connection page's typefaces. Served before the MCP path check
+        // because they are the only non-MCP paths this origin answers.
+        if (isFontAssetRequest(request, url.pathname)) {
+          respondFontAsset(request, url.pathname, response);
+          return;
+        }
+
+        if (!MCP_PATHS.has(url.pathname)) {
           respondJson(response, 404, "not_found", "Unknown endpoint");
           return;
         }
 
+        if (url.pathname === "/" && acceptsConnectionPage(request)) {
+          respondConnectionPage(response);
+          return;
+        }
+
+        // A top-level browser visit cannot supply an MCP bearer token and
+        // should not trigger the browser's native credential dialog. Keep this
+        // branch narrow so programmatic MCP requests retain the auth challenge.
+        if (isBrowserNavigation(request)) {
+          respondJson(response, 404, "not_found", "This endpoint is available to MCP clients");
+          return;
+        }
+
         if (!isAuthorized(request.headers.authorization, config.token)) {
-          // No WWW-Authenticate challenge. The endpoint is public, and a realm
-          // challenge makes browsers open a username/password dialog that
-          // cannot supply a bearer token — confusing for anyone who opens the
-          // URL, and useless to MCP clients, which read the token from their
-          // own configuration rather than negotiating.
+          response.setHeader("www-authenticate", 'Bearer realm="deeptrace"');
           respondJson(response, 401, "unauthorized", "Missing or invalid bearer token");
           return;
         }

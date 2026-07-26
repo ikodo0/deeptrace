@@ -15,6 +15,7 @@
     "lint:fix": "eslint . --fix",
     "start": "node dist/index.js",
     "smoke:mcp": "node scripts/mcp-smoke.mjs",
+    "watch:nuthatch": "node scripts/m4/nuthatch-watchdog.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit && tsc -p scripts/m2/tsconfig.json"

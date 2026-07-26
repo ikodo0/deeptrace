@@ -12,5 +12,10 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src/schemas/**/*.ts", "src/registry/**/*.ts", "tests/fixtures/sources/**/*.ts"]
+  "include": [
+    "src/schemas/**/*.ts",
+    "src/registry/**/*.ts",
+    "tests/fixtures/sources/**/*.ts",
+    "tests/fixtures/large-swaps*.ts"
+  ]
 }

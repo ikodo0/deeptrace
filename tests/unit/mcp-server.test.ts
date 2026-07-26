@@ -6,6 +6,7 @@ import { startMcpServer } from "../../src/mcp/lifecycle.js";
 import {
   COMPARE_LENDING_MARKETS_TOOL_NAME,
   COMPARE_POOLS_TOOL_NAME,
+  FIND_LARGE_SWAPS_TOOL_NAME,
   createMcpServer,
   serverInfo,
 } from "../../src/mcp/server.js";
@@ -60,7 +61,11 @@ describe("MCP server foundation", () => {
     try {
       const listed = await client.listTools();
       expect(listed.tools.map((tool) => tool.name).sort()).toEqual(
-        [COMPARE_LENDING_MARKETS_TOOL_NAME, COMPARE_POOLS_TOOL_NAME].sort(),
+        [
+          COMPARE_LENDING_MARKETS_TOOL_NAME,
+          COMPARE_POOLS_TOOL_NAME,
+          FIND_LARGE_SWAPS_TOOL_NAME,
+        ].sort(),
       );
       for (const tool of listed.tools) {
         expect(tool.annotations?.readOnlyHint).toBe(true);

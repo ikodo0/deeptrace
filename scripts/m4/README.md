@@ -24,3 +24,7 @@ In a filesystem-only sandbox that forbids loopback listeners, add `--offline`.
 That still proves the CLI capture and disposable `init --from` cycle are
 repeatable, but deliberately leaves the `http` array empty; it is not a
 substitute for Task 2's HTTP capture on the dev box.
+
+`nuthatch-watchdog.mjs` is a one-shot operational probe for a systemd timer.
+It compares the `/ready` indexed block with a persisted high-water mark and
+does not trust the endpoint's `stalled` boolean. See `docs/deployment.md`.

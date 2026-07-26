@@ -8,7 +8,7 @@ import {
   type ShutdownSignal,
   type ShutdownSignalTarget,
 } from "../../src/mcp/lifecycle.js";
-import { serverInfo } from "../../src/mcp/server.js";
+import { serverInfo, serverInstructions } from "../../src/mcp/server.js";
 
 class TestSignalTarget implements ShutdownSignalTarget {
   private readonly listeners = new Map<ShutdownSignal, () => void>();
@@ -47,6 +47,11 @@ describe("MCP server lifecycle", () => {
       await client.connect(clientTransport);
 
       expect(client.getServerVersion()).toEqual(serverInfo);
+      expect(client.getInstructions()).toBe(serverInstructions);
+      expect(serverInstructions.length).toBeLessThanOrEqual(512);
+      expect(serverInstructions).toContain("Graph subgraphs supply pool financial metrics");
+      expect(serverInstructions).toContain("Nuthatch supplies independent");
+      expect(serverInstructions).toContain("never present partial results as complete");
       expect(runtime.server.isConnected()).toBe(true);
     } finally {
       await client.close();

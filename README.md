@@ -1,27 +1,50 @@
 # DeepTrace
 
-DeepTrace is a read-only Graph research MCP for builders and AI agents.
+DeepTrace is a read-only research MCP that compares Base liquidity pools and
+USDC lending markets with Graph subgraph metrics and independent Nuthatch swap
+freshness, and returns stable pages of token-thresholded swaps from the locked
+Base Uniswap V3 WETH/USDC pool.
 
-The supported product transport is stateful Streamable HTTP at `/mcp`, protected
-by a bearer token. The public deployment is:
+## Connect
+
+Use the public Streamable HTTP endpoint:
 
 ```text
-https://mcp.ikodo.dev/mcp
+https://mcp.ikodo.dev
 ```
 
-Two read-only tools are registered, both reading Messari standardized subgraphs
-on Base so one schema family covers a DEX AMM and three lending protocols:
+Browsers that request HTML receive a short public connection page at that same
+root URL. Configure the access token as an `Authorization: Bearer` header in
+your MCP client. A normal user does not need Tailscale, a Graph API key,
+Nuthatch access, or a local checkout. See
+[Connect an AI client](docs/connect.md) for the short setup and compatibility
+notes.
 
-- `compare_pools` compares the locked WETH/USDC 0.3% and 0.05% Uniswap V3 fee
-  tiers, and augments the result with internal Nuthatch swap freshness.
-- `compare_lending_markets` compares the native-USDC market across Aave v3,
-  Seamless, and Moonwell through one shared query template.
+The optional installable
+[DeepTrace Pool Research skill](skills/deeptrace-pool-research/SKILL.md)
+adds a richer workflow. The MCP server itself supplies essential usage
+instructions, described inputs, a declared output schema, and structured
+results so Claude Code, OpenCode, and Codex work without a separate skill
+installation.
 
-Clients connect only to DeepTrace; Nuthatch is not a public MCP endpoint. Every
-response carries coverage, freshness, and per-source provenance, and reports a
-partial result rather than failing when one source is unavailable. Pinned
-deployments and the field mappings behind each metric are documented in
-[`docs/source-scope.md`](docs/source-scope.md).
+Released tools:
+
+- `compare_pools` — rank the locked Base WETH/USDC Uniswap V3 fee tiers by
+  Graph-reported TVL, volume, or fees, with independent Nuthatch freshness.
+- `compare_lending_markets` — compare the native-USDC market across Aave v3,
+  Seamless, and Moonwell through one shared Messari lending query template.
+- `find_large_swaps` — search the locked Uniswap V3 pool using an exact WETH or
+  USDC human-unit threshold and opaque fixed-snapshot pagination. V1 performs
+  no USD conversion.
+
+Install the optional skill from your project with:
+
+```sh
+npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research
+```
+
+The command prompts for the detected AI client. Review the skill before
+approving installation; it does not configure MCP or store the bearer token.
 
 ## Requirements
 
@@ -39,37 +62,34 @@ npm test
 npm run build
 ```
 
-## Start the Server
+## Run locally
 
-Copy the environment template, set at least `DEEPTRACE_HTTP_TOKEN` and
-`GRAPH_API_KEY`, then build and start:
+Build before starting:
 
 ```sh
-cp .env.example .env
 npm run build
-set -a
-source .env
-set +a
 npm start
 ```
 
-The listener defaults to `127.0.0.1:8787` and serves only `/mcp`. Keep the
-loopback default when a reverse proxy terminates public TLS. The application
-does not load `.env` itself; the shell or service manager must export it.
+`npm start` runs the stdio transport. Application diagnostics use stderr so
+they cannot corrupt the protocol stream.
 
 ## MCP Client Configuration
 
-Configure a remote HTTP server and inject the bearer token from local credential
-storage. For Claude Code:
+Use an absolute path to the built entry point:
 
-```sh
-claude mcp add --transport http deeptrace \
-  https://mcp.ikodo.dev/mcp \
-  --header "Authorization: Bearer <TOKEN>"
+```json
+{
+  "mcpServers": {
+    "deeptrace": {
+      "command": "node",
+      "args": ["/absolute/path/to/deeptrace/dist/index.js"]
+    }
+  }
+}
 ```
 
-Never commit or place the bearer token in the URL. See
-[`docs/mcp-testing.md`](docs/mcp-testing.md) for local testing, the complete
-handshake, remote smoke checks, deployment operations, and current source
-limitations. Nuthatch deployment notes live in
-[`docs/deployment.md`](docs/deployment.md).
+For the public HTTP endpoint, see [docs/connect.md](docs/connect.md). Never put
+the bearer token in the URL. Deployment notes live in
+[docs/deployment.md](docs/deployment.md), and the operator test procedure lives
+in [docs/mcp-testing.md](docs/mcp-testing.md).

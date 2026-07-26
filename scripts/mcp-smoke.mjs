@@ -2,7 +2,7 @@
 //   DEEPTRACE_MCP_URL=... DEEPTRACE_HTTP_TOKEN=... npm run smoke:mcp
 //
 // Uses only built-in fetch and node:process. No new dependencies.
-// Never prints the token, any Authorization header, or a full session id.
+// Never prints the token, any Authorization header, or a session id.
 
 import process from "node:process";
 
@@ -79,6 +79,16 @@ function parseSse(text) {
   return null;
 }
 
+function parseJsonRpc(text) {
+  const sseMessage = parseSse(text);
+  if (sseMessage !== null) return sseMessage;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 async function postJson(url, body, { headers, timeoutMs }) {
   const res = await fetch(url, {
     method: "POST",
@@ -117,68 +127,63 @@ await runCheck("unknown path", async () => {
 
 // Check 3: initialize -> expect 200 and non-empty mcp-session-id
 let sessionId = "";
+let negotiatedProtocolVersion = "";
 const initOk = await runCheck("initialize", async () => {
-  const { status, headers } = await postJson(
+  const { status, headers, text } = await postJson(
     MCP_URL,
     { jsonrpc: "2.0", id: 2, method: "initialize", params: initializeParams },
     { headers: authHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
   );
   const sid = headers.get("mcp-session-id") ?? "";
-  if (status === 200 && sid !== "") {
-    sessionId = sid;
-    return { ok: true, detail: `status=200 sid=${sid.slice(0, 8)}` };
-  }
   if (status !== 200) {
     return { ok: false, detail: `status=${status} (expected 200)` };
   }
-  return { ok: false, detail: `status=200 sid=(empty)` };
+  if (sid === "") {
+    return { ok: false, detail: `status=200 sid=(empty)` };
+  }
+
+  sessionId = sid;
+  const message = parseJsonRpc(text);
+  const protocolVersion = message?.result?.protocolVersion;
+  if (protocolVersion !== initializeParams.protocolVersion) {
+    return { ok: false, detail: `status=200 invalid protocolVersion` };
+  }
+  negotiatedProtocolVersion = protocolVersion;
+  return { ok: true, detail: `status=200 session=established` };
 });
 
+const sessionHeaders = () => ({
+  ...authHeaders(),
+  "mcp-session-id": sessionId,
+  "MCP-Protocol-Version": negotiatedProtocolVersion || initializeParams.protocolVersion,
+});
+
+async function closeSession() {
+  try {
+    const response = await fetch(MCP_URL, {
+      method: "DELETE",
+      headers: sessionHeaders(),
+      signal: AbortSignal.timeout(SHORT_TIMEOUT_MS),
+    });
+    await response.text();
+  } catch {
+    // Session termination is best effort and must not hide the smoke result.
+  }
+}
+
 if (!initOk || sessionId === "") {
+  if (sessionId !== "") await closeSession();
   console.log("initialize failed; skipping remaining checks");
   console.log(`${pass} passed, ${fail} failed`);
   process.exit(1);
 }
 
-const sessionHeaders = () => ({
-  ...authHeaders(),
-  "mcp-session-id": sessionId,
-});
+const EXPECTED_TOOLS = ["compare_pools", "compare_lending_markets", "find_large_swaps"];
 
-// Check 4: notifications/initialized -> expect 202
-await runCheck("notifications/initialized", async () => {
-  const { status } = await postJson(
-    MCP_URL,
-    { jsonrpc: "2.0", method: "notifications/initialized" },
-    { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
-  );
-  return { ok: status === 202, detail: `status=${status} (expected 202)` };
-});
-
-const EXPECTED_TOOLS = ["compare_pools", "compare_lending_markets"];
-
-// Check 5: tools/list -> SSE payload advertises both public tools
-await runCheck("tools/list", async () => {
-  const { status, text } = await postJson(
-    MCP_URL,
-    { jsonrpc: "2.0", id: 3, method: "tools/list" },
-    { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
-  );
-  const msg = parseSse(text);
-  const tools = msg?.result?.tools ?? [];
-  const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
-  const missingTools = EXPECTED_TOOLS.filter((n) => !names.includes(n));
-  const ok = status === 200 && missingTools.length === 0;
-  let detail = `tools=[${names.join(",")}]`;
-  if (status !== 200) detail = `status=${status} (expected 200)`;
-  else if (missingTools.length > 0) detail += ` missing=[${missingTools.join(",")}]`;
-  return { ok, detail };
-});
-
-// Checks 6-7: tools/call each public tool with its locked allowlisted args.
-// A tool call is a pass when it settles complete or partial; only a transport
-// failure or a `failed` envelope is a smoke failure.
-async function callTool({ id, name, args, requestedKey, successKey }) {
+// Checks 6+: tools/call each public tool with its locked allowlisted args.
+// Pool/lending calls pass on complete or partial. Large-swap calls require a
+// complete 1/1 coverage settlement (develop's stricter LSS smoke gate).
+async function callTool({ id, name, args, requestedKey, successKey, requireComplete = false }) {
   const { status, text } = await postJson(
     MCP_URL,
     { jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } },
@@ -187,7 +192,7 @@ async function callTool({ id, name, args, requestedKey, successKey }) {
   if (status !== 200) {
     return { ok: false, detail: `status=${status} (expected 200)` };
   }
-  const msg = parseSse(text);
+  const msg = parseJsonRpc(text);
   const rawText = msg?.result?.content?.[0]?.text;
   if (typeof rawText !== "string") {
     return { ok: false, detail: `status=200 no content[0].text` };
@@ -206,39 +211,90 @@ async function callTool({ id, name, args, requestedKey, successKey }) {
     typeof success === "number" && typeof requested === "number"
       ? `${success}/${requested}`
       : "?/?";
-  const ok = st === "complete" || st === "partial";
+  const ok = requireComplete
+    ? st === "complete" && covStr === "1/1"
+    : st === "complete" || st === "partial";
   return { ok, detail: `status=${st} ${covStr}` };
 }
 
-await runCheck("tools/call pools", () =>
-  callTool({
-    id: 4,
-    name: "compare_pools",
-    args: {
-      chain_id: 8453,
-      token0: "0x4200000000000000000000000000000000000006",
-      token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-      window: "24h",
-      ranked_by: "tvl_usd",
-    },
-    requestedKey: "requested_deployments",
-    successKey: "successful_deployments",
-  }),
-);
+try {
+  // Check 4: notifications/initialized -> expect 202
+  await runCheck("notifications/initialized", async () => {
+    const { status } = await postJson(
+      MCP_URL,
+      { jsonrpc: "2.0", method: "notifications/initialized" },
+      { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
+    );
+    return { ok: status === 202, detail: `status=${status} (expected 202)` };
+  });
 
-await runCheck("tools/call lending", () =>
-  callTool({
-    id: 5,
-    name: "compare_lending_markets",
-    args: {
-      chain_id: 8453,
-      market_token: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-      ranked_by: "tvl_usd",
-    },
-    requestedKey: "requested_sources",
-    successKey: "successful_sources",
-  }),
-);
+  // Check 5: tools/list -> SSE payload advertises all three public tools
+  await runCheck("tools/list", async () => {
+    const { status, text } = await postJson(
+      MCP_URL,
+      { jsonrpc: "2.0", id: 3, method: "tools/list" },
+      { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
+    );
+    const msg = parseJsonRpc(text);
+    const tools = msg?.result?.tools ?? [];
+    const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
+    const missingTools = EXPECTED_TOOLS.filter((n) => !names.includes(n));
+    const ok = status === 200 && missingTools.length === 0;
+    let detail = `tools=[${names.join(",")}]`;
+    if (status !== 200) detail = `status=${status} (expected 200)`;
+    else if (missingTools.length > 0) detail += ` missing=[${missingTools.join(",")}]`;
+    return { ok, detail };
+  });
+
+  await runCheck("tools/call compare_pools", () =>
+    callTool({
+      id: 4,
+      name: "compare_pools",
+      args: {
+        chain_id: 8453,
+        token0: "0x4200000000000000000000000000000000000006",
+        token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        window: "24h",
+        ranked_by: "tvl_usd",
+      },
+      requestedKey: "requested_deployments",
+      successKey: "successful_deployments",
+    }),
+  );
+
+  await runCheck("tools/call compare_lending_markets", () =>
+    callTool({
+      id: 5,
+      name: "compare_lending_markets",
+      args: {
+        chain_id: 8453,
+        market_token: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        ranked_by: "tvl_usd",
+      },
+      requestedKey: "requested_sources",
+      successKey: "successful_sources",
+    }),
+  );
+
+  await runCheck("tools/call find_large_swaps", () =>
+    callTool({
+      id: 6,
+      name: "find_large_swaps",
+      args: {
+        chain_id: 8453,
+        pool_address: "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        threshold_token: "0x4200000000000000000000000000000000000006",
+        min_amount: "1",
+        limit: 1,
+      },
+      requestedKey: "requested_sources",
+      successKey: "successful_sources",
+      requireComplete: true,
+    }),
+  );
+} finally {
+  await closeSession();
+}
 
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

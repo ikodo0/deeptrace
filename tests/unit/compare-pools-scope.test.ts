@@ -25,6 +25,20 @@ describe("M0 compare_pools live scope", () => {
     }
   });
 
+  it("locks the production query revision independently of the v1 response contract", () => {
+    const sources = getActiveComparePoolGraphSources();
+
+    expect(new Set(sources.map((source) => source.query_id))).toEqual(
+      new Set(["tier-a-dex-pool-metrics-v1"]),
+    );
+    expect(new Set(sources.map((source) => source.schema_contract_id))).toEqual(
+      new Set(["tier-a-dex-pool-metrics-v1"]),
+    );
+    expect(new Set(M0_COMPARE_POOLS_SCOPE.graphSources.map((source) => source.query_id))).toEqual(
+      new Set(["tier-a-dex-pool-metrics-v1"]),
+    );
+  });
+
   it("reserves Nuthatch without claiming a verified registry record", () => {
     expect(M0_COMPARE_POOLS_SCOPE.nuthatchSourceId).toBe("nuthatch-pool-swaps");
     expect(
