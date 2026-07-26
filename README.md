@@ -1,6 +1,6 @@
 ![DeepTrace](logo.png)
 
-**Verifiable Base DeFi data for builders and AI agents.
+**Verifiable Base DeFi data for builders and AI agents.**
 
 ---
 
