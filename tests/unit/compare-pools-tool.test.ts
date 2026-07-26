@@ -7,6 +7,7 @@ import {
   COMPARE_LENDING_MARKETS_TOOL_NAME,
   COMPARE_POOLS_TOOL_NAME,
   FIND_LARGE_SWAPS_TOOL_NAME,
+  RESEARCH_WALLET_TOOL_NAME,
 } from "../../src/mcp/server.js";
 import { startMcpServer } from "../../src/mcp/lifecycle.js";
 import { M0_COMPARE_POOLS_SCOPE } from "../../src/scope/index.js";
@@ -110,7 +111,7 @@ describe("compare_pools MCP tool", () => {
     return { client, runtime };
   }
 
-  it("lists compare_pools alongside lending and large-swap tools", async () => {
+  it("lists compare_pools alongside lending, large-swap, and wallet tools", async () => {
     const { client, runtime } = await withClient();
     try {
       const listed = await client.listTools();
@@ -118,6 +119,7 @@ describe("compare_pools MCP tool", () => {
         COMPARE_POOLS_TOOL_NAME,
         COMPARE_LENDING_MARKETS_TOOL_NAME,
         FIND_LARGE_SWAPS_TOOL_NAME,
+        RESEARCH_WALLET_TOOL_NAME,
       ]);
       const tool = listed.tools[0];
       expect(tool?.title).toBe("Compare Base WETH/USDC pools");

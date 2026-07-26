@@ -7,6 +7,7 @@ import {
   COMPARE_LENDING_MARKETS_TOOL_NAME,
   COMPARE_POOLS_TOOL_NAME,
   FIND_LARGE_SWAPS_TOOL_NAME,
+  RESEARCH_WALLET_TOOL_NAME,
   createMcpServer,
   serverInfo,
 } from "../../src/mcp/server.js";
@@ -56,7 +57,7 @@ describe("MCP server foundation", () => {
     });
   });
 
-  it("exposes both read-only comparison tools", async () => {
+  it("exposes all read-only research tools", async () => {
     const { client, runtime } = await withClient();
     try {
       const listed = await client.listTools();
@@ -65,6 +66,7 @@ describe("MCP server foundation", () => {
           COMPARE_LENDING_MARKETS_TOOL_NAME,
           COMPARE_POOLS_TOOL_NAME,
           FIND_LARGE_SWAPS_TOOL_NAME,
+          RESEARCH_WALLET_TOOL_NAME,
         ].sort(),
       );
       for (const tool of listed.tools) {

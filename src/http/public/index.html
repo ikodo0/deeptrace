@@ -194,7 +194,7 @@ details.client .body{padding-bottom:24px}
       <dl class="meta">
         <dt>Config</dt><dd><span class="ic">~/.claude.json</span></dd>
         <dt>Verify</dt><dd><span class="ic">claude mcp list</span></dd>
-        <dt>Expect</dt><dd><span class="ic">deeptrace &middot; connected</span>, with <span class="ic">compare_pools</span> offered in a new session.</dd>
+        <dt>Expect</dt><dd><span class="ic">deeptrace &middot; connected</span>, with <span class="ic">compare_pools</span>, <span class="ic">compare_lending_markets</span>, <span class="ic">find_large_swaps</span>, and <span class="ic">research_wallet</span> offered in a new session.</dd>
       </dl>
     </div>
   </details>
@@ -218,7 +218,7 @@ details.client .body{padding-bottom:24px}
       <dl class="meta">
         <dt>Config</dt><dd><span class="ic">~/.config/opencode/opencode.json</span>, or <span class="ic">opencode.json</span> in the project root.</dd>
         <dt>Verify</dt><dd>Run <span class="ic">opencode</span>, then <span class="ic">/mcp</span>.</dd>
-        <dt>Expect</dt><dd><span class="ic">deeptrace</span> connected, exposing <span class="ic">compare_pools</span>.</dd>
+        <dt>Expect</dt><dd><span class="ic">deeptrace</span> connected, exposing all four read-only research tools.</dd>
       </dl>
     </div>
   </details>
@@ -259,7 +259,7 @@ bearer_token_env_var = "DEEPTRACE_TOKEN"</pre>
     -d <span class="d">'{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</span></pre>
       </div>
       <dl class="meta">
-        <dt>Expect</dt><dd>A JSON-RPC result listing <span class="ic">compare_pools</span>. Without a token this endpoint answers <span class="ic">401</span> &mdash; that response still proves you reached it.</dd>
+        <dt>Expect</dt><dd>A JSON-RPC result listing <span class="ic">compare_pools</span>, <span class="ic">compare_lending_markets</span>, <span class="ic">find_large_swaps</span>, and <span class="ic">research_wallet</span>. Without a token this endpoint answers <span class="ic">401</span> &mdash; that response still proves you reached it.</dd>
       </dl>
     </div>
   </details>
@@ -332,8 +332,8 @@ is fresh, and every warning.</pre>
     <div class="lrow"><dt>Windows</dt><dd><b>24 hours</b> and <b>7 days</b></dd></div>
     <div class="lrow"><dt>Rank by</dt><dd>TVL, volume, or fees &mdash; up to <b>three</b> pools</dd></div>
     <div class="lrow"><dt>The Graph</dt><dd>Supplies every financial metric</dd></div>
-    <div class="lrow"><dt>Nuthatch</dt><dd>Supplies swap-index freshness only. The two never mix &mdash; that separation is what makes freshness independent evidence.</dd></div>
-    <div class="lrow"><dt>Tools</dt><dd><b>compare_pools</b> and <b>find_large_swaps</b> are live. <span class="ic">get_dex_metrics</span> and <span class="ic">research_wallet</span> are queued.</dd></div>
+    <div class="lrow"><dt>Nuthatch</dt><dd>Supplies swap-index freshness, large-swap receipts, and source-bounded wallet activity. Graph and Nuthatch stay separate.</dd></div>
+    <div class="lrow"><dt>Tools</dt><dd><b>compare_pools</b>, <b>compare_lending_markets</b>, <b>find_large_swaps</b>, and <b>research_wallet</b> are live. <span class="ic">get_dex_metrics</span> is post-MVP.</dd></div>
     <div class="lrow no"><dt>Never writes</dt><dd>DeepTrace cannot trade, sign, or submit a transaction.</dd></div>
     <div class="lrow no"><dt>Never invents</dt><dd>No model runs inside DeepTrace. Missing data stays missing.</dd></div>
     <div class="lrow no"><dt>Never reprices</dt><dd>USD values come from the source that reported them.</dd></div>

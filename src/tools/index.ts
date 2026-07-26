@@ -40,3 +40,25 @@ export {
   type LargeSwapQueryInput,
   type LargeSwapQueryPage,
 } from "./large-swaps-query.js";
+export { createLiveWalletSources, type LiveWalletSourcesOptions } from "./live-wallet-sources.js";
+export {
+  ResearchWalletToolError,
+  WalletResearchQueryError,
+  executeResearchWallet,
+} from "./research-wallet.js";
+export type {
+  WalletActivityFailure,
+  WalletActivityResult,
+  WalletActivitySuccess,
+  WalletGraphFailure,
+  WalletGraphResult,
+  WalletGraphSuccess,
+  WalletResearchSourceGateway,
+  WalletSourceFailureStatus,
+} from "./wallet-sources.js";
+export {
+  inspectWalletResearchQuery,
+  paginateWalletActivity,
+  type WalletEventPosition,
+  type WalletResearchQueryContext,
+} from "./wallet-query.js";

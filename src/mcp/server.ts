@@ -21,26 +21,40 @@ import {
   lendingComparisonDataSchema,
   lendingCoverageSchema,
   poolComparisonDataSchema,
+  researchWalletResponseSchema,
   resultFreshnessSchema,
   resultProvenanceSchema,
+  walletResearchCoverageSchema,
+  walletResearchDataSchema,
+  walletResearchPaginationSchema,
 } from "../schemas/index.js";
 import { BASE_CHAIN_ID } from "../schemas/source-adapter.js";
 import { M0_COMPARE_POOLS_SCOPE } from "../scope/compare-pools.js";
 import { LSS_SCOPE } from "../scope/large-swaps.js";
 import {
+  WALLET_RESEARCH_SCOPE,
+  WALLET_RESEARCH_SECTIONS,
+  WALLET_RESEARCH_WINDOWS,
+} from "../scope/wallet-research.js";
+import {
   CompareLendingRequestError,
   ComparePoolsRequestError,
   FindLargeSwapsToolError,
   LargeSwapQueryError,
+  ResearchWalletToolError,
+  WalletResearchQueryError,
   createLiveCompareLendingSources,
   createLiveComparePoolsSources,
   createLiveLargeSwapSource,
+  createLiveWalletSources,
   executeCompareLending,
   executeComparePools,
   executeFindLargeSwaps,
+  executeResearchWallet,
   type CompareLendingSourceGateway,
   type ComparePoolsSourceGateway,
   type LargeSwapSourceGateway,
+  type WalletResearchSourceGateway,
 } from "../tools/index.js";
 
 export const serverInfo = {
@@ -51,9 +65,10 @@ export const serverInfo = {
 export const COMPARE_POOLS_TOOL_NAME = "compare_pools" as const;
 export const COMPARE_LENDING_MARKETS_TOOL_NAME = "compare_lending_markets" as const;
 export const FIND_LARGE_SWAPS_TOOL_NAME = "find_large_swaps" as const;
+export const RESEARCH_WALLET_TOOL_NAME = "research_wallet" as const;
 
 export const serverInstructions =
-  "DeepTrace is read-only for locked Base (8453) scopes. Graph subgraphs supply pool financial metrics and lending rates; Nuthatch supplies independent freshness and large-swap receipts. Use compare_pools (WETH/USDC TVL/volume/fees), compare_lending_markets (USDC Aave v3/Seamless/Moonwell), and find_large_swaps (exact WETH/USDC threshold, never USD). Preserve decimal strings, status, warnings, freshness, source_ids, and provenance; never present partial results as complete or failed swap results as data.";
+  "DeepTrace is read-only for locked Base (8453) scopes. Graph subgraphs supply pool financial metrics, lending rates, and supported Aave positions; Nuthatch supplies independent freshness, large-swap receipts, and indexed wallet activity. Use compare_pools, compare_lending_markets, find_large_swaps, or research_wallet. Observed assets are not complete balances. Preserve decimal strings, status, warnings, freshness, source_ids, and provenance; never present partial results as complete or failed swaps as data.";
 
 const comparePoolsInputSchema = z
   .object({
@@ -134,6 +149,40 @@ const findLargeSwapsInputSchema = z
   })
   .strict();
 
+const researchWalletInputSchema = z
+  .object({
+    chain_id: z.literal(BASE_CHAIN_ID).describe("Base mainnet chain ID; must be 8453."),
+    address: z
+      .string()
+      .regex(/^0x[0-9a-f]{40}$/)
+      .describe("Lowercase public wallet address."),
+    sections: z
+      .array(z.enum(WALLET_RESEARCH_SECTIONS))
+      .min(1)
+      .max(WALLET_RESEARCH_SECTIONS.length)
+      .optional()
+      .describe("Supported sections to return; defaults to every section."),
+    window: z
+      .enum(WALLET_RESEARCH_WINDOWS)
+      .optional()
+      .describe("Recent Nuthatch activity window; defaults to 24h."),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(WALLET_RESEARCH_SCOPE.limit.maximum)
+      .optional()
+      .describe("Maximum activity and position records; defaults to 25."),
+    cursor: z
+      .string()
+      .min(1)
+      .max(WALLET_RESEARCH_SCOPE.cursor.maximumLength)
+      .nullable()
+      .optional()
+      .describe("Opaque activity next_cursor; omit for the first page."),
+  })
+  .strict();
+
 // The MCP SDK advertises and validates object-root output schemas. Keep the
 // authoritative discriminated-union schema as the final refinement.
 const comparePoolsOutputSchema = z
@@ -207,15 +256,35 @@ const findLargeSwapsOutputSchema = z
     }
   });
 
+const researchWalletOutputSchema = z
+  .object({
+    status: z.enum(["complete", "partial", "failed"]),
+    data: walletResearchDataSchema.nullable(),
+    coverage: walletResearchCoverageSchema,
+    freshness: z.array(resultFreshnessSchema).length(2),
+    provenance: z.array(resultProvenanceSchema).length(2),
+    warnings: z.array(z.string().min(1)),
+    pagination: walletResearchPaginationSchema,
+  })
+  .strict()
+  .superRefine((response, context) => {
+    const validation = researchWalletResponseSchema.safeParse(response);
+    if (!validation.success) {
+      context.addIssue({ code: "custom", message: validation.error.message });
+    }
+  });
+
 export interface CreateMcpServerOptions {
   readonly gatewayConfig?: GatewayConfig;
   readonly rateLimiter?: FixedWindowRateLimiter;
   readonly sources?: ComparePoolsSourceGateway;
   readonly lendingSources?: CompareLendingSourceGateway;
   readonly largeSwapSource?: LargeSwapSourceGateway;
+  readonly walletSources?: WalletResearchSourceGateway;
   readonly rateLimitKey?: string;
   readonly lendingRateLimitKey?: string;
   readonly largeSwapRateLimitKey?: string;
+  readonly walletRateLimitKey?: string;
 }
 
 function toolErrorResult(message: string) {
@@ -248,9 +317,15 @@ export function createMcpServer(options: CreateMcpServerOptions = {}): McpServer
     createLiveLargeSwapSource({
       timeoutMs: gatewayConfig.sourceTimeoutMs,
     });
+  const walletSources =
+    options.walletSources ??
+    createLiveWalletSources({
+      timeoutMs: gatewayConfig.sourceTimeoutMs,
+    });
   const rateLimitKey = options.rateLimitKey ?? "compare_pools";
   const lendingRateLimitKey = options.lendingRateLimitKey ?? COMPARE_LENDING_MARKETS_TOOL_NAME;
   const largeSwapRateLimitKey = options.largeSwapRateLimitKey ?? "find_large_swaps";
+  const walletRateLimitKey = options.walletRateLimitKey ?? RESEARCH_WALLET_TOOL_NAME;
 
   const server = new McpServer(serverInfo, {
     instructions: serverInstructions,
@@ -380,6 +455,43 @@ export function createMcpServer(options: CreateMcpServerOptions = {}): McpServer
           return toolErrorResult(error.message);
         }
         return toolErrorResult("find_large_swaps failed.");
+      }
+    },
+  );
+
+  server.registerTool(
+    RESEARCH_WALLET_TOOL_NAME,
+    {
+      title: "Research a supported Base wallet",
+      description:
+        "Return source-bounded Base wallet activity from the indexed Uniswap V3 pool and verified Aave v3 positions from The Graph. Observed assets are not complete balances. Read-only.",
+      inputSchema: researchWalletInputSchema,
+      outputSchema: researchWalletOutputSchema,
+      annotations: {
+        title: "Research a supported Base wallet",
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (args) => {
+      try {
+        const response = await rateLimiter.execute(walletRateLimitKey, () =>
+          executeResearchWallet(args, walletSources),
+        );
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify(response) }],
+          structuredContent: response,
+        };
+      } catch (error) {
+        if (error instanceof RateLimitError) {
+          return toolErrorResult(error.message);
+        }
+        if (error instanceof WalletResearchQueryError || error instanceof ResearchWalletToolError) {
+          return toolErrorResult(error.message);
+        }
+        return toolErrorResult("research_wallet failed.");
       }
     },
   );
