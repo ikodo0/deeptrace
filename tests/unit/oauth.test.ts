@@ -33,10 +33,17 @@ function pkce(): { verifier: string; challenge: string } {
   };
 }
 
-async function register(origin: string, redirectUri = CALLBACK): Promise<Response> {
+async function register(
+  origin: string,
+  redirectUri = CALLBACK,
+  sentOrigin?: string,
+): Promise<Response> {
   return fetch(`${origin}/oauth/register`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(sentOrigin === undefined ? {} : { origin: sentOrigin }),
+    },
     body: JSON.stringify({ redirect_uris: [redirectUri], client_name: "Test Client" }),
   });
 }
@@ -175,6 +182,78 @@ describe("OAuth browser flow", () => {
       expect(authorized.status).not.toBe(401);
       await anonymous.text();
       await authorized.text();
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("serves client-to-server endpoints whatever origin the client sets", async () => {
+    const { runtime, origin } = await startServer();
+    try {
+      // A CLI, an editor shell, or a loopback callback each send their own
+      // origin. None can be enumerated, so none may be required.
+      for (const sent of ["http://127.0.0.1:53211", "vscode-file://vscode-app", "null"]) {
+        const discovery = await fetch(`${origin}/.well-known/oauth-authorization-server`, {
+          headers: { origin: sent },
+        });
+        expect(discovery.status).toBe(200);
+        await discovery.text();
+
+        const registered = await register(origin, CALLBACK, sent);
+        expect(registered.status).toBe(201);
+        await registered.text();
+
+        const exchanged = await fetch(`${origin}/oauth/token`, {
+          method: "POST",
+          headers: { origin: sent, "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ grant_type: "authorization_code", code: "nope" }),
+        });
+        // Reaching invalid_grant proves the origin check did not intercept it.
+        expect(exchanged.status).toBe(400);
+        expect(((await exchanged.json()) as { error: string }).error).toBe("invalid_grant");
+      }
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("still refuses a consent submitted from another site", async () => {
+    const { runtime, origin } = await startServer();
+    try {
+      const { client_id } = (await (await register(origin)).json()) as { client_id: string };
+      const response = await fetch(`${origin}/oauth/authorize`, {
+        method: "POST",
+        headers: {
+          origin: "https://evil.example",
+          "content-type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          client_id,
+          redirect_uri: CALLBACK,
+          code_challenge: pkce().challenge,
+          code_challenge_method: "S256",
+        }),
+        redirect: "manual",
+      });
+
+      expect(response.status).toBe(403);
+      expect(response.headers.get("location")).toBeNull();
+      await response.text();
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("still refuses an MCP request from another site", async () => {
+    const { runtime, origin } = await startServer();
+    try {
+      const response = await fetch(origin, {
+        method: "POST",
+        headers: { origin: "https://evil.example" },
+      });
+
+      expect(response.status).toBe(403);
+      await response.text();
     } finally {
       await runtime.close();
     }
