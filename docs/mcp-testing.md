@@ -115,7 +115,8 @@ shell or systemd unit that starts the server.
 
 | Variable                                   | Purpose                                                                          |
 | ------------------------------------------ | -------------------------------------------------------------------------------- |
-| `DEEPTRACE_HTTP_TOKEN`                     | Required for the HTTP transport. Minimum 32 characters. Startup fails otherwise. |
+| `DEEPTRACE_HTTP_TOKEN`                     | Optional shared token, kept only for migration. Minimum 32 characters when set; a shorter value fails startup. Omit it to retire it. |
+| `DEEPTRACE_TOKEN_STORE`                    | Where issued per-client token digests live. Production: `/var/lib/deeptrace/tokens.json`. |
 | `DEEPTRACE_HTTP_PORT`                      | Default `8787`.                                                                  |
 | `DEEPTRACE_HTTP_HOST`                      | Default `127.0.0.1`.                                                             |
 | `DEEPTRACE_HTTP_SESSION_IDLE_TIMEOUT_MS`   | Idle session lifetime. Default `1800000` (30 minutes).                           |
@@ -480,7 +481,7 @@ bundle.
 | HTTP 403 `invalid_origin`                  | A browser or proxy sent an untrusted `Origin`. Native MCP clients normally omit it; browser-based requests must use `https://mcp.ikodo.dev`.                      |
 | HTTP 404 on `/health` or `/ready`          | These are private Nuthatch routes, not public MCP routes. Use the MCP root URL; operators run Nuthatch probes on CT 104 loopback.                                 |
 | HTTP 400 `missing_session`                 | `tools/*` sent without the `mcp-session-id` header, or before the `initialized` notification.                                                                     |
-| Server exits at startup                    | `DEEPTRACE_HTTP_TOKEN` missing or shorter than 32 characters.                                                                                                     |
+| Server exits at startup                    | `DEEPTRACE_HTTP_TOKEN` is set but shorter than 32 characters. Omitting it entirely is valid and retires it.                                                        |
 | `records.json could not be read`           | Built with bare `tsc`. Re-run `npm run build`.                                                                                                                    |
 | All sources `unavailable`                  | `GRAPH_API_KEY` not set in the server's environment.                                                                                                              |
 | Graph succeeds but Nuthatch is unavailable | Confirm `NUTHATCH_BASE_URL=http://127.0.0.1:8288`, then probe `/ready` locally and inspect `nuthatch.service`. Do not replace loopback with the tailnet hostname. |
@@ -549,14 +550,38 @@ Nuthatch loads its ordered RPC fallbacks from the root-owned
 arguments before the credential-free committed fallbacks. Never put keyed RPC
 URLs in this document, the repository, probe output, or support logs.
 
-Rotate the MCP token:
+### Retire the shared token
+
+`DEEPTRACE_HTTP_TOKEN` is one credential every client shared. A single leak of
+it exposes everyone and cannot be revoked for one client alone, so it exists
+only to keep pre-migration clients working. Clients now hold their own tokens
+from `/auth` or from the OAuth flow, each independently revocable.
+
+The server treats an absent variable as retirement rather than an error, so no
+code change or release is needed. While it is still set, every startup logs a
+reminder naming it.
+
+Before retiring it, confirm nothing depends on it: a client still sending it
+will start getting `401`. Check that `/var/lib/deeptrace/tokens.json` holds a
+token for each active user, and tell users to take one at
+<https://mcp.ikodo.dev/auth> or to re-add the server without a header and
+approve the consent page.
+
+Then remove the line from `/etc/deeptrace/http.env` and restart:
 
 ```
-ssh root@pve 'pct exec 104 -- bash -c "openssl rand -hex 32 > /etc/deeptrace/token"'
+ssh root@pve 'pct exec 104 -- bash -c "sed -i /^DEEPTRACE_HTTP_TOKEN=/d /etc/deeptrace/http.env"'
+ssh root@pve 'pct exec 104 -- systemctl restart deeptrace-http.service'
+ssh root@pve 'pct exec 104 -- journalctl -u deeptrace-http.service -n 20'
 ```
 
-Then update `DEEPTRACE_HTTP_TOKEN` in `/etc/deeptrace/http.env`, restart the
-service, and reissue the token to every client.
+The reminder line disappears from the log once it is gone. Verify that an
+issued token still returns HTTP 200 from `initialize` and that the old shared
+value now returns `401`.
+
+To rotate rather than retire it, write a fresh
+`openssl rand -hex 32` into `DEEPTRACE_HTTP_TOKEN`, restart, and reissue to
+every client — which is the cost that retiring it removes.
 
 ## Known gaps
 
