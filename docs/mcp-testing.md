@@ -297,6 +297,9 @@ Verified:
 ```
 
 `200` means ready. `503` maps to status `stale` in the adapter.
+For operations, HTTP 200 is not sufficient: compare `last_block` (or
+`sealed_through` on Nuthatch 0.6.1) across polls. The committed watchdog does
+this independently of the unreliable `stalled` field.
 
 ### 2. /nest
 
@@ -383,7 +386,9 @@ service, and reissue the token to every client.
 ## Known gaps
 
 1. Nuthatch backfill has not reached the chain tip, so the freshness view trails
-   live. Restart `nuthatch.service` to trigger RPC failover if it stalls.
+   live. `nuthatch-watchdog.timer` detects ten minutes without indexed-block
+   progress and emits a structured alert; see `docs/deployment.md` for the
+   report-only recovery procedure.
    `compare_pools` invokes the live freshness adapter and reports that source as
    stale until the backfill catches up, so a `partial` result remains expected.
 2. There is no live integration test for the MCP server. The offline test suite is

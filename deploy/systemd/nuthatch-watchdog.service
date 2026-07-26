@@ -1,0 +1,21 @@
+[Unit]
+Description=DeepTrace Nuthatch backfill progress watchdog
+After=nuthatch.service
+
+[Service]
+Type=oneshot
+User=nuthatch
+Group=nuthatch
+WorkingDirectory=/opt/deeptrace
+StateDirectory=deeptrace-nuthatch-watchdog
+Environment=NUTHATCH_WATCHDOG_STATE_FILE=/var/lib/deeptrace-nuthatch-watchdog/state.json
+Environment=NUTHATCH_WATCHDOG_STALL_AFTER_SECONDS=600
+Environment=NUTHATCH_WATCHDOG_TIMEOUT_MS=5000
+ExecStart=/usr/bin/node scripts/m4/nuthatch-watchdog.mjs
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6
+UMask=0077

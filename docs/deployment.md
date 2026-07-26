@@ -21,8 +21,16 @@ The systemd unit uses:
 ```text
 WorkingDirectory=/var/lib/nuthatch
 EnvironmentFile=/etc/default/nuthatch
-ExecStart=/usr/local/bin/nuthatch dev --dir ${NUTHATCH_DIR} --listen ${NUTHATCH_LISTEN} $NUTHATCH_EXTRA_ARGS
+ExecStart=/usr/local/bin/nuthatch dev --dir ${NUTHATCH_DIR} --listen ${NUTHATCH_LISTEN} --rpc ${BASE_RPC_URL_PRIMARY} --rpc ${BASE_RPC_URL_SECONDARY} --rpc ${BASE_RPC_URL_TERTIARY} $NUTHATCH_EXTRA_ARGS
 ```
+
+Nuthatch 0.6.1 reads `rpc_urls` in `nest/nuthatch.toml` literally, so the
+committed nest retains credential-free HTTPS fallbacks. Define
+`BASE_RPC_URL_PRIMARY`, `BASE_RPC_URL_SECONDARY`, and
+`BASE_RPC_URL_TERTIARY` in the root-owned `/etc/default/nuthatch`, using
+independent providers. The unit passes them as ordered, repeatable `--rpc`
+arguments, which Nuthatch tries before the committed fallbacks. Keyed URLs must
+never be committed, printed by a probe, or copied into evidence.
 
 ## Deploy
 
@@ -39,3 +47,39 @@ separately on CT 104. The deployment must:
 
 Nuthatch remains bound to loopback. Tailscale Serve publishes port 8288 only
 inside the tailnet; do not enable Funnel or a LAN listener.
+
+## Backfill watchdog
+
+`npm run watch:nuthatch` performs one loopback-only `/ready` sample and stores
+the last observed high-water block. It alerts when the indexed block regresses,
+`ready` is false, or a lagging indexer has made no progress for 600 seconds.
+The reported `stalled` field is diagnostic only and never controls the alarm.
+Output is one credential-free JSON line. Exit code `0` is healthy/observing,
+`2` is a confirmed alert, and `1` is a watchdog or endpoint error.
+
+Install the report-only timer on CT 104 after `/opt/deeptrace` contains this
+revision:
+
+```sh
+install -m 0644 /opt/deeptrace/deploy/systemd/nuthatch-watchdog.service \
+  /etc/systemd/system/nuthatch-watchdog.service
+install -m 0644 /opt/deeptrace/deploy/systemd/nuthatch-watchdog.timer \
+  /etc/systemd/system/nuthatch-watchdog.timer
+systemctl daemon-reload
+systemctl enable --now nuthatch-watchdog.timer
+```
+
+Inspect alerts with:
+
+```sh
+systemctl status nuthatch-watchdog.service
+journalctl -u nuthatch-watchdog.service -n 20
+```
+
+The repository has no alert destination or privileged recovery unit, so the
+watchdog deliberately runs as `nuthatch` and cannot restart services. On a
+confirmed `no_progress` alert, an operator must run
+`systemctl restart nuthatch.service`, then verify that `last_block` advances
+across at least two timer intervals. Wire the failed unit into the host's
+existing alert target before enabling unattended recovery. Do not grant the
+watchdog user `systemctl` privileges or expose port 8288 publicly.
