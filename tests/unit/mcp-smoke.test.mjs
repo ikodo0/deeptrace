@@ -60,7 +60,7 @@ afterEach(async () => {
 });
 
 describe("MCP smoke session lifecycle", () => {
-  it("closes an initialized session after a later check fails without printing secrets", async () => {
+  it.each(["complete", "partial"])("accepts %s and cleans up", async (status) => {
     const deletes = [];
     const server = createServer((request, response) => {
       const authorized = request.headers.authorization === `Bearer ${TOKEN}`;
@@ -114,7 +114,7 @@ describe("MCP smoke session lifecycle", () => {
         }
 
         const resultText = JSON.stringify({
-          status: "complete",
+          status,
           coverage: { successful_deployments: 2, requested_deployments: 2 },
         });
         const payload = {
@@ -138,7 +138,7 @@ describe("MCP smoke session lifecycle", () => {
     expect(result.code).toBe(1);
     expect(result.stdout).toContain("notifications/initialized");
     expect(result.stdout).toContain("FAIL");
-    expect(result.stdout).toContain("tools/call");
+    expect(result.stdout).toMatch(new RegExp(`tools/call\\s+PASS\\s+status=${status} 2/2`));
     expect(deletes).toEqual([{ authorization: `Bearer ${TOKEN}`, sessionId: SESSION_ID }]);
     expect(`${result.stdout}${result.stderr}`).not.toContain(TOKEN);
     expect(`${result.stdout}${result.stderr}`).not.toContain(SESSION_ID);
