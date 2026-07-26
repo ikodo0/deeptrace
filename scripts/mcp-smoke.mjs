@@ -189,7 +189,7 @@ try {
     return { ok: status === 202, detail: `status=${status} (expected 202)` };
   });
 
-  // Check 5: tools/list -> SSE payload contains compare_pools
+  // Check 5: tools/list -> SSE payload contains both released tools
   await runCheck("tools/list", async () => {
     const { status, text } = await postJson(
       MCP_URL,
@@ -199,14 +199,15 @@ try {
     const msg = parseJsonRpc(text);
     const tools = msg?.result?.tools ?? [];
     const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
-    const ok = status === 200 && names.includes("compare_pools");
+    const ok =
+      status === 200 && names.includes("compare_pools") && names.includes("find_large_swaps");
     const detail =
       status !== 200 ? `status=${status} (expected 200)` : `tools=[${names.join(",")}]`;
     return { ok, detail };
   });
 
   // Check 6: tools/call compare_pools with locked args
-  await runCheck("tools/call", async () => {
+  await runCheck("tools/call compare_pools", async () => {
     const { status, text } = await postJson(
       MCP_URL,
       {
@@ -250,6 +251,52 @@ try {
         : "?/?";
     const ok = st === "complete" || st === "partial";
     return { ok, detail: `status=${st} ${covStr}` };
+  });
+
+  // Check 7: tools/call find_large_swaps over the locked pool
+  await runCheck("tools/call find_large_swaps", async () => {
+    const { status, text } = await postJson(
+      MCP_URL,
+      {
+        jsonrpc: "2.0",
+        id: 5,
+        method: "tools/call",
+        params: {
+          name: "find_large_swaps",
+          arguments: {
+            chain_id: 8453,
+            pool_address: "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+            threshold_token: "0x4200000000000000000000000000000000000006",
+            min_amount: "1",
+            limit: 1,
+          },
+        },
+      },
+      { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
+    );
+    if (status !== 200) {
+      return { ok: false, detail: `status=${status} (expected 200)` };
+    }
+    const msg = parseJsonRpc(text);
+    const rawText = msg?.result?.content?.[0]?.text;
+    if (typeof rawText !== "string") {
+      return { ok: false, detail: `status=200 no content[0].text` };
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (err) {
+      return { ok: false, detail: `result not JSON: ${err.message}` };
+    }
+    const st = parsed?.status;
+    const coverage = parsed?.coverage ?? {};
+    const success = coverage.successful_sources;
+    const requested = coverage.requested_sources;
+    const covStr =
+      typeof success === "number" && typeof requested === "number"
+        ? `${success}/${requested}`
+        : "?/?";
+    return { ok: st === "complete" && covStr === "1/1", detail: `status=${st} ${covStr}` };
   });
 } finally {
   await closeSession();

@@ -123,17 +123,25 @@ describe("MCP smoke session lifecycle", () => {
           const payload = {
             jsonrpc: "2.0",
             id: message.id,
-            result: { tools: [{ name: "compare_pools" }] },
+            result: {
+              tools: [{ name: "compare_pools" }, { name: "find_large_swaps" }],
+            },
           };
           response.writeHead(200, { "content-type": "text/event-stream" });
           response.end(`data: ${JSON.stringify(payload)}\n\n`);
           return;
         }
 
-        const resultText = JSON.stringify({
-          status,
-          coverage: { successful_deployments: 2, requested_deployments: 2 },
-        });
+        const resultText =
+          message.params?.name === "find_large_swaps"
+            ? JSON.stringify({
+                status: "complete",
+                coverage: { successful_sources: 1, requested_sources: 1 },
+              })
+            : JSON.stringify({
+                status,
+                coverage: { successful_deployments: 2, requested_deployments: 2 },
+              });
         const payload = {
           jsonrpc: "2.0",
           id: message.id,
@@ -155,10 +163,14 @@ describe("MCP smoke session lifecycle", () => {
     expect(result.code).toBe(1);
     expect(result.stdout).toContain("notifications/initialized");
     expect(result.stdout).toContain("FAIL");
-    expect(result.stdout).toMatch(new RegExp(`tools/call\\s+PASS\\s+status=${status} 2/2`));
+    expect(result.stdout).toMatch(
+      new RegExp(`tools/call compare_pools\\s+PASS\\s+status=${status} 2/2`),
+    );
+    expect(result.stdout).toMatch(/tools\/call find_large_swaps\s+PASS\s+status=complete 1\/1/);
     expect(sessionRequests).toEqual([
       { method: "notifications/initialized", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/list", protocolVersion: PROTOCOL_VERSION },
+      { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
     ]);
     expect(deletes).toEqual([

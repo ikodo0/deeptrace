@@ -28,6 +28,11 @@ Adapters must catch operational and source-shape failures at their boundary and
 return a non-`ok` result. No source exception crosses into normalization,
 metrics, MCP, or client presentation code.
 
+The LSS adapter carries the same status, freshness, provenance, and warning
+semantics in its tool-specific `LargeSwapSourceResult`. Its successful payload
+is a bounded set of canonical `SwapEvent` candidates plus the searchable head;
+the public quality envelope is settled only after stable pagination.
+
 ## Numeric and identity rules
 
 All financial values are base-10 decimal strings or null. They must never pass
@@ -55,6 +60,8 @@ provenance is the subgraph deployment recorded in `provenance`.
 
 Nuthatch carries no USD at all — it indexes raw `Swap` events with raw `int256`
 amounts. Any Nuthatch-derived value is unpriced by construction.
+Large Swap Search thresholds the exact absolute selected-token pool delta after
+normalization; it does not derive or accept a USD threshold.
 
 ## Freshness and provenance
 
@@ -84,6 +91,12 @@ The registry, rather than adapter code, selects and locates configured sources.
 This locator union is the M2 clarification to the otherwise frozen M1 contract:
 the subgraph ID routes a request, while `deployment_or_view_id` remains the
 independently asserted provenance identity.
+
+Pool freshness and large-swap search use separate Nuthatch registry records and
+view IDs even when they resolve to the same private runtime. LSS SQL comes only
+from hardcoded keyset query templates; validated block numbers, log indexes,
+transaction hashes, and internal limits are the only interpolated values.
+Public requests can never supply SQL, a table/view name, or a backend URL.
 
 ## Fixtures and change control
 
