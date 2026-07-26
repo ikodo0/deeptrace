@@ -1,0 +1,89 @@
+{
+  "captured_at": "2026-07-25T12:01:38.481Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+  "query_id": "m2-tier-b-metrics-v1",
+  "request": {
+    "query": "query M2TierBMetrics($pool: ID!) {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  pool(id: $pool) {\n    id feeTier totalValueLockedUSD\n    token0 { id symbol decimals }\n    token1 { id symbol decimals }\n  }\n  poolDayDatas(\n    first: 7\n    orderBy: date\n    orderDirection: desc\n    where: { pool: $pool }\n  ) { date volumeUSD feesUSD tvlUSD }\n}",
+    "variables": {
+      "pool": "0x6c561b446416e1a00e8e93e221854d6ea4171372"
+    }
+  },
+  "response": {
+    "data": {
+      "pool": {
+        "id": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        "feeTier": "3000",
+        "totalValueLockedUSD": "150700095.7707237035076119974091172",
+        "token0": {
+          "id": "0x4200000000000000000000000000000000000006",
+          "symbol": "WETH",
+          "decimals": "18"
+        },
+        "token1": {
+          "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "symbol": "USDC",
+          "decimals": "6"
+        }
+      },
+      "poolDayDatas": [
+        {
+          "date": 1784937600,
+          "volumeUSD": "1837918.971826772337839586279587621",
+          "feesUSD": "5513.756915480317013518758838762854",
+          "tvlUSD": "150700095.1170342141923809669692862"
+        },
+        {
+          "date": 1784851200,
+          "volumeUSD": "51474578.61622885677419282699983982",
+          "feesUSD": "154423.7358486865703225784809995228",
+          "tvlUSD": "150782950.7682194586397672337848594"
+        },
+        {
+          "date": 1784764800,
+          "volumeUSD": "40635517.7678439140561290160817718",
+          "feesUSD": "121906.5533035317421683870482453143",
+          "tvlUSD": "150801887.1928319845428659768676178"
+        },
+        {
+          "date": 1784678400,
+          "volumeUSD": "64491334.84868823906340059812757887",
+          "feesUSD": "193474.0045460647171902017943827393",
+          "tvlUSD": "153073919.2866268475427418873421961"
+        },
+        {
+          "date": 1784592000,
+          "volumeUSD": "34752470.9371506173065599289573975",
+          "feesUSD": "104257.4128114518519196797868721919",
+          "tvlUSD": "152250244.9065976728664112151915531"
+        },
+        {
+          "date": 1784505600,
+          "volumeUSD": "95158308.81850063901666160232434262",
+          "feesUSD": "285474.9264555019170499848069730268",
+          "tvlUSD": "150491860.7382473919196925172123004"
+        },
+        {
+          "date": 1784419200,
+          "volumeUSD": "24701335.71650390345286524940436904",
+          "feesUSD": "74104.00714951171035859574821310743",
+          "tvlUSD": "148622321.2013336355304325682157653"
+        }
+      ],
+      "_meta": {
+        "block": {
+          "number": 49095773,
+          "timestamp": 1784980893,
+          "hash": "0xfaf4cc0493056e5ccac3f68b9e148cf8e80ee0d67adf333ed27b4a62d17c185c"
+        },
+        "hasIndexingErrors": false,
+        "deployment": "QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR"
+      }
+    }
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 252,
+    "error": null
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "captured_at": "2026-07-26",
+  "source_id": "messari-aave-v3-base-wallet",
+  "subgraph_id": "D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9",
+  "deployment": "Qmb5j4tE5deSXCrubQeqeghfrGhyfQBiq9DuZNMfHBjbfL",
+  "schema_version": "3.1.0",
+  "methodology_version": "1.1.0",
+  "network": "BASE",
+  "has_indexing_errors": false,
+  "indexed_block": 49122673,
+  "indexed_block_timestamp": 1785034693,
+  "public_test_address": "0x5cb3787a9c9c7547451ca3e6d8702453de35fe01",
+  "sample_position": {
+    "id": "0x5cb3787a9c9c7547451ca3e6d8702453de35fe01-0xd4a0e0b9149bcee3c920d2e00b5de09138fd8bb7-COLLATERAL-30",
+    "account": "0x5cb3787a9c9c7547451ca3e6d8702453de35fe01",
+    "market": "0xd4a0e0b9149bcee3c920d2e00b5de09138fd8bb7",
+    "market_name": "Aave Base WETH",
+    "asset": "0x4200000000000000000000000000000000000006",
+    "symbol": "WETH",
+    "decimals": 18,
+    "side": "COLLATERAL",
+    "is_collateral": true,
+    "balance": "2047785132077819",
+    "balance_usd": "3.84928314632063870887",
+    "block_number": 49122604,
+    "timestamp": 1785034555
+  },
+  "section_matrix": {
+    "positions": "go",
+    "observed_assets": "go_position_derived_only",
+    "activity": "nuthatch_only",
+    "counterparties": "nuthatch_only",
+    "protocol_usage": "composed_supported_sources_only",
+    "observable_flows": "nuthatch_only"
+  },
+  "limitations": [
+    "The sample is a public on-chain address and contains no credentials.",
+    "Observed assets are not complete wallet balances.",
+    "The Graph fact is a tip-freshness position read, not historical wallet state.",
+    "Nuthatch wallet deployment and receipt parity are a separate release gate."
+  ]
+}

@@ -1,0 +1,155 @@
+[
+  {
+    "source_id": "messari-uniswap-v3-base-fee030",
+    "category": "dex",
+    "protocol": "uniswap-v3",
+    "chain_id": 8453,
+    "source_type": "standardized_subgraph",
+    "deployment_or_view_id": "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
+    "schema_version": "4.0.1",
+    "methodology_version": "1.0.0",
+    "supported_entities": ["dexAmmProtocols", "liquidityPool", "liquidityPoolDailySnapshots"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS"
+    }
+  },
+  {
+    "source_id": "messari-uniswap-v3-base-fee005",
+    "category": "dex",
+    "protocol": "uniswap-v3",
+    "chain_id": 8453,
+    "source_type": "standardized_subgraph",
+    "deployment_or_view_id": "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
+    "schema_version": "4.0.1",
+    "methodology_version": "1.0.0",
+    "supported_entities": ["dexAmmProtocols", "liquidityPool", "liquidityPoolDailySnapshots"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS"
+    }
+  },
+  {
+    "source_id": "nuthatch-pool-swaps",
+    "category": "dex",
+    "protocol": "uniswap-v3",
+    "chain_id": 8453,
+    "source_type": "nuthatch_view",
+    "deployment_or_view_id": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+    "schema_version": null,
+    "methodology_version": null,
+    "supported_entities": ["pool_swap_freshness"],
+    "status": "active",
+    "locator": {
+      "kind": "nuthatch_view",
+      "base_url_env": "NUTHATCH_BASE_URL",
+      "view_id": "pool_swap_freshness"
+    }
+  },
+  {
+    "source_id": "nuthatch-large-swaps",
+    "category": "dex",
+    "protocol": "uniswap-v3",
+    "chain_id": 8453,
+    "source_type": "nuthatch_view",
+    "deployment_or_view_id": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+    "schema_version": null,
+    "methodology_version": "exact-pool-delta-keyset-v1",
+    "supported_entities": ["pool_swap_search"],
+    "status": "active",
+    "locator": {
+      "kind": "nuthatch_view",
+      "base_url_env": "NUTHATCH_BASE_URL",
+      "view_id": "pool_swap_search"
+    }
+  },
+  {
+    "source_id": "messari-aave-v3-base",
+    "category": "lending",
+    "protocol": "aave-v3",
+    "chain_id": 8453,
+    "source_type": "standardized_subgraph",
+    "deployment_or_view_id": "Qmb5j4tE5deSXCrubQeqeghfrGhyfQBiq9DuZNMfHBjbfL",
+    "schema_version": "3.1.0",
+    "methodology_version": "1.1.0",
+    "supported_entities": ["lendingProtocols", "markets", "rates"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9"
+    }
+  },
+  {
+    "source_id": "messari-seamless-base",
+    "category": "lending",
+    "protocol": "seamless-protocol",
+    "chain_id": 8453,
+    "source_type": "standardized_subgraph",
+    "deployment_or_view_id": "QmPSmTkJPSKLFn46YdgwMKV5K2c9a3pkWnzDCC4ccCLAXE",
+    "schema_version": "3.1.0",
+    "methodology_version": "1.0.0",
+    "supported_entities": ["lendingProtocols", "markets", "rates"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "2u4mWUV4xS19ef1MbnxZHWLLMwdPxtVifH46JbonXwXP"
+    }
+  },
+  {
+    "source_id": "messari-moonwell-base",
+    "category": "lending",
+    "protocol": "moonwell",
+    "chain_id": 8453,
+    "source_type": "standardized_subgraph",
+    "deployment_or_view_id": "QmeE6TgfRmK2iLAgCLBeXuxJQ2VXLFAeHVMTvmnECiFw7y",
+    "schema_version": "2.0.1",
+    "methodology_version": "1.0.0",
+    "supported_entities": ["lendingProtocols", "markets", "rates"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "33ex1ExmYQtwGVwri1AP3oMFPGSce6YbocBP7fWbsBrg"
+    }
+  },
+  {
+    "source_id": "messari-aave-v3-base-wallet",
+    "category": "lending",
+    "protocol": "aave-v3",
+    "chain_id": 8453,
+    "source_type": "standardized_subgraph",
+    "deployment_or_view_id": "Qmb5j4tE5deSXCrubQeqeghfrGhyfQBiq9DuZNMfHBjbfL",
+    "schema_version": "3.1.0",
+    "methodology_version": "1.1.0",
+    "supported_entities": ["accounts", "positions", "positionSnapshots"],
+    "status": "active",
+    "locator": {
+      "kind": "graph_subgraph",
+      "gateway_host": "gateway.thegraph.com",
+      "subgraph_id": "D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9"
+    }
+  },
+  {
+    "source_id": "nuthatch-wallet-activity",
+    "category": "dex",
+    "protocol": "uniswap-v3",
+    "chain_id": 8453,
+    "source_type": "nuthatch_view",
+    "deployment_or_view_id": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+    "schema_version": null,
+    "methodology_version": "bounded-wallet-swap-keyset-v1",
+    "supported_entities": ["wallet_swap_activity"],
+    "status": "active",
+    "locator": {
+      "kind": "nuthatch_view",
+      "base_url_env": "NUTHATCH_BASE_URL",
+      "view_id": "wallet_swap_activity"
+    }
+  }
+]

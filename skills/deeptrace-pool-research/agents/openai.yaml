@@ -1,0 +1,12 @@
+interface:
+  display_name: "DeepTrace Base Research"
+  short_description: "Compare Base pools, lending markets, swaps, and wallets"
+  default_prompt: "Use $deeptrace-pool-research to compare Base WETH/USDC pools, Base USDC lending markets, find token-thresholded swaps, or inspect source-bounded wallet activity and Aave positions with verified freshness and provenance."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "deeptrace"
+      description: "Read-only Base pool metrics, USDC lending markets, Nuthatch freshness, large-swap pages, and bounded wallet facts"
+      transport: "streamable_http"
+      url: "https://mcp.ikodo.dev"

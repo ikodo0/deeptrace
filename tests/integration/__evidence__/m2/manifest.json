@@ -1,0 +1,290 @@
+{
+  "sweep_started_at": "2026-07-25T11:52:22.841Z",
+  "sweep_finished_at": "2026-07-25T11:52:41.605Z",
+  "reference_block": 49095505,
+  "candidates": [
+    {
+      "slug": "uniswap-v3-base-native",
+      "protocol_name": "Uniswap V3",
+      "subgraph_id": "GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+      "publisher": "Uniswap",
+      "deployment_id": "QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR",
+      "indexed_block": 49095495,
+      "indexed_block_timestamp": 1784980337,
+      "has_indexing_errors": false,
+      "tier": "B",
+      "verdict": "healthy",
+      "verdict_reason": "lag=10 blocks, age=24s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    },
+    {
+      "slug": "uniswap-v3-base-native-recent",
+      "protocol_name": "Uniswap V3",
+      "subgraph_id": "VmwKeqb22QsuM4AcCp8qTFg2dW7EXZNg16kGgXu6bBu",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/VmwKeqb22QsuM4AcCp8qTFg2dW7EXZNg16kGgXu6bBu",
+      "publisher": "Graph Explorer publisher 0xd3bb…9d0632",
+      "deployment_id": "Qmc5N5DW7a99WEpm9aGXSSHotNCSSsTbULSB8YgPreJyE3",
+      "indexed_block": 49095498,
+      "indexed_block_timestamp": 1784980343,
+      "has_indexing_errors": false,
+      "tier": "B",
+      "verdict": "healthy",
+      "verdict_reason": "lag=7 blocks, age=18s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": false
+      }
+    },
+    {
+      "slug": "uniswap-v3-base-messari",
+      "protocol_name": "Uniswap V3",
+      "subgraph_id": "FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS",
+      "publisher": "Messari standardized-subgraph publisher",
+      "deployment_id": "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
+      "indexed_block": 49095498,
+      "indexed_block_timestamp": 1784980343,
+      "has_indexing_errors": false,
+      "tier": "A",
+      "verdict": "healthy",
+      "verdict_reason": "lag=7 blocks, age=18s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    },
+    {
+      "slug": "sushiswap-v3-base",
+      "protocol_name": "SushiSwap V3",
+      "subgraph_id": "H6SjXCnZxJhaVHw4VDuXqtzWZ2JEBDvhwA3qysnUEjSV",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/H6SjXCnZxJhaVHw4VDuXqtzWZ2JEBDvhwA3qysnUEjSV",
+      "publisher": "SushiSwap",
+      "deployment_id": "QmaMCPHr8m8o2udNrTYjottDoMDM7HBgaE1z6FGu9rjKtK",
+      "indexed_block": 49095499,
+      "indexed_block_timestamp": 1784980345,
+      "has_indexing_errors": false,
+      "tier": "unknown",
+      "classification_reason": "factories marker answered, but Pool and PoolDayData lineage types are absent",
+      "verdict": "healthy",
+      "verdict_reason": "lag=6 blocks, age=16s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    },
+    {
+      "slug": "aerodrome-slipstream-base",
+      "protocol_name": "Aerodrome Slipstream",
+      "subgraph_id": "EeEmhjkK76RKQpZcfT2S8ZxzcV6Saq4RUw6krq1KuDJu",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/EeEmhjkK76RKQpZcfT2S8ZxzcV6Saq4RUw6krq1KuDJu",
+      "publisher": "Graph Explorer publisher 0x29ff…100662",
+      "deployment_id": "QmdX5trUrA2r2PJJmZo7L6suHAMJNzoEDzDUFKjyzpAMGy",
+      "indexed_block": 49095499,
+      "indexed_block_timestamp": 1784980345,
+      "has_indexing_errors": false,
+      "tier": "unknown",
+      "classification_reason": "factories marker answered, but the Pool shape lacks required fee/TVL fields and PoolDayData is absent",
+      "verdict": "healthy",
+      "verdict_reason": "lag=6 blocks, age=16s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    },
+    {
+      "slug": "aerodrome-base-full",
+      "protocol_name": "Aerodrome",
+      "subgraph_id": "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM",
+      "publisher": "Graph Explorer publisher 0xa4c6…05cc95",
+      "deployment_id": "QmasYjypV6nTLp4iNH4Vjf7fksRNxAkAskqDdKf2DCsQkV",
+      "indexed_block": 49095501,
+      "indexed_block_timestamp": 1784980349,
+      "has_indexing_errors": false,
+      "tier": "B",
+      "verdict": "healthy",
+      "verdict_reason": "lag=4 blocks, age=12s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    },
+    {
+      "slug": "balancer-v2-base",
+      "protocol_name": "Balancer V2",
+      "subgraph_id": "E7XyutxXVLrp8njmjF16Hh38PCJuHm12RRyMt5ma4ctX",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/E7XyutxXVLrp8njmjF16Hh38PCJuHm12RRyMt5ma4ctX",
+      "publisher": "Balancer",
+      "deployment_id": "QmRKBwBwPKtFz4mQp5jvH44USVprM4C77Nr4m77UGCbGv9",
+      "indexed_block": 49095501,
+      "indexed_block_timestamp": 1784980349,
+      "has_indexing_errors": false,
+      "tier": "unknown",
+      "verdict": "healthy",
+      "verdict_reason": "lag=4 blocks, age=12s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    },
+    {
+      "slug": "base-slipstream-community",
+      "protocol_name": "Aerodrome Slipstream",
+      "subgraph_id": "5U2aXafXWCubcFTJiJ4szrxKXJ562JdEVdbfCo6J4cms",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/5U2aXafXWCubcFTJiJ4szrxKXJ562JdEVdbfCo6J4cms",
+      "publisher": "Graph Explorer publisher 0x1080…4f5b07",
+      "deployment_id": null,
+      "indexed_block": null,
+      "indexed_block_timestamp": null,
+      "has_indexing_errors": null,
+      "tier": "unknown",
+      "verdict": "reject",
+      "verdict_reason": "missing usable _meta"
+    },
+    {
+      "slug": "pancakeswap-v3-base",
+      "protocol_name": "PancakeSwap V3",
+      "subgraph_id": "84ADrft27B8Jo46mdknbJ3PHoJ5wK5YeNBrYTD19WnaH",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/84ADrft27B8Jo46mdknbJ3PHoJ5wK5YeNBrYTD19WnaH",
+      "publisher": "Graph Explorer publisher 0x3acc…499c23",
+      "deployment_id": "QmY5Wybn5P1BQ5gnV1QuNiszZNk2fimZatKM1XtvV49fBN",
+      "indexed_block": 49095502,
+      "indexed_block_timestamp": 1784980351,
+      "has_indexing_errors": false,
+      "tier": "unknown",
+      "verdict": "healthy",
+      "verdict_reason": "lag=3 blocks, age=10s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": false
+      }
+    },
+    {
+      "slug": "baseswap-v2-base",
+      "protocol_name": "BaseSwap V2",
+      "subgraph_id": "SU9VhLEYR58QqvRmvCpDQarCkb6fb4cL9Pj3WgNcALD",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/SU9VhLEYR58QqvRmvCpDQarCkb6fb4cL9Pj3WgNcALD",
+      "publisher": "Graph Explorer publisher 0x4f1a…76928d",
+      "deployment_id": "QmVL9dQdAGfqRbfbjpTXUGZNhFh2rpcPJ8XT5bYXVPvXyr",
+      "indexed_block": 49095503,
+      "indexed_block_timestamp": 1784980353,
+      "has_indexing_errors": false,
+      "tier": "unknown",
+      "verdict": "healthy",
+      "verdict_reason": "lag=2 blocks, age=8s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    },
+    {
+      "slug": "sushiswap-v3-base-community-a",
+      "protocol_name": "SushiSwap V3",
+      "subgraph_id": "8WG1adHbCgThdQHRg4FayNbxunUM1AhPJVTS5rXtEFoa",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/8WG1adHbCgThdQHRg4FayNbxunUM1AhPJVTS5rXtEFoa",
+      "publisher": "Graph Explorer publisher 0x3eb4…6a09e3",
+      "deployment_id": null,
+      "indexed_block": null,
+      "indexed_block_timestamp": null,
+      "has_indexing_errors": null,
+      "tier": "unknown",
+      "verdict": "reject",
+      "verdict_reason": "missing usable _meta"
+    },
+    {
+      "slug": "sushiswap-v3-base-community-b",
+      "protocol_name": "SushiSwap V3",
+      "subgraph_id": "9KSiDKQ3KnwyxU5yA1KkGbqF4uREHVfmUcrLyjS4itSY",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/9KSiDKQ3KnwyxU5yA1KkGbqF4uREHVfmUcrLyjS4itSY",
+      "publisher": "Graph Explorer publisher 0x3acc…499c23",
+      "deployment_id": null,
+      "indexed_block": null,
+      "indexed_block_timestamp": null,
+      "has_indexing_errors": null,
+      "tier": "unknown",
+      "verdict": "reject",
+      "verdict_reason": "missing usable _meta"
+    },
+    {
+      "slug": "pancakeswap-exchange-v3-base",
+      "protocol_name": "PancakeSwap V3",
+      "subgraph_id": "8F3ur1X2g63Lkef4JhCcfWUq8oQrghGNJFBq1vkyKDNv",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/8F3ur1X2g63Lkef4JhCcfWUq8oQrghGNJFBq1vkyKDNv",
+      "publisher": "Graph Explorer publisher 0xb165…84629a",
+      "deployment_id": null,
+      "indexed_block": null,
+      "indexed_block_timestamp": null,
+      "has_indexing_errors": null,
+      "tier": "unknown",
+      "verdict": "reject",
+      "verdict_reason": "missing usable _meta"
+    },
+    {
+      "slug": "exchange-v3-base",
+      "protocol_name": "PancakeSwap V3 candidate",
+      "subgraph_id": "BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3",
+      "explorer_url": "https://thegraph.com/explorer/subgraphs/BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3",
+      "publisher": "Graph Explorer publisher 0xd099…e348d4",
+      "deployment_id": "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
+      "indexed_block": 49095505,
+      "indexed_block_timestamp": 1784980357,
+      "has_indexing_errors": false,
+      "tier": "B",
+      "verdict": "healthy",
+      "verdict_reason": "lag=0 blocks, age=4s",
+      "token_probe": {
+        "query_id": "m2-tokens-v2",
+        "answered": true
+      }
+    }
+  ],
+  "token_pair": {
+    "base_token": "0x4200000000000000000000000000000000000006",
+    "quote_token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "quote_symbol": "USDC",
+    "decision": "native USDC is present with matching identity on the provisional Tier-B candidates"
+  },
+  "milestone_status": "blocked",
+  "blocker": "Only two deployments passed the native-USDC pool and common-query checks; Aerodrome pool discovery timed out after 15 seconds.",
+  "final_selections": [],
+  "validated_selections": [
+    {
+      "slug": "uniswap-v3-base-native",
+      "subgraph_id": "GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+      "tier": "B",
+      "pool_address": "0x6c561b446416e1a00e8e93e221854d6ea4171372"
+    },
+    {
+      "slug": "exchange-v3-base",
+      "subgraph_id": "BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3",
+      "tier": "B",
+      "pool_address": "0x72ab388e2e2f6facef59e3c3fa2c4e29011c2d38"
+    }
+  ],
+  "token_probe_finished_at": "2026-07-25T11:53:58.786Z",
+  "pool_probe_finished_at": "2026-07-25T12:01:56.460Z",
+  "pool_candidates": [
+    {
+      "slug": "uniswap-v3-base-native",
+      "subgraph_id": "GqzP4Xaehti8KSfQmv3ZctFSjnSUYZ4En5NRsiTbvZpz",
+      "tier": "B",
+      "pool_address": "0x6c561b446416e1a00e8e93e221854d6ea4171372"
+    },
+    {
+      "slug": "aerodrome-base-full",
+      "subgraph_id": "GENunSHWLBXm59mBSgPzQ8metBEp9YDfdqwFr91Av1UM",
+      "tier": "B",
+      "pool_probe_error": "Pool discovery timed out after the 15 second deadline; no retry was attempted."
+    },
+    {
+      "slug": "exchange-v3-base",
+      "subgraph_id": "BHWNsedAHtmTCzXxCCDfhPmm6iN9rxUhoRHdHKyujic3",
+      "tier": "B",
+      "pool_address": "0x72ab388e2e2f6facef59e3c3fa2c4e29011c2d38"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "earliest": {
+    "count": 1,
+    "provenance": {
+      "as_of": 48944374,
+      "registry_hash": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+      "sealed_through": 48944374,
+      "source": "hot+sealed"
+    },
+    "rows": [
+      {
+        "_seq": 51125264842773,
+        "address": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        "amount0": "-43393300574830993",
+        "amount0_dec": "-43393300574830993",
+        "amount0_overflow": false,
+        "amount1": "79200000",
+        "amount1_dec": "79200000",
+        "amount1_overflow": false,
+        "block_hash": "0xc2fd40c2f6b9a9b1e59737d6053354885b3336ac801a3f7c0340902420ec9dc2",
+        "block_number": 48756852,
+        "block_timestamp": 1784303051,
+        "liquidity": "28850225265757730129",
+        "liquidity_dec": "28850225265757730129",
+        "liquidity_overflow": false,
+        "log_index": 21,
+        "recipient": "0xd0a40c6526acdebd4f6d87931098ff37a9f8e4bf",
+        "sender": "0x2626664c2603336e57b271c5c0b26f421741e481",
+        "sqrtPriceX96": "3379702129103275629019155",
+        "sqrtPriceX96_dec": "3379702129103275629019155",
+        "sqrtPriceX96_overflow": false,
+        "table": "pool__swap",
+        "tick": "-201257",
+        "tx_hash": "0x5a02a9e244c5191381b04066377bd9b06cec47b962074200dc0d9a4702357733"
+      }
+    ],
+    "truncated": false
+  },
+  "middle": {
+    "count": 1,
+    "provenance": {
+      "as_of": 48944374,
+      "registry_hash": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+      "sealed_through": 48944374,
+      "source": "hot+sealed"
+    },
+    "rows": [
+      {
+        "_seq": 51142551666974,
+        "address": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        "amount0": "-965575909855116",
+        "amount0_dec": "-965575909855116",
+        "amount0_overflow": false,
+        "amount1": "1781774",
+        "amount1_dec": "1781774",
+        "amount1_overflow": false,
+        "block_hash": "0x694ceb0bda63a39cbaea92c3d7445e55f6b44493b203c35dbb015bc840cb2e6c",
+        "block_number": 48773338,
+        "block_timestamp": 1784336023,
+        "liquidity": "33222875623211620605",
+        "liquidity_dec": "33222875623211620605",
+        "liquidity_overflow": false,
+        "log_index": 286,
+        "recipient": "0x9d56591b1bd56a8191a5a376f3dad60a8c31d58a",
+        "sender": "0x9d56591b1bd56a8191a5a376f3dad60a8c31d58a",
+        "sqrtPriceX96": "3398287968919117482363015",
+        "sqrtPriceX96_dec": "3398287968919117482363015",
+        "sqrtPriceX96_overflow": false,
+        "table": "pool__swap",
+        "tick": "-201147",
+        "tx_hash": "0xeb6264c141c4c712a1fdf19b918382e4f74c5356e505a586d94a750891f55fea"
+      }
+    ],
+    "truncated": false
+  },
+  "latest": {
+    "count": 1,
+    "provenance": {
+      "as_of": 48944374,
+      "registry_hash": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+      "sealed_through": 48944374,
+      "source": "hot+sealed"
+    },
+    "rows": [
+      {
+        "_seq": 51321894863016,
+        "address": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        "amount0": "-6123995143586742520",
+        "amount0_dec": "-6123995143586742520",
+        "amount0_overflow": false,
+        "amount1": "11804868893",
+        "amount1_dec": "11804868893",
+        "amount1_overflow": false,
+        "block_hash": "0xea960db6cfd80eced3a7f609e52e8e5e16086e48b06b05249e6b9c16270ed839",
+        "block_number": 48944373,
+        "block_timestamp": 1784678093,
+        "liquidity": "33931442266060233254",
+        "liquidity_dec": "33931442266060233254",
+        "liquidity_overflow": false,
+        "log_index": 168,
+        "recipient": "0x6158a9d39c343bffcb5ea76e7f6693a76e0cc0fd",
+        "sender": "0x4a8c4de81714d81740514da9c5c4ee32ac5baf71",
+        "sqrtPriceX96": "3473297999633404357771264",
+        "sqrtPriceX96_dec": "3473297999633404357771264",
+        "sqrtPriceX96_overflow": false,
+        "table": "pool__swap",
+        "tick": "-200710",
+        "tx_hash": "0x75d694ea1806d0182c039f676887e0883cc3bd62a6d19b56a4e01fb25ccc4851"
+      }
+    ],
+    "truncated": false
+  },
+  "seam_duplicates": {
+    "count": 1,
+    "provenance": {
+      "as_of": 48944374,
+      "registry_hash": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+      "sealed_through": 48944374,
+      "source": "hot+sealed"
+    },
+    "rows": [
+      {
+        "dup_count": 0
+      }
+    ],
+    "truncated": false
+  }
+}

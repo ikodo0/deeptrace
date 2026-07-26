@@ -1,0 +1,35 @@
+Run the indexer: poll logs, store entities, and serve the API
+
+Usage: nuthatch dev [OPTIONS]
+
+Options:
+      --dir <DIR>                  Project directory (must contain a nuthatch.toml) [default: .]
+      --listen <LISTEN>            Address to bind the HTTP API to [default: 127.0.0.1:8288]
+      --rpc <RPC>                  Override the nest's `rpc_urls` at runtime without editing the
+                                   config (repeatable). These are tried first; the nest's configured
+                                   endpoints remain as fallback. Point at your own node
+      --backfill <BACKFILL>        Index only this many blocks back from the tip (recent-history
+                                   mode). Explicitly overrides a nest's vendored `start_block`s.
+                                   Omit to backfill from deployment when the nest declares start
+                                   blocks, else from a default recent window
+      --seal-direct                Backfill finalized history straight to Parquet (skip the hot
+                                   store) before tip-following - much faster for a from-deployment
+                                   backfill (RFC-0004). The near-tip window still uses the hot path;
+                                   the IVM view is rebuilt from the sealed segments
+      --concurrency <CONCURRENCY>  Concurrent window fetches during the seal-direct history backfill
+                                   (overlaps RPC latency). Try 8-16 against your own node; keep low
+                                   on rate-limited public RPC [default: 1]
+      --window <WINDOW>            Override the `eth_getLogs` block-window (the chain default
+                                   otherwise). For a *sparse* contract over a long backfill - few
+                                   events across many blocks - a large window (e.g. 50000) turns
+                                   tens of thousands of near-empty requests into a few, so a
+                                   from-history backfill finishes in minutes. Keep it under your
+                                   provider's max block-range for `getLogs` (many allow 100k+ when
+                                   the result set is small); the concurrent backfill fails the range
+                                   rather than auto-shrinking it
+      --no-admin                   Disable the built-in admin UI (`/_admin/`) entirely - no routes,
+                                   for hosted deployments that front their own dashboard (RFC-0010
+                                   Part A). Off-localhost the UI requires `NUTHATCH_ADMIN_TOKEN` to
+                                   be set AND each request to present it as `?token=…` (or it
+                                   self-disables with a log line)
+  -h, --help                       Print help

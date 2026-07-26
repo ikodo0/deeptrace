@@ -1,0 +1,48 @@
+# Semantic metadata for the nest/ freshness view.
+#
+# Describes the single-row result returned by
+# `views/pool_swap_freshness.sql` against the Nuthatch instance indexing the
+# Uniswap V3 Base WETH/USDC 0.05% pool.
+
+[view]
+name = "pool_swap_freshness"
+sql = "views/pool_swap_freshness.sql"
+table = "pool__swap"
+instance = "https://<TAILNET_HOST>"
+
+[view.pool]
+chain = "base"
+address = "0x6c561b446416e1a00e8e93e221854d6ea4171372"
+fee_tier = "0.05%"
+protocol = "uniswap-v3"
+
+[view.freshness]
+# The 24h window is anchored on MAX(block_timestamp) - 86400, never on a
+# wall clock, so the result is deterministic for a given sealed state.
+anchor = "MAX(block_timestamp)"
+window_seconds = 86400
+latest_order = ["block_number DESC", "log_index DESC"]
+row_count = 1
+
+[view.aliases]
+pool_address = "Lowercase constant of the indexed pool."
+recent_swap_count_24h = "Count of swaps inside the 24h window ending at the anchor."
+last_swap_block = "block_number of the latest swap."
+last_swap_block_timestamp = "block_timestamp (unix seconds) of the latest swap."
+last_swap_block_hash = "block_hash of the latest swap."
+last_swap_tx_hash = "tx_hash of the latest swap."
+last_swap_log_index = "log_index of the latest swap."
+
+[view.pool_swap_search]
+sql = "views/pool_swap_search.sql"
+table = "pool__swap"
+order = ["block_number DESC", "log_index DESC", "transaction_hash ASC"]
+threshold = "Exact selected-token thresholding occurs after DeepTrace normalization."
+pagination = "Bounded keyset scans freeze the first-page searchable head."
+
+[view.wallet_swap_activity]
+sql = "views/wallet_swap_activity.sql"
+table = "pool__swap"
+scope = "Only sender or recipient matches against the explicitly indexed pool."
+order = ["block_number DESC", "log_index DESC", "transaction_hash ASC"]
+pagination = "Fixed-snapshot keyset pages are bound to the requested wallet and window."

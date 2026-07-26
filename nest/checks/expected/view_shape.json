@@ -1,0 +1,12 @@
+[
+  {
+    "has_block": 1,
+    "has_block_hash": 1,
+    "has_count": 1,
+    "has_log_index": 1,
+    "has_pool_address": 1,
+    "has_timestamp": 1,
+    "has_tx_hash": 1,
+    "row_count": 1
+  }
+]

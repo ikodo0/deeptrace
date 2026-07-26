@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Connect DeepTrace to your AI</title>
+<meta name="description" content="Read-only MCP server comparing Base WETH/USDC pools with verified Graph metrics and independent Nuthatch freshness.">
+<link rel="preload" href="/assets/text.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/mono.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"NR";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/text.woff2) format("woff2")}
+@font-face{font-family:"NR";font-style:italic;font-weight:400;font-display:swap;src:url(/assets/text-italic.woff2) format("woff2")}
+@font-face{font-family:"PX";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/mono.woff2) format("woff2")}
+*,*::before,*::after{box-sizing:border-box}
+body,h1,h2,h3,p,dl,dd{margin:0}
+svg{display:block}
+:root{
+  --stock:#101219;--sheet:#171A23;--rule:#262A36;--rule-2:#343949;
+  /* two text tiers only: 15.0:1 and 7.8:1 on stock */
+  --ink:#ECE6D9;--ink-2:#A2A7B4;
+  /* violet means one thing: this fact has a source. 8.0:1 */
+  --source:#AC9CFF;
+  /* amber means one thing: withheld, stale, or wrong. 7.7:1 */
+  --warn:#D99A3C;
+  --serif:"NR",Georgia,serif;--mono:"PX",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --pad:40px;color-scheme:dark;
+}
+html{background:var(--stock)}
+body{background:var(--stock);color:var(--ink-2);font-family:var(--serif);font-optical-sizing:auto;
+  font-size:17px;line-height:1.62;-webkit-font-smoothing:antialiased}
+::selection{background:var(--source);color:#0B0D13}
+:focus-visible{outline:2px solid var(--source);outline-offset:3px}
+a{color:inherit}
+.sheet{max-width:700px;margin:0 auto;padding:0 20px 88px}
+.masthead{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:34px 0 46px}
+.wordmark{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:15px;color:var(--ink)}
+.wordmark svg{color:var(--source);flex:none}
+.nav{display:flex;gap:20px;font-family:var(--mono);font-size:12px}
+.nav a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--rule-2);padding-bottom:2px}
+.nav a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+.hero{font-weight:400;font-size:clamp(2rem,4.9vw,3.15rem);line-height:1.1;letter-spacing:-.012em;
+  color:var(--ink);margin-bottom:24px;max-width:18ch}
+.hero em{font-style:italic}
+.lede{font-size:18px;line-height:1.6;max-width:46ch}
+.lede b{color:var(--ink);font-weight:400;font-style:italic}
+.plate{margin-top:38px;border:1px solid var(--rule-2);background:var(--sheet);padding:18px 22px}
+.plate-label{display:block;margin-bottom:6px;font-family:var(--mono);font-size:10px;
+  text-transform:uppercase;letter-spacing:.18em;color:var(--ink-2)}
+.plate-url{font-family:var(--mono);font-size:clamp(15px,3.4vw,20px);color:var(--ink);
+  word-break:break-all;user-select:all}
+.section{padding-top:62px}
+.sect-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding-bottom:14px;border-bottom:1px solid var(--rule-2);margin-bottom:22px}
+.sect-head h2{font-weight:400;font-size:21px;color:var(--ink)}
+.sect-head span{font-family:var(--mono);font-size:10px;text-transform:uppercase;
+  letter-spacing:.18em;color:var(--ink-2);white-space:nowrap}
+.note{margin-bottom:18px;max-width:58ch}
+.note:last-child{margin-bottom:0}
+.note b{color:var(--ink);font-weight:400;font-style:italic}
+.note a{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.cta{display:inline-block;font-family:var(--mono);font-size:13px;color:var(--stock)!important;
+  background:var(--ink);border-radius:2px;padding:11px 20px;text-decoration:none!important}
+.cta:hover{filter:brightness(1.08)}
+.ic{font-family:var(--mono);font-size:.84em;color:var(--ink)}
+/* this page ships no script, so one click selects a whole block */
+.code{margin-top:18px;border:1px solid var(--rule-2);background:var(--sheet)}
+.code-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:10px 12px;
+  border-bottom:1px solid var(--rule);font-family:var(--mono);font-size:10px;
+  text-transform:uppercase;letter-spacing:.14em;color:var(--ink-2)}
+.code pre{margin:0;padding:16px 14px 18px;overflow-x:auto;font-family:var(--mono);
+  font-size:12.5px;line-height:1.85;color:var(--ink);user-select:all}
+.code pre .d{color:var(--ink-2)}
+.caution{margin-top:20px;border:1px solid color-mix(in srgb,var(--warn) 34%,transparent);
+  border-left-width:2px;border-left-color:var(--warn);
+  background:color-mix(in srgb,var(--warn) 5%,var(--sheet));padding:18px 20px}
+.caution b{display:block;margin-bottom:7px;font-family:var(--mono);font-weight:400;font-size:10px;
+  text-transform:uppercase;letter-spacing:.18em;color:var(--warn)}
+.caution p{font-size:16px}
+details.client{border-bottom:1px solid var(--rule)}
+details.client summary{display:flex;justify-content:space-between;align-items:center;gap:16px;
+  padding:15px 0;cursor:pointer;font-family:var(--mono);font-size:13px;color:var(--ink);list-style:none}
+details.client summary::-webkit-details-marker{display:none}
+details.client summary::after{content:"+";font-size:15px;color:var(--ink-2)}
+details.client[open] summary::after{content:"\2212"}
+details.client summary:hover{color:var(--source)}
+details.client .body{padding-bottom:24px}
+.meta{margin-top:20px;display:grid;grid-template-columns:7.5rem 1fr;gap:9px 20px}
+.meta dt{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--ink-2);padding-top:4px}
+.meta dd{font-size:16px;line-height:1.5}
+.meta dd .ic{word-break:break-all}
+.lrow{display:grid;grid-template-columns:10.5rem 1fr;gap:4px 22px;padding:14px 0;
+  border-bottom:1px solid var(--rule)}
+.lrow dt{font-family:var(--mono);font-size:12.5px;color:var(--ink)}
+.lrow dd{font-size:16px;line-height:1.5}
+.lrow dd b{color:var(--ink);font-weight:400}
+.lrow.no{background:color-mix(in srgb,var(--warn) 4%,transparent);padding-left:14px;margin-left:-14px}
+.lrow.no dt{color:var(--warn)}
+.lrow.no dt::before{content:"\00D7";margin-right:9px}
+/* the only receipt edge on the page, because this is the only actual output */
+.receipt{position:relative;background:var(--sheet);padding:34px var(--pad) 32px}
+.receipt::before,.receipt::after{content:"";position:absolute;left:0;right:0;height:9px;
+  background-repeat:repeat-x;background-size:13px 9px}
+.receipt::before{top:0;background-image:radial-gradient(circle at 6.5px 0,var(--stock) 5px,transparent 5.4px)}
+.receipt::after{bottom:0;background-image:radial-gradient(circle at 6.5px 9px,var(--stock) 5px,transparent 5.4px)}
+.runhead{display:flex;justify-content:space-between;align-items:center;gap:14px;font-family:var(--mono);
+  font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-2);
+  padding-bottom:14px;margin-bottom:20px;border-bottom:1px solid var(--rule)}
+.tag{color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 40%,transparent);padding:3px 7px}
+.result{font-family:var(--mono);font-size:12.5px;line-height:1.5}
+.result h3{font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.18em;
+  color:var(--ink-2);margin:20px 0 7px}
+.result h3:first-child{margin-top:0}
+.rline{display:flex;gap:14px;justify-content:space-between;align-items:baseline;padding:5px 0;
+  border-bottom:1px solid var(--rule)}
+.rk{color:var(--ink-2);white-space:nowrap}
+.rv{color:var(--ink);text-align:right;word-break:break-all}
+.rv.bad,.rv .bad{color:var(--warn)}
+.rv .src{color:var(--source)}
+/* the signature: these numbers are absent because they were never queried */
+.redact{display:inline-block;width:5.2em;height:.78em;vertical-align:-.02em;
+  border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);border-radius:1px;
+  background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--warn) 42%,transparent) 0 2px,transparent 2px 5px)}
+.redact-key{display:flex;align-items:center;gap:10px;margin-top:18px;font-family:var(--mono);
+  font-size:11px;color:var(--ink-2);line-height:1.45}
+.colophon{margin-top:60px;padding-top:24px;border-top:1px solid var(--rule-2)}
+.flinks{display:flex;flex-wrap:wrap;gap:11px 24px;font-family:var(--mono);font-size:12px}
+.flinks a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--rule-2);padding-bottom:2px}
+.flinks a:hover{color:var(--ink);border-bottom-color:var(--ink)}
+.fbase{margin-top:24px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+@media (max-width:620px){
+  :root{--pad:20px}
+  body{font-size:16px}
+  .lrow,.meta{grid-template-columns:1fr}
+  .rline{flex-direction:column;gap:1px}
+  .rv{text-align:left}
+}
+</style>
+</head>
+<body>
+<main class="sheet">
+
+<header class="masthead">
+  <span class="wordmark">
+    <!-- two sources that never converge: Graph supplies value, Nuthatch supplies freshness -->
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4.5 1.5 V14.5 M11.5 5 V14.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="square"/>
+    </svg>
+    deeptrace
+  </span>
+  <nav class="nav">
+    <a href="#connect">connect</a>
+    <a href="#response">response</a>
+    <a href="#trouble">help</a>
+  </nav>
+</header>
+
+<h1 class="hero">Compare Base liquidity pools with <em>verified</em> Graph metrics and independent Nuthatch freshness.</h1>
+<p class="lede">Connect DeepTrace to Claude Code, OpenCode, or Codex. <b>No local installation, no Graph API key, no Tailscale.</b></p>
+<div class="plate">
+  <span class="plate-label">MCP URL</span>
+  <span class="plate-url">https://mcp.ikodo.dev</span>
+</div>
+
+<section class="section" aria-labelledby="h-token">
+  <div class="sect-head"><h2 id="h-token">Get an access token</h2><span>Step one</span></div>
+  <p class="note"><a class="cta" href="/auth">Take a token</a></p>
+  <p class="note">No wallet, no account, no email. The token is yours alone &mdash; if it leaks, only yours is revoked. Export it as <span class="ic">DEEPTRACE_TOKEN</span> in the shell that launches your AI client.</p>
+  <div class="code">
+    <div class="code-head"><span>Shell</span><span>Click to select</span></div>
+<pre><span class="d">$</span> export DEEPTRACE_TOKEN=<span class="d">"&lt;your-token&gt;"</span></pre>
+  </div>
+  <div class="caution">
+    <b>Never</b>
+    <p>Never paste a token into a chat, put it in a URL, or commit it. This page has no token field and writes nothing to your browser &mdash; any site asking you to type a DeepTrace token is not this one.</p>
+  </div>
+  <p class="note" style="margin-top:18px">Lost it? Take another. Tokens are stored only as hashes, so a lost one cannot be recovered &mdash; but replacing it costs nothing.</p>
+</section>
+
+<section class="section" id="connect" aria-labelledby="h-connect">
+  <div class="sect-head"><h2 id="h-connect">Connect and verify</h2><span>Step two</span></div>
+
+  <details class="client" open>
+    <summary>Claude Code</summary>
+    <div class="body">
+      <div class="code">
+        <div class="code-head"><span>Add the server</span><span>Click to select</span></div>
+<pre><span class="d">$</span> claude mcp add --transport http deeptrace \
+    https://mcp.ikodo.dev \
+    --header <span class="d">"Authorization: Bearer $DEEPTRACE_TOKEN"</span></pre>
+      </div>
+      <dl class="meta">
+        <dt>Config</dt><dd><span class="ic">~/.claude.json</span></dd>
+        <dt>Verify</dt><dd><span class="ic">claude mcp list</span></dd>
+        <dt>Expect</dt><dd><span class="ic">deeptrace &middot; connected</span>, with <span class="ic">compare_pools</span>, <span class="ic">compare_lending_markets</span>, <span class="ic">find_large_swaps</span>, and <span class="ic">research_wallet</span> offered in a new session.</dd>
+      </dl>
+    </div>
+  </details>
+
+  <details class="client">
+    <summary>OpenCode</summary>
+    <div class="body">
+      <div class="code">
+        <div class="code-head"><span>opencode.json</span><span>Click to select</span></div>
+<pre>{
+  "mcp": {
+    "deeptrace": {
+      "type": "remote",
+      "url": "https://mcp.ikodo.dev",
+      "enabled": true,
+      "headers": { "Authorization": "Bearer {env:DEEPTRACE_TOKEN}" }
+    }
+  }
+}</pre>
+      </div>
+      <dl class="meta">
+        <dt>Config</dt><dd><span class="ic">~/.config/opencode/opencode.json</span>, or <span class="ic">opencode.json</span> in the project root.</dd>
+        <dt>Verify</dt><dd>Run <span class="ic">opencode</span>, then <span class="ic">/mcp</span>.</dd>
+        <dt>Expect</dt><dd><span class="ic">deeptrace</span> connected, exposing all four read-only research tools.</dd>
+      </dl>
+    </div>
+  </details>
+
+  <details class="client">
+    <summary>Codex</summary>
+    <div class="body">
+      <div class="code">
+        <div class="code-head"><span>config.toml</span><span>Click to select</span></div>
+<pre>experimental_use_rmcp_client = true
+
+[mcp_servers.deeptrace]
+url = "https://mcp.ikodo.dev"
+bearer_token_env_var = "DEEPTRACE_TOKEN"</pre>
+      </div>
+      <dl class="meta">
+        <dt>Config</dt><dd><span class="ic">~/.codex/config.toml</span></dd>
+        <dt>Verify</dt><dd><span class="ic">codex mcp list</span></dd>
+        <dt>Expect</dt><dd><span class="ic">deeptrace</span> listed and enabled. Streamable HTTP needs the RMCP client flag.</dd>
+      </dl>
+    </div>
+  </details>
+
+  <details class="client">
+    <summary>Any other MCP client</summary>
+    <div class="body">
+      <dl class="meta">
+        <dt>Transport</dt><dd>Streamable HTTP</dd>
+        <dt>URL</dt><dd><span class="ic">https://mcp.ikodo.dev</span></dd>
+        <dt>Header</dt><dd><span class="ic">Authorization: Bearer &lt;token&gt;</span></dd>
+      </dl>
+      <div class="code">
+        <div class="code-head"><span>Verify with curl</span><span>Click to select</span></div>
+<pre><span class="d">$</span> curl -sS -X POST https://mcp.ikodo.dev \
+    -H <span class="d">"Authorization: Bearer $DEEPTRACE_TOKEN"</span> \
+    -H <span class="d">"Content-Type: application/json"</span> \
+    -H <span class="d">"Accept: application/json, text/event-stream"</span> \
+    -d <span class="d">'{"jsonrpc":"2.0","id":1,"method":"tools/list"}'</span></pre>
+      </div>
+      <dl class="meta">
+        <dt>Expect</dt><dd>A JSON-RPC result listing <span class="ic">compare_pools</span>, <span class="ic">compare_lending_markets</span>, <span class="ic">find_large_swaps</span>, and <span class="ic">research_wallet</span>. Without a token this endpoint answers <span class="ic">401</span> &mdash; that response still proves you reached it.</dd>
+      </dl>
+    </div>
+  </details>
+
+  <p class="note" style="margin-top:22px">The canonical URL is <b>https://mcp.ikodo.dev</b>. The older <span class="ic">/mcp</span> path remains only for existing client configurations.</p>
+</section>
+
+<section class="section" aria-labelledby="h-try">
+  <div class="sect-head"><h2 id="h-try">Ask the first question</h2><span>Step three</span></div>
+  <div class="code">
+    <div class="code-head"><span>Paste into your AI client</span><span>Click to select</span></div>
+<pre>Compare Base WETH/USDC pools over the last 24 hours by volume.
+Show the ranked pools, which sources answered, whether Nuthatch
+is fresh, and every warning.</pre>
+  </div>
+  <p class="note" style="margin-top:20px">You should get back ranked Graph metrics, source coverage, provenance identifiers, and a <b>separate</b> Nuthatch freshness fact.</p>
+</section>
+
+<section class="section" id="response" aria-labelledby="h-response">
+  <div class="sect-head"><h2 id="h-response">What comes back</h2><span>Evidence</span></div>
+  <p class="note">Every field below is real: the addresses, the source identifiers, the methodology version. Only the money is missing, and that is deliberate &mdash; a tool that refuses to invent metrics should not invent them on its own front page.</p>
+  <div class="receipt">
+    <div class="runhead"><span>compare_pools &middot; 24h &middot; by volume</span><span class="tag">Partial</span></div>
+    <div class="result">
+      <h3>Ranked pools</h3>
+      <div class="rline"><span class="rk">1 &middot; uniswap-v3</span><span class="rv"><span class="redact" role="img" aria-label="value withheld"></span> volume_usd</span></div>
+      <div class="rline"><span class="rk">&nbsp;&nbsp;&nbsp;pool_address</span><span class="rv">0x6c561b&hellip;4171372</span></div>
+      <div class="rline"><span class="rk">2 &middot; pancakeswap-v3</span><span class="rv"><span class="redact" role="img" aria-label="value withheld"></span> volume_usd</span></div>
+      <div class="rline"><span class="rk">&nbsp;&nbsp;&nbsp;pool_address</span><span class="rv">0x72ab38&hellip;011c2d38</span></div>
+      <h3>Coverage</h3>
+      <div class="rline"><span class="rk">requested_deployments</span><span class="rv">2</span></div>
+      <div class="rline"><span class="rk">successful_deployments</span><span class="rv bad">1</span></div>
+      <div class="rline"><span class="rk">nuthatch_available</span><span class="rv">true</span></div>
+      <h3>Provenance</h3>
+      <div class="rline"><span class="rk">source_id</span><span class="rv"><span class="src">uniswap-v3-base-native</span></span></div>
+      <div class="rline"><span class="rk">query_id</span><span class="rv"><span class="src">m2-tier-b-metrics-v1</span></span></div>
+      <div class="rline"><span class="rk">methodology_version</span><span class="rv"><span class="src">completed-utc-days-v1</span></span></div>
+      <h3>Nuthatch freshness &mdash; never a financial value</h3>
+      <div class="rline"><span class="rk">last_swap_block</span><span class="rv"><span class="redact" role="img" aria-label="value withheld"></span></span></div>
+      <div class="rline"><span class="rk">recent_swap_count_24h</span><span class="rv"><span class="redact" role="img" aria-label="value withheld"></span></span></div>
+      <div class="rline"><span class="rk">status</span><span class="rv">fresh</span></div>
+      <h3>Warnings</h3>
+      <div class="rline"><span class="rk">1</span><span class="rv bad">exchange-v3-base did not answer</span></div>
+    </div>
+    <p class="redact-key"><span class="redact" aria-hidden="true"></span><span>Withheld. Real values arrive only from a real query.</span></p>
+  </div>
+  <p class="note" style="margin-top:22px">This example is <b>partial</b> on purpose. One source timed out, so the ranking honestly covers one of two pools and says so. A result that always succeeds would prove nothing.</p>
+</section>
+
+<section class="section" aria-labelledby="h-skill">
+  <div class="sect-head"><h2 id="h-skill">The optional skill</h2><span>Not required</span></div>
+  <p class="note"><b>DeepTrace works the moment MCP is connected.</b> The skill only teaches your AI to preserve exact decimal strings, keep Graph metrics distinct from Nuthatch freshness, and surface partial coverage. Connecting MCP does not automatically install or load the skill.</p>
+  <div class="code">
+    <div class="code-head"><span>Recommended</span><span>Click to select</span></div>
+<pre><span class="d">$</span> npx skills add https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research</pre>
+  </div>
+  <dl style="margin-top:20px">
+    <div class="lrow"><dt>Review first</dt><dd>The installer detects supported agents and asks where to install. Read the skill before approving it.</dd></div>
+    <div class="lrow"><dt>Then restart</dt><dd>Start a new AI session after installing.</dd></div>
+    <div class="lrow"><dt>No secrets</dt><dd>Installing the skill does not configure MCP or store your token.</dd></div>
+    <div class="lrow"><dt>Fallback</dt><dd>If <span class="ic">npx skills</span> is unavailable, download the folder from GitHub into your client's skills directory.</dd></div>
+  </dl>
+</section>
+
+<section class="section" aria-labelledby="h-scope">
+  <div class="sect-head"><h2 id="h-scope">What it covers</h2><span>Current limits</span></div>
+  <dl>
+    <div class="lrow"><dt>Network</dt><dd><b>Base</b> &middot; chain 8453</dd></div>
+    <div class="lrow"><dt>Pair</dt><dd><b>WETH / native USDC</b></dd></div>
+    <div class="lrow"><dt>Windows</dt><dd><b>24 hours</b> and <b>7 days</b></dd></div>
+    <div class="lrow"><dt>Rank by</dt><dd>TVL, volume, or fees &mdash; up to <b>three</b> pools</dd></div>
+    <div class="lrow"><dt>The Graph</dt><dd>Supplies every financial metric</dd></div>
+    <div class="lrow"><dt>Nuthatch</dt><dd>Supplies swap-index freshness, large-swap receipts, and source-bounded wallet activity. Graph and Nuthatch stay separate.</dd></div>
+    <div class="lrow"><dt>Tools</dt><dd><b>compare_pools</b>, <b>compare_lending_markets</b>, <b>find_large_swaps</b>, and <b>research_wallet</b> are live. <span class="ic">get_dex_metrics</span> is post-MVP.</dd></div>
+    <div class="lrow no"><dt>Never writes</dt><dd>DeepTrace cannot trade, sign, or submit a transaction.</dd></div>
+    <div class="lrow no"><dt>Never invents</dt><dd>No model runs inside DeepTrace. Missing data stays missing.</dd></div>
+    <div class="lrow no"><dt>Never reprices</dt><dd>USD values come from the source that reported them.</dd></div>
+  </dl>
+</section>
+
+<section class="section" id="trouble" aria-labelledby="h-trouble">
+  <div class="sect-head"><h2 id="h-trouble">When something is wrong</h2><span>Common cases</span></div>
+  <dl>
+    <div class="lrow"><dt>401</dt><dd>Token missing, invalid, or expired. Check that <span class="ic">DEEPTRACE_TOKEN</span> is exported in the shell that launched your client.</dd></div>
+    <div class="lrow"><dt>403</dt><dd>Untrusted request origin. Connect from your AI client, not from a web page.</dd></div>
+    <div class="lrow"><dt>404</dt><dd>Check the hostname: <b>ikodo.dev</b>, not <span class="ic">icodo.dev</span>.</dd></div>
+    <div class="lrow"><dt>Timeout</dt><dd>Verify network and hostname. Tailscale is not required and will not help.</dd></div>
+    <div class="lrow"><dt>partial</dt><dd>Not an error. Read coverage and warnings to see which source was unavailable.</dd></div>
+    <div class="lrow"><dt>No skill</dt><dd>Restart the AI client after installing it.</dd></div>
+    <div class="lrow"><dt>OAuth only</dt><dd>Clients that require OAuth are unsupported until wallet sign-in ships. Use one that sends bearer headers.</dd></div>
+  </dl>
+</section>
+
+<footer class="colophon">
+  <nav class="flinks">
+    <a href="https://github.com/ikodo0/deeptrace/blob/develop/docs/connect.md">Setup guide</a>
+    <a href="https://github.com/ikodo0/deeptrace">Repository</a>
+    <a href="https://github.com/ikodo0/deeptrace/tree/develop/skills/deeptrace-pool-research">Skill source</a>
+    <a href="https://github.com/ikodo0/deeptrace/security/advisories/new">Security</a>
+  </nav>
+  <div class="fbase"><span>DeepTrace &middot; read-only</span><span>https://mcp.ikodo.dev</span></div>
+</footer>
+
+</main>
+</body>
+</html>
