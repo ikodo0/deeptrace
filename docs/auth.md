@@ -6,7 +6,8 @@ explains how a client gets one.
 There is no account to create, no dashboard, and no maintainer to email. Access is open by
 design: anyone who reaches the server can obtain a credential. What the credential protects
 is not the data — the data is public on-chain information — but the metered Graph API quota
-behind it. Rate limits exist as cost control, not as access control.
+behind it. The request rate limit in front of the tools exists as cost control, not as
+access control. Taking a token is unmetered.
 
 Think of the token as the plug rather than the lock. It identifies one client so that one
 client can be revoked without disturbing anyone else.
@@ -64,7 +65,8 @@ receive the code, so `https:` and non-loopback `http:` are both refused.
 
 ### Minting a token directly
 
-Open <https://mcp.ikodo.dev/auth> in a browser and press the button.
+Open <https://mcp.ikodo.dev/auth> in a browser and press the button. The token is blurred
+until you point at it, and one click selects the whole value to copy.
 
 The endpoint is built for that page and always answers in HTML — `POST` mints and returns
 `201` with the token in the page body; there is no JSON representation. A script therefore
@@ -74,14 +76,12 @@ has to scrape it:
 TOKEN=$(curl -sS -X POST https://mcp.ikodo.dev/auth | grep -o 'dt_[A-Za-z0-9_-]\{20,\}' | head -1)
 ```
 
-Minting is rate limited per caller address per hour. Exceeding it returns `429` with an HTML
-page, and no `dt_` value, so a scrape like the one above yields an empty string rather than
-an error — check that the token is non-empty before using it.
+Minting is not capped, so a script can take a fresh token whenever it needs one.
 
 Tokens look like `dt_` followed by 32 random bytes in base64url. The server keeps only a
 SHA-256 digest of each one, so the store holds no recoverable secret and lookup is by digest
 rather than comparison. A token is shown once and cannot be recovered — mint a new one
-instead, and reuse the one you have rather than minting per run.
+instead.
 
 ## Handle the token safely
 
