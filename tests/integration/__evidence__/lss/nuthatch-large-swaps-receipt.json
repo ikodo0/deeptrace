@@ -1,0 +1,64 @@
+{
+  "evidence_kind": "derived_view_receipt_from_retained_live_pool__swap_row",
+  "source_evidence": "../m4/raw-row-samples.json#latest",
+  "ready": {
+    "ready": true,
+    "sealed_through": 48944374,
+    "tip": 48944374
+  },
+  "nest": {
+    "name": "deeptrace-pool-freshness",
+    "registry_hash": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+    "table_count": 9
+  },
+  "schema": "Nuthatch pool_swap_search receipt schema",
+  "receipt": {
+    "count": 1,
+    "provenance": {
+      "as_of": 48944374,
+      "registry_hash": "0x46e57ffd7f6fb47e80c49314a5522bd588fd8f6ba2194528bd560be10d78da25",
+      "sealed_through": 48944374,
+      "source": "hot+sealed"
+    },
+    "rows": [
+      {
+        "pool_address": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        "block_number": 48944373,
+        "block_hash": "0xea960db6cfd80eced3a7f609e52e8e5e16086e48b06b05249e6b9c16270ed839",
+        "block_timestamp": 1784678093,
+        "transaction_hash": "0x75d694ea1806d0182c039f676887e0883cc3bd62a6d19b56a4e01fb25ccc4851",
+        "log_index": 168,
+        "amount0_raw": "-6123995143586742520",
+        "amount1_raw": "11804868893"
+      }
+    ],
+    "truncated": false
+  },
+  "expected_swap": {
+    "chain_id": 8453,
+    "protocol": "uniswap-v3",
+    "pool": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+    "transaction_hash": "0x75d694ea1806d0182c039f676887e0883cc3bd62a6d19b56a4e01fb25ccc4851",
+    "log_index": 168,
+    "block_number": 48944373,
+    "timestamp": 1784678093,
+    "asset_in": {
+      "chain_id": 8453,
+      "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+      "symbol": "USDC",
+      "decimals": 6
+    },
+    "asset_out": {
+      "chain_id": 8453,
+      "address": "0x4200000000000000000000000000000000000006",
+      "symbol": "WETH",
+      "decimals": 18
+    },
+    "amount_in": "11804.868893",
+    "amount_out": "6.12399514358674252",
+    "amount_in_raw": "11804868893",
+    "amount_out_raw": "-6123995143586742520",
+    "usd_notional": null,
+    "source_id": "nuthatch-large-swaps"
+  }
+}

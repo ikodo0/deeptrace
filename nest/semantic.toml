@@ -32,3 +32,10 @@ last_swap_block_timestamp = "block_timestamp (unix seconds) of the latest swap."
 last_swap_block_hash = "block_hash of the latest swap."
 last_swap_tx_hash = "tx_hash of the latest swap."
 last_swap_log_index = "log_index of the latest swap."
+
+[view.pool_swap_search]
+sql = "views/pool_swap_search.sql"
+table = "pool__swap"
+order = ["block_number DESC", "log_index DESC", "transaction_hash ASC"]
+threshold = "Exact selected-token thresholding occurs after DeepTrace normalization."
+pagination = "Bounded keyset scans freeze the first-page searchable head."
