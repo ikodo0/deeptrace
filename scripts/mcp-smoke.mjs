@@ -79,6 +79,16 @@ function parseSse(text) {
   return null;
 }
 
+function parseJsonRpc(text) {
+  const sseMessage = parseSse(text);
+  if (sseMessage !== null) return sseMessage;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
 async function postJson(url, body, { headers, timeoutMs }) {
   const res = await fetch(url, {
     method: "POST",
@@ -117,32 +127,35 @@ await runCheck("unknown path", async () => {
 
 // Check 3: initialize -> expect 200 and non-empty mcp-session-id
 let sessionId = "";
+let negotiatedProtocolVersion = "";
 const initOk = await runCheck("initialize", async () => {
-  const { status, headers } = await postJson(
+  const { status, headers, text } = await postJson(
     MCP_URL,
     { jsonrpc: "2.0", id: 2, method: "initialize", params: initializeParams },
     { headers: authHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
   );
   const sid = headers.get("mcp-session-id") ?? "";
-  if (status === 200 && sid !== "") {
-    sessionId = sid;
-    return { ok: true, detail: `status=200 session=established` };
-  }
   if (status !== 200) {
     return { ok: false, detail: `status=${status} (expected 200)` };
   }
-  return { ok: false, detail: `status=200 sid=(empty)` };
-});
+  if (sid === "") {
+    return { ok: false, detail: `status=200 sid=(empty)` };
+  }
 
-if (!initOk || sessionId === "") {
-  console.log("initialize failed; skipping remaining checks");
-  console.log(`${pass} passed, ${fail} failed`);
-  process.exit(1);
-}
+  sessionId = sid;
+  const message = parseJsonRpc(text);
+  const protocolVersion = message?.result?.protocolVersion;
+  if (protocolVersion !== initializeParams.protocolVersion) {
+    return { ok: false, detail: `status=200 invalid protocolVersion` };
+  }
+  negotiatedProtocolVersion = protocolVersion;
+  return { ok: true, detail: `status=200 session=established` };
+});
 
 const sessionHeaders = () => ({
   ...authHeaders(),
   "mcp-session-id": sessionId,
+  "MCP-Protocol-Version": negotiatedProtocolVersion || initializeParams.protocolVersion,
 });
 
 async function closeSession() {
@@ -156,6 +169,13 @@ async function closeSession() {
   } catch {
     // Session termination is best effort and must not hide the smoke result.
   }
+}
+
+if (!initOk || sessionId === "") {
+  if (sessionId !== "") await closeSession();
+  console.log("initialize failed; skipping remaining checks");
+  console.log(`${pass} passed, ${fail} failed`);
+  process.exit(1);
 }
 
 try {
@@ -176,7 +196,7 @@ try {
       { jsonrpc: "2.0", id: 3, method: "tools/list" },
       { headers: sessionHeaders(), timeoutMs: SHORT_TIMEOUT_MS },
     );
-    const msg = parseSse(text);
+    const msg = parseJsonRpc(text);
     const tools = msg?.result?.tools ?? [];
     const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
     const ok = status === 200 && names.includes("compare_pools");
@@ -209,7 +229,7 @@ try {
     if (status !== 200) {
       return { ok: false, detail: `status=${status} (expected 200)` };
     }
-    const msg = parseSse(text);
+    const msg = parseJsonRpc(text);
     const rawText = msg?.result?.content?.[0]?.text;
     if (typeof rawText !== "string") {
       return { ok: false, detail: `status=200 no content[0].text` };
