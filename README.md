@@ -5,7 +5,7 @@
 ---
 
 DeepTrace is a read-only [MCP](https://modelcontextprotocol.io) server. You connect it to
-Cursor, Codex, Claude Code, or any other MCP client, and your assistant gains four research
+Claude, Codex, Cursor, or any other MCP client, and your assistant gains four research
 tools for Base (chain `8453`).
 
 The point is not "more data." The point is data an agent cannot fudge. Every answer says
@@ -66,34 +66,30 @@ in [Authentication](docs/auth.md).
 
 ### Two examples
 
-Every client wants the same URL and the same header; only the file format differs. Two are
-shown here — see [Connect an AI client](docs/connect.md) for Claude Code, OpenCode, and the
-`mcp-remote` bridge for clients that cannot send a header at all.
+Every client wants the same URL and the same bearer token; only the file format differs. Two
+are shown here — see [Connect an AI client](docs/connect.md) for the rest.
 
-Keep the token in an environment variable and reference it, so the config file itself stays
-safe to commit:
-
-```sh
-read -rsp "DeepTrace token: " DEEPTRACE_TOKEN
-export DEEPTRACE_TOKEN
-```
-
-**Cursor** — `.cursor/mcp.json` in the project, or `~/.cursor/mcp.json` for every project:
+**Claude** — `claude_desktop_config.json` for the desktop app, or `.mcp.json` in your
+repository for Claude Code. Paste your token in place of `<YOUR_TOKEN>`:
 
 ```json
 {
   "mcpServers": {
     "deeptrace": {
-      "url": "https://mcp.ikodo.dev",
-      "headers": { "Authorization": "Bearer ${env:DEEPTRACE_TOKEN}" }
+      "command": "npx",
+      "args": ["mcp-remote", "--header", "Authorization:${AUTH_HEADER}", "https://mcp.ikodo.dev"],
+      "env": {
+        "AUTH_HEADER": "Bearer <YOUR_TOKEN>"
+      }
     }
   }
 }
 ```
 
-You can also drop the `headers` block entirely. Cursor prefers OAuth when a server advertises
-it, so the URL alone is enough: it registers itself, opens a consent page, and stores its own
-credential.
+The missing space after `Authorization:` is deliberate. `mcp-remote` splits each `--header`
+argument on its first colon, and a value containing a space can be mangled by the spawning
+shell, so the scheme and the token travel together inside `AUTH_HEADER`. This file now holds
+a live credential — keep it out of git.
 
 **Codex** — `~/.codex/config.toml`, or `.codex/config.toml` in a trusted project. The CLI, the
 IDE extension, and the ChatGPT desktop experience all share this file:
@@ -104,13 +100,18 @@ url = "https://mcp.ikodo.dev"
 bearer_token_env_var = "DEEPTRACE_TOKEN"
 ```
 
-Note that Codex takes the *name* of the variable, not the token. Launch it from the shell
-where you exported it.
+Codex takes the *name* of an environment variable, not the token itself, so nothing secret
+lands in the file. Set it in the shell you launch Codex from:
+
+```sh
+read -rsp "DeepTrace token: " DEEPTRACE_TOKEN
+export DEEPTRACE_TOKEN
+```
 
 ### Verify it connected
 
-Run your client's MCP listing — `cursor` shows connected servers under Settings, and Codex
-has `codex mcp list`. Then ask something concrete, such as comparing Base WETH/USDC pools
+Run your client's MCP listing — `claude mcp list`, `codex mcp list` — or check the connectors
+panel in a desktop app. Then ask something concrete, such as comparing Base WETH/USDC pools
 over the last 24 hours by volume and reporting which sources answered.
 
 A `401` means the credential is missing, invalid, or retired. A `404` usually means a typo in
