@@ -111,7 +111,22 @@ describe("compare_pools MCP tool", () => {
     try {
       const listed = await client.listTools();
       expect(listed.tools.map((tool) => tool.name)).toEqual([COMPARE_POOLS_TOOL_NAME]);
-      expect(listed.tools[0]?.annotations?.readOnlyHint).toBe(true);
+      const tool = listed.tools[0];
+      expect(tool?.title).toBe("Compare Base WETH/USDC pools");
+      expect(tool?.description).toContain("Graph-reported TVL, volume, or fees");
+      expect(tool?.description).toContain("Nuthatch adds independent freshness facts only");
+      expect(tool?.annotations?.readOnlyHint).toBe(true);
+      expect(tool?.outputSchema).toMatchObject({
+        type: "object",
+      });
+      const inputProperties = tool?.inputSchema.properties as
+        Record<string, { description?: string }> | undefined;
+      expect(inputProperties?.chain_id?.description).toContain("must be 8453");
+      expect(inputProperties?.token0?.description).toContain("WETH address");
+      expect(inputProperties?.token1?.description).toContain("USDC address");
+      expect(inputProperties?.window?.description).toContain("Defaults to 24h");
+      expect(inputProperties?.ranked_by?.description).toContain("Graph-reported");
+      expect(inputProperties?.top_n?.description).toContain("Defaults to 3");
     } finally {
       await client.close();
       await runtime.close();
@@ -144,6 +159,7 @@ describe("compare_pools MCP tool", () => {
       expect(body.coverage.nuthatch_available).toBe(false);
       expect(body.coverage.successful_deployments).toBe(2);
       expect(body.data?.pools[0]?.source_ids).toEqual(["exchange-v3-base"]);
+      expect(result.structuredContent).toEqual(body);
       expect(onGraphFetch).toHaveBeenCalledTimes(1);
     } finally {
       await client.close();
