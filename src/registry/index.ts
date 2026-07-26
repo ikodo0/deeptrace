@@ -5,7 +5,7 @@ import { z } from "zod";
 import { ApplicationError } from "../errors/application-error.js";
 import { ErrorCode } from "../errors/codes.js";
 import { BASE_CHAIN_ID } from "../schemas/source-adapter.js";
-import type { GraphSourceRegistryRecord, SourceRegistryRecord } from "./types.js";
+import type { GraphSourceRegistryRecord, SourceCategory, SourceRegistryRecord } from "./types.js";
 
 /**
  * Repository configuration is an untrusted deploy input: it is validated at
@@ -31,15 +31,23 @@ export const GRAPH_GATEWAY_HOST_ALLOWLIST = ["gateway.thegraph.com"] as const;
 
 const RECORDS_LABEL = "records.json";
 const COMPARE_POOLS_LABEL = "compare-pools.json";
+const COMPARE_LENDING_LABEL = "compare-lending.json";
 
 const DEFAULT_RECORDS_URL = new URL("./records.json", import.meta.url);
 const DEFAULT_PROFILE_URL = new URL("./compare-pools.json", import.meta.url);
+const DEFAULT_LENDING_PROFILE_URL = new URL("./compare-lending.json", import.meta.url);
 
 /**
- * MVP-0 compares exactly two Graph deployments (owner-amended from three).
- * Enforcing the count here makes the M2 selection a load-time invariant.
+ * `compare_pools` compares exactly two fee tiers of the locked pair. Enforcing
+ * the count here makes the selection a load-time invariant.
  */
 export const COMPARE_POOLS_SOURCE_COUNT = 2;
+
+/**
+ * `compare_lending_markets` fans out to exactly three Base lending protocols.
+ * A deploy that drops one must fail loudly rather than compare fewer.
+ */
+export const COMPARE_LENDING_SOURCE_COUNT = 3;
 
 const nonEmptyStringSchema = z
   .string()
@@ -52,7 +60,7 @@ const lowercaseAddressSchema = z
 
 const registryRecordBaseShape = {
   source_id: nonEmptyStringSchema,
-  category: z.literal("dex"),
+  category: z.enum(["dex", "lending"]),
   protocol: nonEmptyStringSchema,
   chain_id: z.literal(BASE_CHAIN_ID),
   deployment_or_view_id: nonEmptyStringSchema,
@@ -120,6 +128,25 @@ const comparePoolsProfileSchema = z
   })
   .strict();
 
+const compareLendingBindingSchema = z
+  .object({
+    source_id: nonEmptyStringSchema,
+    query_id: nonEmptyStringSchema,
+    schema_contract_id: nonEmptyStringSchema,
+    priority: z.number().int().positive(),
+  })
+  .strict();
+
+const compareLendingProfileSchema = z
+  .object({
+    profile_id: nonEmptyStringSchema,
+    chain_id: z.literal(BASE_CHAIN_ID),
+    /** The single market asset every selected protocol is compared on. */
+    market_token: lowercaseAddressSchema,
+    sources: z.array(compareLendingBindingSchema).length(COMPARE_LENDING_SOURCE_COUNT),
+  })
+  .strict();
+
 /**
  * One MVP request profile binding a registry source to the pool, query, and
  * response contract it is queried with. Kept out of `SourceRegistryRecord` so
@@ -128,6 +155,10 @@ const comparePoolsProfileSchema = z
 export type ComparePoolBinding = z.infer<typeof comparePoolBindingSchema>;
 
 export type ComparePoolsProfile = z.infer<typeof comparePoolsProfileSchema>;
+
+export type CompareLendingBinding = z.infer<typeof compareLendingBindingSchema>;
+
+export type CompareLendingProfile = z.infer<typeof compareLendingProfileSchema>;
 
 /** A binding joined to its active Graph record. Adapters consume only this. */
 export interface ComparePoolGraphSource {
@@ -143,6 +174,17 @@ export interface ComparePoolGraphSource {
   readonly record: GraphSourceRegistryRecord;
 }
 
+/** The lending analogue of {@link ComparePoolGraphSource}. */
+export interface CompareLendingGraphSource {
+  readonly profile_id: string;
+  readonly source_id: string;
+  readonly priority: number;
+  readonly market_token: string;
+  readonly query_id: string;
+  readonly schema_contract_id: string;
+  readonly record: GraphSourceRegistryRecord;
+}
+
 /**
  * JSON locations to read, or already-parsed values supplied by a test.
  * Omitting a field loads the file that ships next to this module.
@@ -151,9 +193,8 @@ export interface RegistryLoadOptions {
   readonly records?: unknown;
   readonly profile?: unknown;
   /**
-   * Entities the selected query needs. M3.3 owns the query and therefore the
-   * real list; passing none skips the coverage check rather than guessing a
-   * schema tier that M2 has not fixed.
+   * Entities the selected query needs. The tool that owns the query owns the
+   * real list; passing none skips the coverage check rather than guessing.
    */
   readonly requiredEntities?: readonly string[];
 }
@@ -236,8 +277,18 @@ function parseProfile(source: unknown): ComparePoolsProfile {
   return deepFreeze(parsed.data);
 }
 
+function parseLendingProfile(source: unknown): CompareLendingProfile {
+  const parsed = compareLendingProfileSchema.safeParse(source);
+  if (!parsed.success) {
+    throw new RegistryConfigurationError(toIssues(COMPARE_LENDING_LABEL, parsed.error));
+  }
+
+  return deepFreeze(parsed.data);
+}
+
 let cachedRecords: readonly SourceRegistryRecord[] | undefined;
 let cachedProfile: ComparePoolsProfile | undefined;
+let cachedLendingProfile: CompareLendingProfile | undefined;
 
 function loadRecords(source: unknown): readonly SourceRegistryRecord[] {
   if (source === undefined) {
@@ -265,6 +316,21 @@ function loadProfile(source: unknown): ComparePoolsProfile {
   return parseProfile(source);
 }
 
+function loadLendingProfile(source: unknown): CompareLendingProfile {
+  if (source === undefined) {
+    cachedLendingProfile ??= parseLendingProfile(
+      readJson(DEFAULT_LENDING_PROFILE_URL, COMPARE_LENDING_LABEL),
+    );
+    return cachedLendingProfile;
+  }
+
+  if (source instanceof URL) {
+    return parseLendingProfile(readJson(source, COMPARE_LENDING_LABEL));
+  }
+
+  return parseLendingProfile(source);
+}
+
 /**
  * Drops the memoized default-location loads. Only the shipped files are
  * cached; values injected through {@link RegistryLoadOptions} are parsed on
@@ -273,6 +339,7 @@ function loadProfile(source: unknown): ComparePoolsProfile {
 export function resetRegistryCache(): void {
   cachedRecords = undefined;
   cachedProfile = undefined;
+  cachedLendingProfile = undefined;
 }
 
 /**
@@ -286,13 +353,19 @@ export function getSourceById(
   return loadRecords(options.records).find((record) => record.source_id === sourceId);
 }
 
-function bindingPath(index: number, field: string): string {
-  return `${COMPARE_POOLS_LABEL}.sources[${String(index)}].${field}`;
+type BindingPath = (index: number, field: string) => string;
+
+function bindingPathFor(label: string): BindingPath {
+  return (index, field) => `${label}.sources[${String(index)}].${field}`;
 }
 
-function collectDuplicateIssues(
-  bindings: readonly ComparePoolBinding[],
-  field: "source_id" | "pool_address" | "priority",
+const bindingPath = bindingPathFor(COMPARE_POOLS_LABEL);
+const lendingBindingPath = bindingPathFor(COMPARE_LENDING_LABEL);
+
+function collectDuplicateIssues<TBinding extends Record<string, unknown>>(
+  bindings: readonly TBinding[],
+  field: keyof TBinding & string,
+  path: BindingPath,
 ): string[] {
   const firstIndexByValue = new Map<string, number>();
   const issues: string[] = [];
@@ -304,9 +377,7 @@ function collectDuplicateIssues(
       firstIndexByValue.set(value, index);
       return;
     }
-    issues.push(
-      `${bindingPath(index, field)}: "${value}" duplicates sources[${String(firstIndex)}]`,
-    );
+    issues.push(`${path(index, field)}: "${value}" duplicates sources[${String(firstIndex)}]`);
   });
 
   return issues;
@@ -338,6 +409,80 @@ function isGraphRecord(record: SourceRegistryRecord): record is GraphSourceRegis
 }
 
 /**
+ * Resolves one binding to the active Graph record it names, appending a named
+ * issue instead of throwing so a bad deploy reports every problem at once.
+ */
+function resolveGraphRecord(
+  sourceId: string,
+  path: string,
+  input: {
+    readonly records: readonly SourceRegistryRecord[];
+    readonly category: SourceCategory;
+    readonly requiredEntities: readonly string[];
+    readonly issues: string[];
+  },
+): GraphSourceRegistryRecord | undefined {
+  const record = input.records.find((candidate) => candidate.source_id === sourceId);
+
+  if (record === undefined) {
+    input.issues.push(`${path}: "${sourceId}" is not present in ${RECORDS_LABEL}`);
+    return undefined;
+  }
+  if (!isGraphRecord(record)) {
+    input.issues.push(`${path}: "${sourceId}" is not a Graph source`);
+    return undefined;
+  }
+  if (record.category !== input.category) {
+    input.issues.push(
+      `${path}: "${sourceId}" is category "${record.category}", expected "${input.category}"`,
+    );
+    return undefined;
+  }
+  if (record.status !== "active") {
+    input.issues.push(`${path}: "${sourceId}" is ${record.status}`);
+    return undefined;
+  }
+
+  const missingEntities = input.requiredEntities.filter(
+    (entity) => !record.supported_entities.includes(entity),
+  );
+  if (missingEntities.length > 0) {
+    input.issues.push(`${path}: "${sourceId}" does not support ${missingEntities.join(", ")}`);
+    return undefined;
+  }
+
+  return record;
+}
+
+/**
+ * The one query text must serve every selected deployment, so query, response
+ * contract, and schema tier all have to agree across the joined set.
+ */
+function collectSharedContractIssues(
+  bindings: readonly { readonly query_id: string; readonly schema_contract_id: string }[],
+  joinedSourceTypes: readonly string[],
+  path: BindingPath,
+): string[] {
+  return [
+    ...collectSharedValueIssues(
+      bindings.map((binding) => binding.query_id),
+      (index) => path(index, "query_id"),
+      "query_id",
+    ),
+    ...collectSharedValueIssues(
+      bindings.map((binding) => binding.schema_contract_id),
+      (index) => path(index, "schema_contract_id"),
+      "schema_contract_id",
+    ),
+    ...collectSharedValueIssues(
+      joinedSourceTypes,
+      (index) => path(index, "source_id"),
+      "source_type",
+    ),
+  ];
+}
+
+/**
  * Joins the active `compare_pools` profile to its registry records and returns
  * the bindings in ascending priority order. Throws on any invalid local
  * configuration: a bad deploy must fail loudly rather than query fewer sources.
@@ -353,45 +498,21 @@ export function getActiveComparePoolGraphSources(
     ...(profile.token0 === profile.token1
       ? [`${COMPARE_POOLS_LABEL}.token1: must differ from token0 "${profile.token0}"`]
       : []),
-    ...collectDuplicateIssues(profile.sources, "source_id"),
-    ...collectDuplicateIssues(profile.sources, "pool_address"),
-    ...collectDuplicateIssues(profile.sources, "priority"),
-    ...collectSharedValueIssues(
-      profile.sources.map((binding) => binding.query_id),
-      (index) => bindingPath(index, "query_id"),
-      "query_id",
-    ),
-    ...collectSharedValueIssues(
-      profile.sources.map((binding) => binding.schema_contract_id),
-      (index) => bindingPath(index, "schema_contract_id"),
-      "schema_contract_id",
-    ),
+    ...collectDuplicateIssues(profile.sources, "source_id", bindingPath),
+    ...collectDuplicateIssues(profile.sources, "pool_address", bindingPath),
+    ...collectDuplicateIssues(profile.sources, "priority", bindingPath),
   ];
 
   const joined: ComparePoolGraphSource[] = [];
 
   profile.sources.forEach((binding, index) => {
-    const path = bindingPath(index, "source_id");
-    const record = records.find((candidate) => candidate.source_id === binding.source_id);
-
+    const record = resolveGraphRecord(binding.source_id, bindingPath(index, "source_id"), {
+      records,
+      category: "dex",
+      requiredEntities,
+      issues,
+    });
     if (record === undefined) {
-      issues.push(`${path}: "${binding.source_id}" is not present in ${RECORDS_LABEL}`);
-      return;
-    }
-    if (!isGraphRecord(record)) {
-      issues.push(`${path}: "${binding.source_id}" is not a Graph source`);
-      return;
-    }
-    if (record.status !== "active") {
-      issues.push(`${path}: "${binding.source_id}" is ${record.status}`);
-      return;
-    }
-
-    const missingEntities = requiredEntities.filter(
-      (entity) => !record.supported_entities.includes(entity),
-    );
-    if (missingEntities.length > 0) {
-      issues.push(`${path}: "${binding.source_id}" does not support ${missingEntities.join(", ")}`);
       return;
     }
 
@@ -410,10 +531,66 @@ export function getActiveComparePoolGraphSources(
   });
 
   issues.push(
-    ...collectSharedValueIssues(
+    ...collectSharedContractIssues(
+      profile.sources,
       joined.map((source) => source.record.source_type),
-      (index) => bindingPath(index, "source_id"),
-      "source_type",
+      bindingPath,
+    ),
+  );
+
+  if (issues.length > 0) {
+    throw new RegistryConfigurationError(issues);
+  }
+
+  return deepFreeze(joined.sort((left, right) => left.priority - right.priority));
+}
+
+/**
+ * Lending analogue of {@link getActiveComparePoolGraphSources}: joins the
+ * `compare_lending_markets` profile to its registry records and returns the
+ * bindings in ascending priority order.
+ */
+export function getActiveCompareLendingGraphSources(
+  options: RegistryLoadOptions = {},
+): readonly CompareLendingGraphSource[] {
+  const records = loadRecords(options.records);
+  const profile = loadLendingProfile(options.profile);
+  const requiredEntities = options.requiredEntities ?? [];
+
+  const issues: string[] = [
+    ...collectDuplicateIssues(profile.sources, "source_id", lendingBindingPath),
+    ...collectDuplicateIssues(profile.sources, "priority", lendingBindingPath),
+  ];
+
+  const joined: CompareLendingGraphSource[] = [];
+
+  profile.sources.forEach((binding, index) => {
+    const record = resolveGraphRecord(binding.source_id, lendingBindingPath(index, "source_id"), {
+      records,
+      category: "lending",
+      requiredEntities,
+      issues,
+    });
+    if (record === undefined) {
+      return;
+    }
+
+    joined.push({
+      profile_id: profile.profile_id,
+      source_id: binding.source_id,
+      priority: binding.priority,
+      market_token: profile.market_token,
+      query_id: binding.query_id,
+      schema_contract_id: binding.schema_contract_id,
+      record,
+    });
+  });
+
+  issues.push(
+    ...collectSharedContractIssues(
+      profile.sources,
+      joined.map((source) => source.record.source_type),
+      lendingBindingPath,
     ),
   );
 

@@ -1,6 +1,6 @@
 import type { SourceType } from "../schemas/source-adapter.js";
 
-export type SourceCategory = "dex";
+export type SourceCategory = "dex" | "lending";
 
 export type RegistrySourceStatus = "active" | "inactive";
 

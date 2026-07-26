@@ -1,0 +1,25 @@
+{
+  "profile_id": "compare-lending-base-usdc-v1",
+  "chain_id": 8453,
+  "market_token": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  "sources": [
+    {
+      "source_id": "messari-aave-v3-base",
+      "query_id": "tier-a-lending-market-metrics-v1",
+      "schema_contract_id": "tier-a-lending-market-metrics-v1",
+      "priority": 1
+    },
+    {
+      "source_id": "messari-seamless-base",
+      "query_id": "tier-a-lending-market-metrics-v1",
+      "schema_contract_id": "tier-a-lending-market-metrics-v1",
+      "priority": 2
+    },
+    {
+      "source_id": "messari-moonwell-base",
+      "query_id": "tier-a-lending-market-metrics-v1",
+      "schema_contract_id": "tier-a-lending-market-metrics-v1",
+      "priority": 3
+    }
+  ]
+}
