@@ -1,3 +1,5 @@
+import { request as httpRequest } from "node:http";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { isAuthorized } from "../../src/http/auth.js";
@@ -281,6 +283,85 @@ function createFakeSessionTimer(): {
     },
   };
 }
+
+async function getBrowserNavigation(base: string): Promise<{
+  readonly status: number | undefined;
+  readonly challenge: string | undefined;
+  readonly body: unknown;
+}> {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(
+      base,
+      {
+        headers: {
+          accept: "text/html,application/xhtml+xml",
+          "sec-fetch-mode": "navigate",
+        },
+      },
+      (response) => {
+        let body = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk: string) => {
+          body += chunk;
+        });
+        response.on("end", () => {
+          resolve({
+            status: response.statusCode,
+            challenge: response.headers["www-authenticate"],
+            body: JSON.parse(body) as unknown,
+          });
+        });
+      },
+    );
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+describe("HTTP authentication", () => {
+  it("returns a challenge-free 404 for top-level browser navigation", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await getBrowserNavigation(base);
+
+      expect(response.status).toBe(404);
+      expect(response.challenge).toBeUndefined();
+      expect(response.body).toEqual({
+        error: {
+          code: "not_found",
+          message: "This endpoint is available to MCP clients",
+        },
+      });
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("retains the Bearer challenge for unauthorized MCP requests", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await fetch(base, {
+        method: "POST",
+        headers: {
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(INITIALIZE_BODY),
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.headers.get("www-authenticate")).toBe('Bearer realm="deeptrace"');
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "unauthorized",
+          message: "Missing or invalid bearer token",
+        },
+      });
+    } finally {
+      await runtime.close();
+    }
+  });
+});
 
 describe("HTTP session lifecycle", () => {
   it("disposes the McpServer/transport when initialize is rejected (406)", async () => {
