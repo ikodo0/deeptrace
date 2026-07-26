@@ -11,7 +11,12 @@ import { createMcpServer } from "../mcp/server.js";
 import { createLiveComparePoolsSources, createLiveLargeSwapSource } from "../tools/index.js";
 import { isAuthorized } from "./auth.js";
 import type { HttpConfig } from "./config.js";
-import { acceptsConnectionPage, respondConnectionPage } from "./connection-page.js";
+import {
+  acceptsConnectionPage,
+  isFontAssetRequest,
+  respondConnectionPage,
+  respondFontAsset,
+} from "./connection-page.js";
 
 /** Root is canonical; /mcp remains an alias for existing client configs. */
 const MCP_PATHS = new Set(["/", "/mcp"]);
@@ -248,6 +253,13 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
         const url = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
         if (!hasAllowedOrigin(request)) {
           respondJson(response, 403, "invalid_origin", "Origin is not allowed");
+          return;
+        }
+
+        // The connection page's typefaces. Served before the MCP path check
+        // because they are the only non-MCP paths this origin answers.
+        if (isFontAssetRequest(request, url.pathname)) {
+          respondFontAsset(request, url.pathname, response);
           return;
         }
 
