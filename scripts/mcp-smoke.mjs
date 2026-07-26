@@ -178,6 +178,45 @@ if (!initOk || sessionId === "") {
   process.exit(1);
 }
 
+const EXPECTED_TOOLS = ["compare_pools", "compare_lending_markets", "find_large_swaps"];
+
+// Checks 6+: tools/call each public tool with its locked allowlisted args.
+// Pool/lending calls pass on complete or partial. Large-swap calls require a
+// complete 1/1 coverage settlement (develop's stricter LSS smoke gate).
+async function callTool({ id, name, args, requestedKey, successKey, requireComplete = false }) {
+  const { status, text } = await postJson(
+    MCP_URL,
+    { jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } },
+    { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
+  );
+  if (status !== 200) {
+    return { ok: false, detail: `status=${status} (expected 200)` };
+  }
+  const msg = parseJsonRpc(text);
+  const rawText = msg?.result?.content?.[0]?.text;
+  if (typeof rawText !== "string") {
+    return { ok: false, detail: `status=200 no content[0].text` };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch (err) {
+    return { ok: false, detail: `result not JSON: ${err.message}` };
+  }
+  const st = parsed?.status;
+  const coverage = parsed?.coverage ?? {};
+  const success = coverage[successKey];
+  const requested = coverage[requestedKey];
+  const covStr =
+    typeof success === "number" && typeof requested === "number"
+      ? `${success}/${requested}`
+      : "?/?";
+  const ok = requireComplete
+    ? st === "complete" && covStr === "1/1"
+    : st === "complete" || st === "partial";
+  return { ok, detail: `status=${st} ${covStr}` };
+}
+
 try {
   // Check 4: notifications/initialized -> expect 202
   await runCheck("notifications/initialized", async () => {
@@ -189,7 +228,7 @@ try {
     return { ok: status === 202, detail: `status=${status} (expected 202)` };
   });
 
-  // Check 5: tools/list -> SSE payload contains both released tools
+  // Check 5: tools/list -> SSE payload advertises all three public tools
   await runCheck("tools/list", async () => {
     const { status, text } = await postJson(
       MCP_URL,
@@ -199,105 +238,60 @@ try {
     const msg = parseJsonRpc(text);
     const tools = msg?.result?.tools ?? [];
     const names = tools.map((t) => t?.name).filter((n) => typeof n === "string");
-    const ok =
-      status === 200 && names.includes("compare_pools") && names.includes("find_large_swaps");
-    const detail =
-      status !== 200 ? `status=${status} (expected 200)` : `tools=[${names.join(",")}]`;
+    const missingTools = EXPECTED_TOOLS.filter((n) => !names.includes(n));
+    const ok = status === 200 && missingTools.length === 0;
+    let detail = `tools=[${names.join(",")}]`;
+    if (status !== 200) detail = `status=${status} (expected 200)`;
+    else if (missingTools.length > 0) detail += ` missing=[${missingTools.join(",")}]`;
     return { ok, detail };
   });
 
-  // Check 6: tools/call compare_pools with locked args
-  await runCheck("tools/call compare_pools", async () => {
-    const { status, text } = await postJson(
-      MCP_URL,
-      {
-        jsonrpc: "2.0",
-        id: 4,
-        method: "tools/call",
-        params: {
-          name: "compare_pools",
-          arguments: {
-            chain_id: 8453,
-            token0: "0x4200000000000000000000000000000000000006",
-            token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
-            window: "24h",
-            ranked_by: "tvl_usd",
-          },
-        },
+  await runCheck("tools/call compare_pools", () =>
+    callTool({
+      id: 4,
+      name: "compare_pools",
+      args: {
+        chain_id: 8453,
+        token0: "0x4200000000000000000000000000000000000006",
+        token1: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        window: "24h",
+        ranked_by: "tvl_usd",
       },
-      { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
-    );
-    if (status !== 200) {
-      return { ok: false, detail: `status=${status} (expected 200)` };
-    }
-    const msg = parseJsonRpc(text);
-    const rawText = msg?.result?.content?.[0]?.text;
-    if (typeof rawText !== "string") {
-      return { ok: false, detail: `status=200 no content[0].text` };
-    }
-    let parsed;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch (err) {
-      return { ok: false, detail: `result not JSON: ${err.message}` };
-    }
-    const st = parsed?.status;
-    const coverage = parsed?.coverage ?? {};
-    const success = coverage.successful_deployments;
-    const requested = coverage.requested_deployments;
-    const covStr =
-      typeof success === "number" && typeof requested === "number"
-        ? `${success}/${requested}`
-        : "?/?";
-    const ok = st === "complete" || st === "partial";
-    return { ok, detail: `status=${st} ${covStr}` };
-  });
+      requestedKey: "requested_deployments",
+      successKey: "successful_deployments",
+    }),
+  );
 
-  // Check 7: tools/call find_large_swaps over the locked pool
-  await runCheck("tools/call find_large_swaps", async () => {
-    const { status, text } = await postJson(
-      MCP_URL,
-      {
-        jsonrpc: "2.0",
-        id: 5,
-        method: "tools/call",
-        params: {
-          name: "find_large_swaps",
-          arguments: {
-            chain_id: 8453,
-            pool_address: "0x6c561b446416e1a00e8e93e221854d6ea4171372",
-            threshold_token: "0x4200000000000000000000000000000000000006",
-            min_amount: "1",
-            limit: 1,
-          },
-        },
+  await runCheck("tools/call compare_lending_markets", () =>
+    callTool({
+      id: 5,
+      name: "compare_lending_markets",
+      args: {
+        chain_id: 8453,
+        market_token: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        ranked_by: "tvl_usd",
       },
-      { headers: sessionHeaders(), timeoutMs: CALL_TIMEOUT_MS },
-    );
-    if (status !== 200) {
-      return { ok: false, detail: `status=${status} (expected 200)` };
-    }
-    const msg = parseJsonRpc(text);
-    const rawText = msg?.result?.content?.[0]?.text;
-    if (typeof rawText !== "string") {
-      return { ok: false, detail: `status=200 no content[0].text` };
-    }
-    let parsed;
-    try {
-      parsed = JSON.parse(rawText);
-    } catch (err) {
-      return { ok: false, detail: `result not JSON: ${err.message}` };
-    }
-    const st = parsed?.status;
-    const coverage = parsed?.coverage ?? {};
-    const success = coverage.successful_sources;
-    const requested = coverage.requested_sources;
-    const covStr =
-      typeof success === "number" && typeof requested === "number"
-        ? `${success}/${requested}`
-        : "?/?";
-    return { ok: st === "complete" && covStr === "1/1", detail: `status=${st} ${covStr}` };
-  });
+      requestedKey: "requested_sources",
+      successKey: "successful_sources",
+    }),
+  );
+
+  await runCheck("tools/call find_large_swaps", () =>
+    callTool({
+      id: 6,
+      name: "find_large_swaps",
+      args: {
+        chain_id: 8453,
+        pool_address: "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        threshold_token: "0x4200000000000000000000000000000000000006",
+        min_amount: "1",
+        limit: 1,
+      },
+      requestedKey: "requested_sources",
+      successKey: "successful_sources",
+      requireComplete: true,
+    }),
+  );
 } finally {
   await closeSession();
 }

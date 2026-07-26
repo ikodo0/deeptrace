@@ -269,10 +269,11 @@ export const comparePoolsResponseSchema = z
           : [response.data.nuthatch_freshness_fact.source_id]),
       );
 
-      if (response.coverage.successful_deployments !== response.data.pools.length) {
+      // Top-N may return fewer records than answered, never more.
+      if (response.coverage.successful_deployments < response.data.pools.length) {
         context.addIssue({
           code: "custom",
-          message: "Successful deployment count must equal the number of pool records",
+          message: "Pool records cannot outnumber the successful deployments",
           path: ["coverage", "successful_deployments"],
         });
       }

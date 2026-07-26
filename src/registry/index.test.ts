@@ -538,18 +538,29 @@ describe("compare-pools profile validation", () => {
 });
 
 describe("shipped registry and profile", () => {
-  // Exercises the default-path load (no injection) against the committed M2
+  // Exercises the default-path load (no injection) against the committed
   // artifacts so a deploy-time regression in records.json or compare-pools.json
   // is caught here rather than in the adapter.
-  it("loads the two locked M2 Graph bindings in priority order", () => {
+  it("loads the two locked Graph bindings in priority order", () => {
     const sources = getActiveComparePoolGraphSources();
 
     expect(sources).toHaveLength(2);
     expect(sources.map((source) => source.source_id)).toEqual([
-      "uniswap-v3-base-native",
-      "exchange-v3-base",
+      "messari-uniswap-v3-base-fee030",
+      "messari-uniswap-v3-base-fee005",
     ]);
     expect(sources.map((source) => source.priority)).toEqual([1, 2]);
+  });
+
+  it("compares two fee tiers of one standardized deployment", () => {
+    const sources = getActiveComparePoolGraphSources();
+
+    expect(new Set(sources.map((source) => source.record.source_type))).toEqual(
+      new Set(["standardized_subgraph"]),
+    );
+    expect(new Set(sources.map((source) => source.record.locator.subgraph_id)).size).toBe(1);
+    expect(new Set(sources.map((source) => source.pool_address)).size).toBe(2);
+    expect(sources.every((source) => source.record.schema_version === "4.0.1")).toBe(true);
   });
 
   it("pins the locked WETH/USDC pair and Base chain", () => {
@@ -577,7 +588,7 @@ describe("shipped registry and profile", () => {
 
     expect(queryIds.size).toBe(1);
     expect(schemaContractIds.size).toBe(1);
-    expect([...queryIds][0]).toBe("m3-tier-b-metrics-v2");
-    expect([...schemaContractIds][0]).toBe("m2-tier-b-metrics-v1");
+    expect([...queryIds][0]).toBe("tier-a-dex-pool-metrics-v1");
+    expect([...schemaContractIds][0]).toBe("tier-a-dex-pool-metrics-v1");
   });
 });

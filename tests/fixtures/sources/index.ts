@@ -19,13 +19,14 @@ const usdc = {
   decimals: 6,
 } as const;
 
-// Point-in-time values from tests/integration/__evidence__/m2/*/07-common-metrics.json,
-// with provenance updated to the active production query revision.
-// 7d aggregates stay null here so Person 2 null-handling stays covered; M3.6 owns real 7d sums.
+// Point-in-time values from tests/integration/__evidence__/m3/*/01-pool-metrics.json.
+// 24h values are the newest completed UTC day in that capture; 7d aggregates stay
+// null here so null-handling paths stay covered without pinning a seven-day sum.
 
+/** Messari Uniswap V3 Base, 0.3% WETH/USDC tier. */
 export const graphPoolA = {
-  source_id: "uniswap-v3-base-native",
-  source_type: "native_subgraph",
+  source_id: "messari-uniswap-v3-base-fee030",
+  source_type: "standardized_subgraph",
   protocol: "uniswap-v3",
   chain_id: 8453,
   status: "ok",
@@ -34,118 +35,89 @@ export const graphPoolA = {
     token0: weth,
     token1: usdc,
     fee_tier_bps: 30,
-    tvl_usd: "150700095.7707237035076119974091172",
-    volume_usd_24h: "1837918.971826772337839586279587621",
+    tvl_usd: "114861166.2464289945430831254042441",
+    volume_usd_24h: "7784090.37607948122807978670587",
     volume_usd_7d: null,
-    fees_usd_24h: "5513.756915480317013518758838762854",
+    fees_usd_24h: "23352.27112823844368423936011761",
     fees_usd_7d: null,
   },
   freshness: {
-    indexed_block: 49095773,
-    indexed_block_timestamp: 1784980893,
-    indexed_block_hash: "0xfaf4cc0493056e5ccac3f68b9e148cf8e80ee0d67adf333ed27b4a62d17c185c",
-    queried_at: 1784980898,
+    indexed_block: 49121447,
+    indexed_block_timestamp: 1785032241,
+    indexed_block_hash: "0x4c8d9676350cd7754f7eb2a1f2eb8cab1660889c2a141be4a4f6905cc23dd54e",
+    queried_at: 1785032246,
     has_indexing_errors: false,
   },
   provenance: {
-    deployment_or_view_id: "QmVeyHjXivX8mY7bzWdbHDyA5z9ojgJdTu6uwFJsJvUzYR",
-    schema_version: null,
-    methodology_version: null,
-    query_id: "m3-tier-b-metrics-v2",
+    deployment_or_view_id: "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
+    schema_version: "4.0.1",
+    methodology_version: "1.0.0",
+    query_id: "tier-a-dex-pool-metrics-v1",
   },
-  warnings: ["Fixture retains null 7d aggregates; production 7d sums land in M3.6."],
+  warnings: ["Fixture retains null 7d aggregates; live 7d sums come from the adapter."],
   latency_ms: 120,
 } satisfies PoolSourceResult;
 
+/** Messari Uniswap V3 Base, 0.05% WETH/USDC tier. */
 export const graphPoolB = {
-  source_id: "exchange-v3-base",
-  source_type: "native_subgraph",
-  protocol: "pancakeswap-v3",
+  source_id: "messari-uniswap-v3-base-fee005",
+  source_type: "standardized_subgraph",
+  protocol: "uniswap-v3",
   chain_id: 8453,
   status: "ok",
   data: {
-    pool_address: "0x72ab388e2e2f6facef59e3c3fa2c4e29011c2d38",
+    pool_address: "0xd0b53d9277642d899df5c87a3966a349a798f224",
     token0: weth,
     token1: usdc,
-    fee_tier_bps: 1,
-    tvl_usd: "6565424.026253424582404270532672039",
-    volume_usd_24h: "6089724.592920848435197967898475142",
+    fee_tier_bps: 5,
+    tvl_usd: "10637748.34455860477744937575922415",
+    volume_usd_24h: "2957180.60438499663534225066392",
     volume_usd_7d: null,
-    fees_usd_24h: "608.9724592920848435197967898475142",
+    fees_usd_24h: "1478.59030219249831767112534419",
     fees_usd_7d: null,
   },
   freshness: {
-    indexed_block: 49095784,
-    indexed_block_timestamp: 1784980915,
-    indexed_block_hash: "0x3d792f0e60742149c644825adb18c76fef43f01e25bc12dfef751de1e9d1bb6d",
-    queried_at: 1784980920,
+    indexed_block: 49121448,
+    indexed_block_timestamp: 1785032243,
+    indexed_block_hash: "0xe60c2ae734e634f8260a56b337c9a8c233b36c9a361fb53fcf727e680a2d1855",
+    queried_at: 1785032248,
     has_indexing_errors: false,
   },
   provenance: {
-    deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
-    schema_version: null,
-    methodology_version: null,
-    query_id: "m3-tier-b-metrics-v2",
+    deployment_or_view_id: "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh",
+    schema_version: "4.0.1",
+    methodology_version: "1.0.0",
+    query_id: "tier-a-dex-pool-metrics-v1",
   },
-  warnings: ["Fixture retains null 7d aggregates; production 7d sums land in M3.6."],
+  warnings: ["Fixture retains null 7d aggregates; live 7d sums come from the adapter."],
   latency_ms: 301,
 } satisfies PoolSourceResult;
 
-// Synthetic null-metric variant for Person 2 null paths. Not a third live Graph source.
+// Synthetic null-metric variant over the 0.05% tier's real identity.
 export const graphPoolC = {
-  source_id: "exchange-v3-base",
-  source_type: "native_subgraph",
-  protocol: "pancakeswap-v3",
-  chain_id: 8453,
-  status: "ok",
+  ...graphPoolB,
   data: {
-    pool_address: "0x72ab388e2e2f6facef59e3c3fa2c4e29011c2d38",
-    token0: weth,
-    token1: usdc,
-    fee_tier_bps: 1,
-    tvl_usd: "6565424.026253424582404270532672039",
-    volume_usd_24h: "6089724.592920848435197967898475142",
-    volume_usd_7d: null,
+    ...graphPoolB.data,
     fees_usd_24h: null,
-    fees_usd_7d: null,
   },
-  freshness: {
-    indexed_block: 49095784,
-    indexed_block_timestamp: 1784980915,
-    indexed_block_hash: "0x3d792f0e60742149c644825adb18c76fef43f01e25bc12dfef751de1e9d1bb6d",
-    queried_at: 1784980920,
-    has_indexing_errors: false,
-  },
-  provenance: {
-    deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
-    schema_version: null,
-    methodology_version: null,
-    query_id: "m3-tier-b-metrics-v2",
-  },
-  warnings: ["Synthetic fixture: fees windows forced null for Person 2 null-handling coverage."],
-  latency_ms: 301,
+  warnings: ["Synthetic fixture: fees windows forced null for null-handling coverage."],
 } satisfies PoolSourceResult;
 
-// Synthetic timeout over real exchange-v3-base provenance (status flipped).
+// Synthetic timeout over the 0.05% tier's real provenance (status flipped).
 export const graphPoolCTimeout = {
-  source_id: "exchange-v3-base",
-  source_type: "native_subgraph",
-  protocol: "pancakeswap-v3",
-  chain_id: 8453,
+  source_id: graphPoolB.source_id,
+  source_type: graphPoolB.source_type,
+  protocol: graphPoolB.protocol,
+  chain_id: graphPoolB.chain_id,
   status: "timeout",
   data: null,
   freshness: null,
-  provenance: {
-    deployment_or_view_id: "QmQ1fMMrEjnmeDXn7BZMhWtFZYUQQuiDJrJP3c9oghRC9g",
-    schema_version: null,
-    methodology_version: null,
-    query_id: "m3-tier-b-metrics-v2",
-  },
-  warnings: ["Synthetic timeout over real exchange-v3-base provenance."],
+  provenance: graphPoolB.provenance,
+  warnings: [`Synthetic timeout over real ${graphPoolB.source_id} provenance.`],
   latency_ms: 15000,
 } satisfies PoolSourceResult;
 
-// Shape-only until M5 delivers live Nuthatch evidence. Pool matches Uniswap selection.
+// Shape-only until live Nuthatch evidence lands. Pool matches the 0.3% selection.
 export const nuthatchFreshness = {
   source_id: "nuthatch-pool-swaps",
   source_type: "nuthatch_view",
@@ -155,17 +127,17 @@ export const nuthatchFreshness = {
   data: {
     pool_address: "0x6c561b446416e1a00e8e93e221854d6ea4171372",
     recent_swap_count_24h: 321,
-    last_swap_block: 49095770,
-    last_swap_block_timestamp: 1784980887,
+    last_swap_block: 49121440,
+    last_swap_block_timestamp: 1785032227,
     last_swap_block_hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     last_swap_tx_hash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     last_swap_log_index: 7,
   },
   freshness: {
-    indexed_block: 49095770,
-    indexed_block_timestamp: 1784980887,
+    indexed_block: 49121440,
+    indexed_block_timestamp: 1785032227,
     indexed_block_hash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    queried_at: 1784980925,
+    queried_at: 1785032250,
   },
   provenance: {
     deployment_or_view_id: "fixture-nuthatch-registry-hash",
@@ -173,11 +145,11 @@ export const nuthatchFreshness = {
     methodology_version: null,
     query_id: "nuthatch-pool-swap-freshness-v1",
   },
-  warnings: ["Shape-only Nuthatch fixture until M5 live evidence."],
+  warnings: ["Shape-only Nuthatch fixture until live evidence."],
   latency_ms: 42,
 } satisfies NuthatchSourceResult;
 
-// MVP-0 amended to two Graph sources + Nuthatch.
+// Two Messari Graph fee tiers + Nuthatch.
 export const completeSourceScenario = [
   graphPoolA,
   graphPoolB,

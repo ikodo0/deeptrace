@@ -82,12 +82,12 @@ describe("rankCanonicalPools", () => {
     );
 
     expect(forward.map((pool) => pool.source_ids[0])).toEqual([
-      "exchange-v3-base",
-      "uniswap-v3-base-native",
+      graphPoolA.source_id,
+      graphPoolB.source_id,
     ]);
     expect(reversed).toEqual(forward);
     expect(forward.map((pool) => pool.rank)).toEqual([1, 2]);
-    expect(forward[0]?.volume_usd).toBe(graphPoolB.data.volume_usd_24h);
+    expect(forward[0]?.volume_usd).toBe(graphPoolA.data.volume_usd_24h);
   });
 
   it("applies protocol, pool address, then source_id tie-breaks", () => {

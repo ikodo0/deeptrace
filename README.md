@@ -1,9 +1,9 @@
 # DeepTrace
 
-DeepTrace is a read-only research MCP that compares Base liquidity pools with
-Graph subgraph metrics and independent Nuthatch swap freshness, and returns
-stable pages of token-thresholded swaps from the locked Base Uniswap V3
-WETH/USDC pool.
+DeepTrace is a read-only research MCP that compares Base liquidity pools and
+USDC lending markets with Graph subgraph metrics and independent Nuthatch swap
+freshness, and returns stable pages of token-thresholded swaps from the locked
+Base Uniswap V3 WETH/USDC pool.
 
 ## Connect
 
@@ -13,10 +13,12 @@ Use the public Streamable HTTP endpoint:
 https://mcp.ikodo.dev
 ```
 
-Configure the access token as an `Authorization: Bearer` header in your MCP
-client. A normal user does not need Tailscale, a Graph API key, Nuthatch access,
-or a local checkout. See [Connect an AI client](docs/connect.md) for the short
-setup and compatibility notes.
+Browsers that request HTML receive a short public connection page at that same
+root URL. Configure the access token as an `Authorization: Bearer` header in
+your MCP client. A normal user does not need Tailscale, a Graph API key,
+Nuthatch access, or a local checkout. See
+[Connect an AI client](docs/connect.md) for the short setup and compatibility
+notes.
 
 The optional installable
 [DeepTrace Pool Research skill](skills/deeptrace-pool-research/SKILL.md)
@@ -27,8 +29,10 @@ installation.
 
 Released tools:
 
-- `compare_pools` — rank the locked Base WETH/USDC pools by Graph-reported TVL,
-  volume, or fees, with independent Nuthatch freshness.
+- `compare_pools` — rank the locked Base WETH/USDC Uniswap V3 fee tiers by
+  Graph-reported TVL, volume, or fees, with independent Nuthatch freshness.
+- `compare_lending_markets` — compare the native-USDC market across Aave v3,
+  Seamless, and Moonwell through one shared Messari lending query template.
 - `find_large_swaps` — search the locked Uniswap V3 pool using an exact WETH or
   USDC human-unit threshold and opaque fixed-snapshot pagination. V1 performs
   no USD conversion.
@@ -85,5 +89,7 @@ Use an absolute path to the built entry point:
 }
 ```
 
-Deployment notes live in [docs/deployment.md](docs/deployment.md), and the
-operator test procedure lives in [docs/mcp-testing.md](docs/mcp-testing.md).
+For the public HTTP endpoint, see [docs/connect.md](docs/connect.md). Never put
+the bearer token in the URL. Deployment notes live in
+[docs/deployment.md](docs/deployment.md), and the operator test procedure lives
+in [docs/mcp-testing.md](docs/mcp-testing.md).

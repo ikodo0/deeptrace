@@ -1,0 +1,102 @@
+{
+  "captured_at": "2026-07-26T02:17:24.708Z",
+  "gateway_host": "gateway.thegraph.com",
+  "subgraph_id": "FUbEPQw1oMghy39fwWBFY5fE6MXPXZQtjncQy2cXdrNS",
+  "query_id": "tier-a-dex-pool-metrics-v1",
+  "request": {
+    "query": "query TierADexPoolMetrics($pool: ID!) {\n  _meta {\n    block { number timestamp hash }\n    hasIndexingErrors\n    deployment\n  }\n  liquidityPool(id: $pool) {\n    id totalValueLockedUSD\n    inputTokens { id symbol decimals }\n    fees { feePercentage feeType }\n  }\n  liquidityPoolDailySnapshots(\n    first: 8\n    orderBy: day\n    orderDirection: desc\n    where: { pool: $pool }\n  ) { day dailyVolumeUSD dailyTotalRevenueUSD }\n}",
+    "variables": {
+      "pool": "0x6c561b446416e1a00e8e93e221854d6ea4171372"
+    }
+  },
+  "response": {
+    "data": {
+      "liquidityPool": {
+        "id": "0x6c561b446416e1a00e8e93e221854d6ea4171372",
+        "totalValueLockedUSD": "114861166.2464289945430831254042441",
+        "inputTokens": [
+          {
+            "id": "0x4200000000000000000000000000000000000006",
+            "symbol": "WETH",
+            "decimals": 18
+          },
+          {
+            "id": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+            "symbol": "USDC",
+            "decimals": 6
+          }
+        ],
+        "fees": [
+          {
+            "feePercentage": "0",
+            "feeType": "FIXED_PROTOCOL_FEE"
+          },
+          {
+            "feePercentage": "0.3",
+            "feeType": "FIXED_LP_FEE"
+          },
+          {
+            "feePercentage": "0.3",
+            "feeType": "FIXED_TRADING_FEE"
+          }
+        ]
+      },
+      "liquidityPoolDailySnapshots": [
+        {
+          "day": 20659,
+          "dailyVolumeUSD": "7784090.37607948122807978670587",
+          "dailyTotalRevenueUSD": "23352.27112823844368423936011761"
+        },
+        {
+          "day": 20658,
+          "dailyVolumeUSD": "51476600.4258305355592018621672",
+          "dailyTotalRevenueUSD": "154429.8012774916066776055865016"
+        },
+        {
+          "day": 20657,
+          "dailyVolumeUSD": "40641116.31814111933780456159274",
+          "dailyTotalRevenueUSD": "121923.34895442335801341368477822"
+        },
+        {
+          "day": 20656,
+          "dailyVolumeUSD": "64487332.00676428380098861343859",
+          "dailyTotalRevenueUSD": "193461.99602029285140296584031577"
+        },
+        {
+          "day": 20655,
+          "dailyVolumeUSD": "34752939.09343790516172944306061",
+          "dailyTotalRevenueUSD": "104258.81728031371548518832918183"
+        },
+        {
+          "day": 20654,
+          "dailyVolumeUSD": "95156418.08871210577932181432653",
+          "dailyTotalRevenueUSD": "285469.25426613631733796544297959"
+        },
+        {
+          "day": 20653,
+          "dailyVolumeUSD": "24702930.89526573559234019068566",
+          "dailyTotalRevenueUSD": "74108.79268579720677702057205698"
+        },
+        {
+          "day": 20652,
+          "dailyVolumeUSD": "11001058.02971317212003848445891",
+          "dailyTotalRevenueUSD": "33003.17408913951636011545337673"
+        }
+      ],
+      "_meta": {
+        "block": {
+          "number": 49121447,
+          "timestamp": 1785032241,
+          "hash": "0x4c8d9676350cd7754f7eb2a1f2eb8cab1660889c2a141be4a4f6905cc23dd54e"
+        },
+        "hasIndexingErrors": false,
+        "deployment": "QmawEzRNeDyaTgjPKb1eRrbyzxczgSHUYzvTMaMnN8jyuh"
+      }
+    }
+  },
+  "transport": {
+    "http_status": 200,
+    "latency_ms": 2326,
+    "error": null
+  }
+}

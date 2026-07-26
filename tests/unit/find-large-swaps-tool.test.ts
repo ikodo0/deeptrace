@@ -2,7 +2,11 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it, vi } from "vitest";
 
-import { COMPARE_POOLS_TOOL_NAME, FIND_LARGE_SWAPS_TOOL_NAME } from "../../src/mcp/server.js";
+import {
+  COMPARE_LENDING_MARKETS_TOOL_NAME,
+  COMPARE_POOLS_TOOL_NAME,
+  FIND_LARGE_SWAPS_TOOL_NAME,
+} from "../../src/mcp/server.js";
 import { startMcpServer } from "../../src/mcp/lifecycle.js";
 import { M0_CORE_POLICY } from "../../src/policy/index.js";
 import { findLargeSwapsResponseSchema } from "../../src/schemas/index.js";
@@ -194,9 +198,10 @@ describe("find_large_swaps MCP tool", () => {
       const listed = await client.listTools();
       expect(listed.tools.map(({ name }) => name)).toEqual([
         COMPARE_POOLS_TOOL_NAME,
+        COMPARE_LENDING_MARKETS_TOOL_NAME,
         FIND_LARGE_SWAPS_TOOL_NAME,
       ]);
-      const tool = listed.tools[1];
+      const tool = listed.tools[2];
       expect(tool?.title).toBe("Find large Base WETH/USDC swaps");
       expect(tool?.description).toContain("no USD conversion");
       expect(tool?.annotations?.readOnlyHint).toBe(true);

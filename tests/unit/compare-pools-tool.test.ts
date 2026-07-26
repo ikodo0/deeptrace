@@ -3,7 +3,11 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it, vi } from "vitest";
 
 import { FixedWindowRateLimiter } from "../../src/gateway/index.js";
-import { COMPARE_POOLS_TOOL_NAME, FIND_LARGE_SWAPS_TOOL_NAME } from "../../src/mcp/server.js";
+import {
+  COMPARE_LENDING_MARKETS_TOOL_NAME,
+  COMPARE_POOLS_TOOL_NAME,
+  FIND_LARGE_SWAPS_TOOL_NAME,
+} from "../../src/mcp/server.js";
 import { startMcpServer } from "../../src/mcp/lifecycle.js";
 import { M0_COMPARE_POOLS_SCOPE } from "../../src/scope/index.js";
 import {
@@ -106,12 +110,13 @@ describe("compare_pools MCP tool", () => {
     return { client, runtime };
   }
 
-  it("lists compare_pools alongside the released large-swap tool", async () => {
+  it("lists compare_pools alongside lending and large-swap tools", async () => {
     const { client, runtime } = await withClient();
     try {
       const listed = await client.listTools();
       expect(listed.tools.map((tool) => tool.name)).toEqual([
         COMPARE_POOLS_TOOL_NAME,
+        COMPARE_LENDING_MARKETS_TOOL_NAME,
         FIND_LARGE_SWAPS_TOOL_NAME,
       ]);
       const tool = listed.tools[0];
@@ -161,7 +166,7 @@ describe("compare_pools MCP tool", () => {
       expect(body.status).toBe("partial");
       expect(body.coverage.nuthatch_available).toBe(false);
       expect(body.coverage.successful_deployments).toBe(2);
-      expect(body.data?.pools[0]?.source_ids).toEqual(["exchange-v3-base"]);
+      expect(body.data?.pools[0]?.source_ids).toEqual([graphPoolA.source_id]);
       expect(result.structuredContent).toEqual(body);
       expect(onGraphFetch).toHaveBeenCalledTimes(1);
     } finally {
@@ -288,7 +293,7 @@ describe("compare_pools MCP tool", () => {
       };
       expect(body.status).toBe("partial");
       expect(body.coverage.successful_deployments).toBe(1);
-      expect(body.data?.pools[0]?.source_ids).toEqual(["uniswap-v3-base-native"]);
+      expect(body.data?.pools[0]?.source_ids).toEqual([graphPoolA.source_id]);
     } finally {
       await client.close();
       await runtime.close();

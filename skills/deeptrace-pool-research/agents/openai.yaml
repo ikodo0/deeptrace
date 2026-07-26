@@ -1,12 +1,12 @@
 interface:
-  display_name: "DeepTrace Pool & Swap Research"
-  short_description: "Compare Base pools and find large swaps"
-  default_prompt: "Use $deeptrace-pool-research to compare Base WETH/USDC pools or find token-thresholded swaps with verified freshness and provenance."
+  display_name: "DeepTrace Pool, Lending & Swap Research"
+  short_description: "Compare Base pools and lending markets, or find large swaps"
+  default_prompt: "Use $deeptrace-pool-research to compare Base WETH/USDC pools, Base USDC lending markets, or find token-thresholded swaps with verified freshness and provenance."
 
 dependencies:
   tools:
     - type: "mcp"
       value: "deeptrace"
-      description: "Read-only Base pool metrics, Nuthatch freshness, and stable large-swap pages"
+      description: "Read-only Base pool metrics, USDC lending markets, Nuthatch freshness, and stable large-swap pages"
       transport: "streamable_http"
       url: "https://mcp.ikodo.dev"

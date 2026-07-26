@@ -13,10 +13,10 @@ server; it is never exposed to an end user's machine.
 
 There are two HTTP services, but only the DeepTrace MCP gateway is public:
 
-| Surface | URL | Backs onto | Who calls it |
-| --- | --- | --- | --- |
-| DeepTrace MCP gateway | `https://mcp.ikodo.dev` | `127.0.0.1:8787` | MCP clients |
-| Nuthatch source API | `http://127.0.0.1:8288` | co-located Nuthatch service | the DeepTrace server only |
+| Surface               | URL                     | Backs onto                  | Who calls it              |
+| --------------------- | ----------------------- | --------------------------- | ------------------------- |
+| DeepTrace MCP gateway | `https://mcp.ikodo.dev` | `127.0.0.1:8787`            | MCP clients               |
+| Nuthatch source API   | `http://127.0.0.1:8288` | co-located Nuthatch service | the DeepTrace server only |
 
 The root URL is canonical. `/mcp` remains a legacy compatibility alias for
 already configured clients. Routes such as `/health`, `/ready`, `/nest`,
@@ -78,6 +78,12 @@ status `complete`, successful Graph coverage, and
 source is temporarily stale or unavailable; inspect its warnings and
 provenance rather than inventing missing values.
 
+For the lending tool, ask where to lend USDC on Base, or call
+`compare_lending_markets` with `chain_id` `8453` and `market_token`
+`0x833589fcd6edb6e08f4c7c32d4f71b54bda02913`. A result with status `complete`
+or `partial` is a successful tool call. A partial response identifies the stale
+or unavailable source in coverage and warnings.
+
 For swap history, call `find_large_swaps` with chain `8453`, pool
 `0x6c561b446416e1a00e8e93e221854d6ea4171372`, WETH or native USDC as
 `threshold_token`, and a positive human-unit `min_amount`. A healthy result is
@@ -86,12 +92,12 @@ request scope. This tool does not calculate USD notional.
 
 ### If it does not work — report back which one
 
-| You see | What it means |
-| --- | --- |
-| DNS, TLS, or timeout error | The public network path is unavailable. Confirm the hostname is exactly `mcp.ikodo.dev`; no Tailscale hostname is needed. |
-| HTTP 401 | You reached the server; the token is wrong or stale. Ask for a reissue. |
-| HTTP 404 | Use `https://mcp.ikodo.dev`; `/mcp` is supported only as a legacy alias. Do not append Nuthatch routes. |
-| Connected but a source is partial | Read the returned source warnings and provenance; client connectivity succeeded. |
+| You see                           | What it means                                                                                                             |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| DNS, TLS, or timeout error        | The public network path is unavailable. Confirm the hostname is exactly `mcp.ikodo.dev`; no Tailscale hostname is needed. |
+| HTTP 401                          | You reached the server; the token is wrong or stale. Ask for a reissue.                                                   |
+| HTTP 404                          | Use `https://mcp.ikodo.dev`; `/mcp` is supported only as a legacy alias. Do not append Nuthatch routes.                   |
+| Connected but a source is partial | Read the returned source warnings and provenance; client connectivity succeeded.                                          |
 
 Nothing here needs repo access, a Graph API key, or a local build.
 
@@ -102,15 +108,15 @@ Node >= 22. CT 104 runs v22.23.1.
 Environment variables. The app never reads `.env`, so export them in the
 shell or systemd unit that starts the server.
 
-| Variable | Purpose |
-| --- | --- |
-| `DEEPTRACE_HTTP_TOKEN` | Required for the HTTP transport. Minimum 32 characters. Startup fails otherwise. |
-| `DEEPTRACE_HTTP_PORT` | Default `8787`. |
-| `DEEPTRACE_HTTP_HOST` | Default `127.0.0.1`. |
-| `DEEPTRACE_HTTP_SESSION_IDLE_TIMEOUT_MS` | Idle session lifetime. Default `1800000` (30 minutes). |
-| `DEEPTRACE_HTTP_SESSION_SWEEP_INTERVAL_MS` | Idle-session cleanup cadence. Default `60000` (1 minute). |
-| `GRAPH_API_KEY` | Required, or every Graph source returns `unavailable`. |
-| `NUTHATCH_BASE_URL` | Production: `http://127.0.0.1:8288`, no trailing slash. |
+| Variable                                   | Purpose                                                                          |
+| ------------------------------------------ | -------------------------------------------------------------------------------- |
+| `DEEPTRACE_HTTP_TOKEN`                     | Required for the HTTP transport. Minimum 32 characters. Startup fails otherwise. |
+| `DEEPTRACE_HTTP_PORT`                      | Default `8787`.                                                                  |
+| `DEEPTRACE_HTTP_HOST`                      | Default `127.0.0.1`.                                                             |
+| `DEEPTRACE_HTTP_SESSION_IDLE_TIMEOUT_MS`   | Idle session lifetime. Default `1800000` (30 minutes).                           |
+| `DEEPTRACE_HTTP_SESSION_SWEEP_INTERVAL_MS` | Idle-session cleanup cadence. Default `60000` (1 minute).                        |
+| `GRAPH_API_KEY`                            | Required, or every Graph source returns `unavailable`.                           |
+| `NUTHATCH_BASE_URL`                        | Production: `http://127.0.0.1:8288`, no trailing slash.                          |
 
 Authenticated session requests refresh activity, and in-flight tool calls are
 not reaped. A standalone SSE stream does not keep an otherwise-idle session
@@ -181,15 +187,19 @@ export DEEPTRACE_HTTP_TOKEN
 DEEPTRACE_MCP_URL=https://mcp.ikodo.dev npm run smoke:mcp
 ```
 
+Example transcript shape (statuses and coverage ratios vary by live source
+health; the smoke script must exercise `tools/list` plus one `tools/call` for
+each of the three released tools):
+
 ```
 auth gate (no token)         PASS  status=401 (expected 401)
 unknown path                 PASS  status=404 (expected 404)
 initialize                   PASS  status=200 session=established
 notifications/initialized    PASS  status=202 (expected 202)
-tools/list                   PASS  tools=[compare_pools,find_large_swaps]
+tools/list                   PASS  tools=[compare_pools,compare_lending_markets,find_large_swaps]
 tools/call compare_pools     PASS  status=complete 2/2
+tools/call compare_lending_markets  PASS  status=complete 3/3
 tools/call find_large_swaps  PASS  status=complete 1/1
-7 passed, 0 failed
 ```
 
 Both variables are required; missing ones are reported by name only. The exit
@@ -203,13 +213,13 @@ configurations. After a successful initialize, the script always makes a
 best-effort authenticated `DELETE` to close the Streamable HTTP session,
 including when a later check fails. Tokens and session IDs are never printed.
 
-For `compare_pools`, both `complete` and `partial` prove that the call
-completed. The LSS smoke check requires `find_large_swaps` to be `complete`
-with 1/1 source coverage. A production `compare_pools` call normally returns
-`complete`; its `partial` status means at least one upstream source was stale or
-unavailable and must be explained from the returned warnings.
-`find_large_swaps` has no partial status: an unavailable sole source is
-`failed`.
+For `compare_pools` and `compare_lending_markets`, both `complete` and
+`partial` prove that the call completed. The LSS smoke check requires
+`find_large_swaps` to be `complete` with 1/1 source coverage. A production
+`compare_pools` call normally returns `complete`; its `partial` status means at
+least one upstream source was stale or unavailable and must be explained from
+the returned warnings. `find_large_swaps` has no partial status: an unavailable
+sole source is `failed`.
 
 ### Manual path
 
@@ -252,8 +262,8 @@ curl -sS -X POST http://127.0.0.1:8799 \
 
 ### Step 3 — tools/list
 
-Verified to return exactly two tools, `compare_pools` and
-`find_large_swaps`.
+Verified to return three read-only tools: `compare_pools`,
+`compare_lending_markets`, and `find_large_swaps`.
 
 ```
 curl -sS -X POST http://127.0.0.1:8799 \
@@ -264,7 +274,7 @@ curl -sS -X POST http://127.0.0.1:8799 \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 ```
 
-### Step 4 — tools/call
+### Step 4 — tools/call compare_pools
 
 Arguments are locked by the schema: `chain_id` must be `8453`, `token0` must be
 the WETH address, `token1` the native USDC address. `window` is `"24h"` or
@@ -280,18 +290,52 @@ curl -sS --max-time 90 -X POST http://127.0.0.1:8799 \
   -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"compare_pools","arguments":{"chain_id":8453,"token0":"0x4200000000000000000000000000000000000006","token1":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","window":"24h","ranked_by":"tvl_usd"}}}'
 ```
 
-Verified result today (values change; shape does not):
+Point-in-time sample from the Messari standardized fee-tier scope (values
+change; shape does not):
 
 ```
-status: complete
-coverage: {"requested_deployments":2,"successful_deployments":2,"nuthatch_available":true}
-pool 0x6c561b44... tvl 151138739.377709
-pool 0x72ab388e... tvl 6612457.78705088
+status: partial
+coverage: {"requested_deployments":2,"successful_deployments":2,"nuthatch_available":false}
+pool 0x6c561b44... (0.3% tier) tvl 114858626.99
+pool 0xd0b53d92... (0.05% tier) tvl 10638092.50
 ```
 
 The specific values, freshness block, and status may change. If the result is
 `partial`, use its warnings and per-source provenance to identify the degraded
 source.
+
+### Step 5 — tools/call compare_lending_markets
+
+The lending arguments are locked the same way: `chain_id` must be `8453` and
+`market_token` the native USDC address. `ranked_by` is `"tvl_usd"`,
+`"total_deposit_balance_usd"`, `"total_borrow_balance_usd"`,
+`"lender_variable_rate_percent"` or `"borrower_variable_rate_percent"`. `top_n`
+1..3.
+
+```
+curl -sS --max-time 90 -X POST http://127.0.0.1:8799 \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "mcp-session-id: $SID" \
+  -H "MCP-Protocol-Version: 2025-06-18" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"compare_lending_markets","arguments":{"chain_id":8453,"market_token":"0x833589fcd6edb6e08f4c7c32d4f71b54bda02913","ranked_by":"tvl_usd"}}}'
+```
+
+Point-in-time sample (values change; shape does not):
+
+```
+status: complete
+coverage: {"requested_sources":3,"successful_sources":3}
+aave-v3           tvl 172445408.88  lend 3.517726%  borrow 4.420738%
+moonwell          tvl 15066735.98   lend 4.116566%  borrow 5.238681%
+seamless-protocol tvl 205400.29     lend 0.110624%  borrow 1.045268%  is_active false
+```
+
+This tool reaches no Nuthatch view, so `complete` is the normal outcome when all
+three subgraphs answer. Seamless reporting its USDC market inactive is a fact
+the response carries through in `is_active` and a warning, not a failure.
+
+### Step 6 — tools/call find_large_swaps
 
 Call the released large-swap tool in the same session:
 
@@ -301,7 +345,7 @@ curl -sS --max-time 90 -X POST http://127.0.0.1:8799 \
   -H "Accept: application/json, text/event-stream" \
   -H "mcp-session-id: $SID" \
   -H "MCP-Protocol-Version: 2025-06-18" \
-  -d '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"find_large_swaps","arguments":{"chain_id":8453,"pool_address":"0x6c561b446416e1a00e8e93e221854d6ea4171372","threshold_token":"0x4200000000000000000000000000000000000006","min_amount":"1","limit":1}}}'
+  -d '{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"find_large_swaps","arguments":{"chain_id":8453,"pool_address":"0x6c561b446416e1a00e8e93e221854d6ea4171372","threshold_token":"0x4200000000000000000000000000000000000006","min_amount":"1","limit":1}}}'
 ```
 
 `complete` may contain zero matches. `failed` means the sole Nuthatch swap
@@ -406,19 +450,19 @@ bundle.
 
 ## Troubleshooting
 
-| Symptom | Cause |
-| --- | --- |
-| Public URL times out or does not resolve | Confirm the URL is exactly `https://mcp.ikodo.dev` and test public DNS/TLS. A normal user does not need Tailscale. |
-| HTTP 401 | Wrong or missing bearer token. The network path is fine — 401 means the server was reached. |
-| HTTP 403 `invalid_origin` | A browser or proxy sent an untrusted `Origin`. Native MCP clients normally omit it; browser-based requests must use `https://mcp.ikodo.dev`. |
-| HTTP 404 on `/health` or `/ready` | These are private Nuthatch routes, not public MCP routes. Use the MCP root URL; operators run Nuthatch probes on CT 104 loopback. |
-| HTTP 400 `missing_session` | `tools/*` sent without the `mcp-session-id` header, or before the `initialized` notification. |
-| Server exits at startup | `DEEPTRACE_HTTP_TOKEN` missing or shorter than 32 characters. |
-| `records.json could not be read` | Built with bare `tsc`. Re-run `npm run build`. |
-| All sources `unavailable` | `GRAPH_API_KEY` not set in the server's environment. |
+| Symptom                                    | Cause                                                                                                                                                             |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public URL times out or does not resolve   | Confirm the URL is exactly `https://mcp.ikodo.dev` and test public DNS/TLS. A normal user does not need Tailscale.                                                |
+| HTTP 401                                   | Wrong or missing bearer token. The network path is fine — 401 means the server was reached.                                                                       |
+| HTTP 403 `invalid_origin`                  | A browser or proxy sent an untrusted `Origin`. Native MCP clients normally omit it; browser-based requests must use `https://mcp.ikodo.dev`.                      |
+| HTTP 404 on `/health` or `/ready`          | These are private Nuthatch routes, not public MCP routes. Use the MCP root URL; operators run Nuthatch probes on CT 104 loopback.                                 |
+| HTTP 400 `missing_session`                 | `tools/*` sent without the `mcp-session-id` header, or before the `initialized` notification.                                                                     |
+| Server exits at startup                    | `DEEPTRACE_HTTP_TOKEN` missing or shorter than 32 characters.                                                                                                     |
+| `records.json could not be read`           | Built with bare `tsc`. Re-run `npm run build`.                                                                                                                    |
+| All sources `unavailable`                  | `GRAPH_API_KEY` not set in the server's environment.                                                                                                              |
 | Graph succeeds but Nuthatch is unavailable | Confirm `NUTHATCH_BASE_URL=http://127.0.0.1:8288`, then probe `/ready` locally and inspect `nuthatch.service`. Do not replace loopback with the tailnet hostname. |
-| Internal tailnet diagnostic times out | The restricted Tailscale Serve path or ACL identity may be wrong. Test loopback first; this does not affect what URL an MCP user should configure. |
-| Connected but zero tools | A stale build is deployed. Rebuild and restart. |
+| Internal tailnet diagnostic times out      | The restricted Tailscale Serve path or ACL identity may be wrong. Test loopback first; this does not affect what URL an MCP user should configure.                |
+| Connected but zero tools                   | A stale build is deployed. Rebuild and restart.                                                                                                                   |
 
 For an internal tailnet diagnostic, ACL denials can look like timeouts. Check
 the same Nuthatch route on `127.0.0.1:8288` before concluding the service is
@@ -481,3 +525,8 @@ service, and reissue the token to every client.
    `find_large_swaps` result rather than hiding the gap.
 2. The automated test suite remains offline. Operators run `npm run smoke:mcp`
    against the public URL as the post-deploy live integration check.
+3. `compare_pools` over-fetches eight daily snapshots so a window is never short
+   a day. When the current partial UTC day has no snapshot yet, all eight
+   returned days are complete and the response carries a
+   "8 completed days provided; using the 7 most recent" warning. The aggregate is
+   still exactly the requested window.

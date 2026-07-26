@@ -288,9 +288,11 @@ export function settleComparePoolsResult(input: SettleComparePoolsInput): Compar
       : nuthatchResultProvenance(input.nuthatchResult),
   ];
 
+  // Counts deployments that answered, not records returned: Top-N truncation is
+  // a caller's choice, so it must not read as missing source coverage.
   const coverage: Coverage = {
     requested_deployments: M0_CORE_POLICY.coverage.expectedGraphResults,
-    successful_deployments: input.pools.length,
+    successful_deployments: okGraphCount,
     nuthatch_available: nuthatchAvailable,
   };
 

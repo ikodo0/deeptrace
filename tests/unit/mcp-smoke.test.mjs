@@ -124,7 +124,11 @@ describe("MCP smoke session lifecycle", () => {
             jsonrpc: "2.0",
             id: message.id,
             result: {
-              tools: [{ name: "compare_pools" }, { name: "find_large_swaps" }],
+              tools: [
+                { name: "compare_pools" },
+                { name: "compare_lending_markets" },
+                { name: "find_large_swaps" },
+              ],
             },
           };
           response.writeHead(200, { "content-type": "text/event-stream" });
@@ -132,16 +136,22 @@ describe("MCP smoke session lifecycle", () => {
           return;
         }
 
+        const toolName = message.params?.name;
         const resultText =
-          message.params?.name === "find_large_swaps"
+          toolName === "find_large_swaps"
             ? JSON.stringify({
                 status: "complete",
                 coverage: { successful_sources: 1, requested_sources: 1 },
               })
-            : JSON.stringify({
-                status,
-                coverage: { successful_deployments: 2, requested_deployments: 2 },
-              });
+            : toolName === "compare_lending_markets"
+              ? JSON.stringify({
+                  status,
+                  coverage: { successful_sources: 3, requested_sources: 3 },
+                })
+              : JSON.stringify({
+                  status,
+                  coverage: { successful_deployments: 2, requested_deployments: 2 },
+                });
         const payload = {
           jsonrpc: "2.0",
           id: message.id,
@@ -166,10 +176,14 @@ describe("MCP smoke session lifecycle", () => {
     expect(result.stdout).toMatch(
       new RegExp(`tools/call compare_pools\\s+PASS\\s+status=${status} 2/2`),
     );
+    expect(result.stdout).toMatch(
+      new RegExp(`tools/call compare_lending_markets\\s+PASS\\s+status=${status} 3/3`),
+    );
     expect(result.stdout).toMatch(/tools\/call find_large_swaps\s+PASS\s+status=complete 1\/1/);
     expect(sessionRequests).toEqual([
       { method: "notifications/initialized", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/list", protocolVersion: PROTOCOL_VERSION },
+      { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
       { method: "tools/call", protocolVersion: PROTOCOL_VERSION },
     ]);
