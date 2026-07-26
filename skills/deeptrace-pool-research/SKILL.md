@@ -8,6 +8,10 @@ description: Research and compare the locked Base WETH/USDC liquidity pools thro
 Use the `compare_pools` MCP tool. Read `structuredContent` when available;
 otherwise parse the JSON object in the text result.
 
+For `complete` or `partial`, read ranked records from `data.pools` and the
+optional Nuthatch fact from `data.nuthatch_freshness_fact`. For `failed`,
+`data` is null.
+
 ## Connect safely
 
 - Use the canonical remote endpoint `https://mcp.ikodo.dev`.
@@ -46,19 +50,19 @@ supported scope. Never silently change the requested assets.
 - Treat Graph subgraphs as the source of pool TVL, volume, and fee metrics.
   Preserve every financial value as the exact returned decimal string.
 - Treat Nuthatch as an independent freshness fact for indexed Uniswap V3
-  `Swap` events on the registered pool. Use its recent swap count, last swap
-  block, timestamp, and block hash only as returned.
-- Treat `recent_swap_count` as the count for Nuthatch's configured view
-  lookback. Do not equate it with the requested `24h` or `7d` financial window
-  unless the response explicitly returns the same interval.
+  `Swap` events on the registered pool. Use
+  `data.nuthatch_freshness_fact.recent_swap_count_24h`, its last swap block and
+  timestamp, and the corresponding freshness record only as returned.
+- Treat `recent_swap_count_24h` as a distinct Nuthatch 24-hour fact. Do not
+  equate it with Graph volume, fees, transaction count, or a `7d` financial
+  window.
 - Do not claim Nuthatch supplies USD metrics, covers every pool, or proves
   parity with a subgraph.
 - Do not compare Graph and Nuthatch block heights as parity evidence unless the
   response explicitly returns a parity result.
 - Join freshness and provenance to results by `source_id`. Name the source,
-  returned `deployment_id`, query ID, and warnings when they affect confidence.
-  Do not infer whether a `deployment_id` identifies a Graph deployment or a
-  Nuthatch view.
+  returned `deployment_or_view_id`, query ID, and warnings when they affect
+  confidence. Do not infer which kind the combined identifier represents.
 
 ## Present the answer
 
