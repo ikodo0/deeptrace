@@ -465,6 +465,59 @@ describe("HTTP authentication", () => {
     }
   });
 
+  it("accepts the canonical public Origin", async () => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await fetch(base, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${VALID_TOKEN_32}`,
+          accept: "application/json, text/event-stream",
+          "content-type": "application/json",
+          origin: "https://mcp.ikodo.dev",
+        },
+        body: JSON.stringify(INITIALIZE_BODY),
+      });
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("mcp-session-id")).not.toBeNull();
+      await response.text();
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it.each([
+    ["POST", "/"],
+    ["GET", "/"],
+    ["GET", "/unknown"],
+  ] as const)("rejects an untrusted Origin on %s %s", async (method, path) => {
+    const { runtime, base } = await startTestServer();
+    try {
+      const response = await fetch(new URL(path, base), {
+        method,
+        headers: {
+          authorization: `Bearer ${VALID_TOKEN_32}`,
+          accept: method === "POST" ? "application/json, text/event-stream" : "text/html",
+          ...(method === "POST" ? { "content-type": "application/json" } : {}),
+          origin: "https://attacker.example",
+        },
+        ...(method === "POST" ? { body: JSON.stringify(INITIALIZE_BODY) } : {}),
+      });
+
+      expect(response.status).toBe(403);
+      expect(response.headers.get("www-authenticate")).toBeNull();
+      await expect(response.json()).resolves.toEqual({
+        error: {
+          code: "invalid_origin",
+          message: "Origin is not allowed",
+        },
+      });
+    } finally {
+      await runtime.close();
+    }
+  });
+
   it.each(["GET", "DELETE"] as const)(
     "does not treat an unauthorized %s event-stream request as a browser visit",
     async (method) => {
