@@ -16,6 +16,7 @@ A self-hosted blockchain index. Query it locally; there is no third-party API.
 - `pool__set_fee_protocol` - SetFeeProtocol(uint8,uint8,uint8,uint8) (block_number, block_hash, block_timestamp, tx_hash, log_index, address, _seq, feeProtocol0Old, feeProtocol1Old, feeProtocol0New, feeProtocol1New)
 - `pool__swap` - Swap(address,address,int256,int256,uint160,uint128,int24) (block_number, block_hash, block_timestamp, tx_hash, log_index, address, _seq, sender, recipient, amount0, amount1, sqrtPriceX96, liquidity, tick)
 - `pool_swap_search` - read-only raw swap receipt view for DeepTrace Large Swap Search keyset scans
+- `wallet_swap_activity` - read-only sender/recipient swap view for source-bounded Wallet Research
 
 ## Live HTTP API (run `nuthatch dev`)
 - `GET /`                    index status

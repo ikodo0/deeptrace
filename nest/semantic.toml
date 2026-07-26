@@ -39,3 +39,10 @@ table = "pool__swap"
 order = ["block_number DESC", "log_index DESC", "transaction_hash ASC"]
 threshold = "Exact selected-token thresholding occurs after DeepTrace normalization."
 pagination = "Bounded keyset scans freeze the first-page searchable head."
+
+[view.wallet_swap_activity]
+sql = "views/wallet_swap_activity.sql"
+table = "pool__swap"
+scope = "Only sender or recipient matches against the explicitly indexed pool."
+order = ["block_number DESC", "log_index DESC", "transaction_hash ASC"]
+pagination = "Fixed-snapshot keyset pages are bound to the requested wallet and window."
