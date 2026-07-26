@@ -344,7 +344,7 @@ export function createHttpServer(config: HttpConfig, options: HttpServerOptions 
           return;
         }
 
-        if (!isAuthorized(request.headers.authorization, config.token, tokenStore)) {
+        if (!isAuthorized(request.headers.authorization, config.sharedToken, tokenStore)) {
           // resource_metadata is how a client discovers the browser flow.
           // Without it the 401 is a dead end and the user copies a token by hand.
           response.setHeader(

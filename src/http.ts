@@ -1,4 +1,4 @@
-import { loadHttpConfig } from "./http/config.js";
+import { HTTP_ENV_VARS, loadHttpConfig } from "./http/config.js";
 import { createHttpServer, listen } from "./http/server.js";
 import { installShutdownHandlers } from "./mcp/lifecycle.js";
 
@@ -9,6 +9,11 @@ async function main(): Promise<void> {
   console.error(
     `[deeptrace] MCP HTTP transport listening on ${config.host}:${String(config.port)}`,
   );
+  if (config.sharedToken !== undefined) {
+    console.error(
+      `[deeptrace] ${HTTP_ENV_VARS.sharedToken} is still accepted. One leak of it exposes every client and cannot be revoked alone. Retire it by removing the variable; clients mint their own token at /auth.`,
+    );
+  }
   installShutdownHandlers(runtime);
 }
 

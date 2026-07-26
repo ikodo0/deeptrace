@@ -11,13 +11,15 @@ import { TokenStore } from "../../src/http/token-store.js";
 
 const SHARED_TOKEN = "a".repeat(MIN_TOKEN_LENGTH);
 
-async function startServer(): Promise<{ runtime: HttpRuntime; origin: string }> {
+// An options object rather than a defaulted parameter: passing `undefined`
+// positionally would select the default and silently keep the shared token.
+async function startServer(
+  overrides: { sharedToken: string | undefined } = { sharedToken: SHARED_TOKEN },
+): Promise<{ runtime: HttpRuntime; origin: string }> {
   const path = join(mkdtempSync(join(tmpdir(), "deeptrace-issue-")), "tokens.json");
-  const runtime = createHttpServer(
-    { ...HTTP_DEFAULTS, host: "127.0.0.1", port: 0, token: SHARED_TOKEN },
-    { tokenStore: new TokenStore(path) },
-  );
-  await listen(runtime, { ...HTTP_DEFAULTS, host: "127.0.0.1", port: 0, token: SHARED_TOKEN });
+  const config = { ...HTTP_DEFAULTS, host: "127.0.0.1", port: 0, ...overrides };
+  const runtime = createHttpServer(config, { tokenStore: new TokenStore(path) });
+  await listen(runtime, config);
   const address = runtime.server.address();
   if (address === null || typeof address === "string") {
     throw new Error("test server did not bind to a port");
@@ -82,6 +84,31 @@ describe("self-serve token issuance", () => {
       expect(accepted.status).not.toBe(401);
       await rejected.text();
       await accepted.text();
+    } finally {
+      await runtime.close();
+    }
+  });
+
+  it("keeps serving clients with the shared token retired", async () => {
+    const { runtime, origin } = await startServer({ sharedToken: undefined });
+    try {
+      const token = extractToken(await (await fetch(`${origin}/auth`, { method: "POST" })).text());
+
+      // The migration ends here: a self-serve token is the whole credential,
+      // and the shared one that used to open every door no longer does.
+      const accepted = await fetch(origin, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}` },
+      });
+      const retired = await fetch(origin, {
+        method: "POST",
+        headers: { authorization: `Bearer ${SHARED_TOKEN}` },
+      });
+
+      expect(accepted.status).not.toBe(401);
+      expect(retired.status).toBe(401);
+      await accepted.text();
+      await retired.text();
     } finally {
       await runtime.close();
     }

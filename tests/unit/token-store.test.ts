@@ -133,4 +133,22 @@ describe("isAuthorized with issued tokens", () => {
     expect(isAuthorized(`Bearer ${shared}`, shared)).toBe(true);
     expect(isAuthorized("Bearer nope", shared)).toBe(false);
   });
+
+  it("carries every client on minted tokens once the shared one is retired", () => {
+    const store = new TokenStore(storePath());
+    const token = store.mint();
+
+    expect(isAuthorized(`Bearer ${token}`, undefined, store)).toBe(true);
+    expect(isAuthorized(`Bearer ${shared}`, undefined, store)).toBe(false);
+  });
+
+  it("revoking a minted token locks out only that client", () => {
+    const store = new TokenStore(storePath());
+    const kept = store.mint();
+    const leaked = store.mint();
+
+    expect(store.revoke(createHash("sha256").update(leaked, "utf8").digest("hex"))).toBe(true);
+    expect(isAuthorized(`Bearer ${leaked}`, undefined, store)).toBe(false);
+    expect(isAuthorized(`Bearer ${kept}`, undefined, store)).toBe(true);
+  });
 });
