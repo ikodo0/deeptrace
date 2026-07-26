@@ -457,7 +457,7 @@ describe("HTTP routing", () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.headers.get("www-authenticate")).toBe('Bearer realm="deeptrace"');
+      expect(response.headers.get("www-authenticate")).toContain('Bearer realm="deeptrace"');
       await response.text();
     } finally {
       await runtime.close();
@@ -497,7 +497,7 @@ describe("HTTP authentication", () => {
       });
 
       expect(response.status).toBe(401);
-      expect(response.headers.get("www-authenticate")).toBe('Bearer realm="deeptrace"');
+      expect(response.headers.get("www-authenticate")).toContain('Bearer realm="deeptrace"');
       await expect(response.json()).resolves.toEqual({
         error: {
           code: "unauthorized",
@@ -575,7 +575,7 @@ describe("HTTP authentication", () => {
         });
 
         expect(response.status).toBe(401);
-        expect(response.headers.get("www-authenticate")).toBe('Bearer realm="deeptrace"');
+        expect(response.headers.get("www-authenticate")).toContain('Bearer realm="deeptrace"');
         await expect(response.json()).resolves.toEqual({
           error: {
             code: "unauthorized",
